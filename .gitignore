@@ -164,3 +164,4 @@ cython_debug/
 # Misc Files
 cookies.json
 debug.log
+.env
