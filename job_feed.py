@@ -11,10 +11,10 @@ from selenium.webdriver.support.wait import WebDriverWait
 def get_job_list(browser: webdriver.Chrome, jobs_data, last_job_link):
     browser.get("https://www.upwork.com/nx/search/jobs/?nbs=1&q=python&page=1&per_page=50")
 
-    print(browser.page_source)
+    # print(browser.page_source)
     jobs_articles = browser.find_elements(By.CLASS_NAME, "job-tile")
 
-    print(len(jobs_articles))
+    # print(len(jobs_articles))
 
     for job in jobs_articles:
         link = job.find_element(By.TAG_NAME, "a").get_attribute("href")
