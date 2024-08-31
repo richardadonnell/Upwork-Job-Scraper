@@ -55,7 +55,7 @@ if new_jobs:
         print(f"Successfully sent {len(new_jobs)} new jobs to webhook")
         # Update last sent jobs
         with open('last_sent_jobs.json', 'w') as file:
-            json.dump(current_data, file)
+            json.dump(current_data, file, indent=4)
     else:
         print(f"Failed to send data. Status code: {response.status_code}")
 else:
