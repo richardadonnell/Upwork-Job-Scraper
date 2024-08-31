@@ -1,14 +1,18 @@
 import json
 import os
 import time
+from dotenv import load_dotenv
 
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
 
+load_dotenv()
+SEARCH_TERM = os.getenv('SEARCH_TERM')
+
 def get_job_list(browser: webdriver.Chrome, jobs_data, last_job_link):
-    browser.get("https://www.upwork.com/nx/search/jobs/?nbs=1&q=python&page=1&per_page=50")
+    browser.get(f"https://www.upwork.com/nx/search/jobs/?nbs=1&q={SEARCH_TERM}&page=1&per_page=50")
 
     # print(browser.page_source)
     jobs_articles = browser.find_elements(By.CLASS_NAME, "job-tile")
@@ -60,6 +64,9 @@ def get_job_list(browser: webdriver.Chrome, jobs_data, last_job_link):
     return jobs_data
 
 def find_jobs(browser: webdriver.Chrome):
+    if not SEARCH_TERM:
+        raise ValueError("SEARCH_TERM is not set in the .env file")
+        
     jobs_output_file = "jobs_data.json"
 
     if os.path.exists(jobs_output_file):
