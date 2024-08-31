@@ -33,17 +33,33 @@ stealth(browser,
 # Find jobs and save to JSON file
 find_jobs(browser=browser)
 
-# Read JSON file
+# Read current JSON file
 with open('jobs_data.json', 'r') as file:
-    data = json.load(file)
+    current_data = json.load(file)
 
-# Send data to webhook as a single array
-response = requests.post(webhook_url, json={"jobs": data})
+# Read previously sent jobs
+try:
+    with open('last_sent_jobs.json', 'r') as file:
+        last_sent_data = json.load(file)
+except FileNotFoundError:
+    last_sent_data = []
 
-if response.status_code == 200:
-    print("Data successfully sent to webhook")
+# Find new jobs
+new_jobs = [job for job in current_data if job not in last_sent_data]
+
+if new_jobs:
+    # Send only new jobs to webhook
+    response = requests.post(webhook_url, json={"jobs": new_jobs})
+
+    if response.status_code == 200:
+        print(f"Successfully sent {len(new_jobs)} new jobs to webhook")
+        # Update last sent jobs
+        with open('last_sent_jobs.json', 'w') as file:
+            json.dump(current_data, file)
+    else:
+        print(f"Failed to send data. Status code: {response.status_code}")
 else:
-    print(f"Failed to send data. Status code: {response.status_code}")
+    print("No new jobs to send")
 
 # Close the browser
 browser.quit()

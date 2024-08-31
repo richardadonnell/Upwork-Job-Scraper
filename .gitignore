@@ -166,4 +166,4 @@ cookies.json
 debug.log
 .env
 jobs_data.json
-jobs_data.json
+last_sent_jobs.json
