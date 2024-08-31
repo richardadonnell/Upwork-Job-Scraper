@@ -7,8 +7,9 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
 
+
 def get_job_list(browser: webdriver.Chrome, jobs_data, last_job_link):
-    browser.get("https://www.upwork.com/nx/search/jobs/?nbs=1&q=wordpress&page=1&per_page=50")
+    browser.get("https://www.upwork.com/nx/search/jobs/?nbs=1&q=python&page=1&per_page=50")
 
     print(browser.page_source)
     jobs_articles = browser.find_elements(By.CLASS_NAME, "job-tile")
@@ -58,6 +59,9 @@ def get_job_list(browser: webdriver.Chrome, jobs_data, last_job_link):
         jobs_data.append(job_obj)
 
     return jobs_data
+
+
+
 
 def find_jobs(browser: webdriver.Chrome):
     jobs_output_file = "jobs_data.json"

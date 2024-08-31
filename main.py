@@ -1,5 +1,5 @@
-from job_feed import find_jobs
 from selenium import webdriver
+from job_feed import find_jobs
 from selenium_stealth import stealth
 
 options = webdriver.ChromeOptions()
@@ -23,3 +23,4 @@ stealth(browser,
 
 
 find_jobs(browser=browser)
+
