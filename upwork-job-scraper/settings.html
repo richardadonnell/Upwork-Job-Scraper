@@ -154,7 +154,7 @@
 
         #manual-scrape {
             margin-top: 10px;
-            margin-bottom: 20px;
+            margin-bottom: 30px;
             background-color: #4fc3f7;
             color: #1e1e1e;
             border: none;
@@ -200,6 +200,12 @@
             <h1>Upwork Job Scraper Settings</h1>
         </div>
         
+        <!-- Moved Scraped Jobs section to the top -->
+        <h2>Scraped Jobs</h2>
+        <div id="jobs-container"></div>
+
+        <button id="manual-scrape">Manually Scrape Jobs</button>
+
         <h2>Webhook Settings</h2>
         <div class="toggle-container">
             <label class="toggle-switch">
@@ -267,11 +273,6 @@
             </ol>
         </div>
         <button id="save-feed-sources">Save Feed Sources</button>
-
-        <h2>Scraped Jobs</h2>
-        <div id="jobs-container"></div>
-
-        <button id="manual-scrape">Manually Scrape Jobs</button>
 
         <h2>Activity Log</h2>
         <div id="log-container"></div>
