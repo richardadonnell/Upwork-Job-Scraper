@@ -1,5 +1,5 @@
 body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-family: 'DM Sans', sans-serif;
     background-color: #1e1e1e;
     color: #e0e0e0;
     margin: 0;
@@ -37,6 +37,7 @@ a:hover {
 
 /* Form elements */
 input[type="text"], input[type="number"] {
+    font-family: 'DM Sans', sans-serif;
     width: 100%;
     padding: 10px;
     margin: 10px 0;
@@ -268,4 +269,9 @@ footer {
     margin-right: 10px;
     width: 16px;
     height: 16px;
+}
+
+/* Add this to ensure all other text uses DM Sans */
+p, span, label, input, textarea, select, option {
+    font-family: 'DM Sans', sans-serif;
 }
