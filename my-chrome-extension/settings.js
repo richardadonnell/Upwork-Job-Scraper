@@ -1,3 +1,5 @@
+chrome.runtime.sendMessage({ type: 'settingsPageOpened' });
+
 document.getElementById('save').addEventListener('click', () => {
     const webhookUrl = document.getElementById('webhook-url').value;
     chrome.storage.sync.set({ webhookUrl: webhookUrl }, () => {

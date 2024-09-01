@@ -36,6 +36,8 @@ chrome.alarms.onAlarm.addListener((alarm) => {
 chrome.runtime.onStartup.addListener(checkForNewJobs);
 chrome.runtime.onInstalled.addListener(checkForNewJobs);
 
+let newJobsCount = 0;
+
 function addToActivityLog(message) {
     const logEntry = `${new Date().toLocaleString()}: ${message}`;
     console.log(logEntry); // Log to console for debugging
@@ -89,10 +91,10 @@ function scrapeJobs() {
 }
 
 function processJobs(newJobs) {
-    chrome.storage.local.get('scrapedJobs', (data) => {
+    chrome.storage.local.get(['scrapedJobs', 'lastViewedTimestamp'], (data) => {
         let existingJobs = data.scrapedJobs || [];
         let updatedJobs = [];
-        let newJobsCount = 0;
+        let addedJobsCount = 0;
 
         // Sort new jobs by posted time, newest first
         newJobs.sort((a, b) => new Date(b.posted) - new Date(a.posted));
@@ -100,7 +102,12 @@ function processJobs(newJobs) {
         newJobs.forEach(newJob => {
             if (!existingJobs.some(job => job.url === newJob.url)) {
                 updatedJobs.push(newJob);
-                newJobsCount++;
+                addedJobsCount++;
+                
+                // Increment newJobsCount if the job was scraped after the last viewed timestamp
+                if (!data.lastViewedTimestamp || newJob.scrapedAt > data.lastViewedTimestamp) {
+                    newJobsCount++;
+                }
             }
         });
 
@@ -112,16 +119,19 @@ function processJobs(newJobs) {
 
         // Store the updated scraped jobs
         chrome.storage.local.set({ scrapedJobs: allJobs }, () => {
-            addToActivityLog(`Added ${newJobsCount} new jobs. Total jobs: ${allJobs.length}`);
+            addToActivityLog(`Added ${addedJobsCount} new jobs. Total jobs: ${allJobs.length}`);
             
+            // Update the badge
+            updateBadge();
+
             // Send message to update the settings page if it's open
             chrome.runtime.sendMessage({ type: 'jobsUpdate', jobs: allJobs });
 
             chrome.storage.sync.get(['webhookUrl', 'notificationsEnabled'], (data) => {
                 if (data.webhookUrl) {
                     sendToWebhook(data.webhookUrl, updatedJobs);
-                } else if (data.notificationsEnabled && newJobsCount > 0) {
-                    sendNotification(`Found ${newJobsCount} new job${newJobsCount > 1 ? 's' : ''}!`);
+                } else if (data.notificationsEnabled && addedJobsCount > 0) {
+                    sendNotification(`Found ${addedJobsCount} new job${addedJobsCount > 1 ? 's' : ''}!`);
                 } else {
                     addToActivityLog('Webhook URL not set and notifications disabled or no new jobs found.');
                 }
@@ -129,6 +139,26 @@ function processJobs(newJobs) {
         });
     });
 }
+
+function updateBadge() {
+    if (newJobsCount > 0) {
+        chrome.action.setBadgeText({text: newJobsCount.toString()});
+        chrome.action.setBadgeBackgroundColor({color: '#4688F1'});
+    } else {
+        chrome.action.setBadgeText({text: ''});
+    }
+}
+
+// Reset the newJobsCount when the settings page is opened
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message.type === 'settingsPageOpened') {
+        newJobsCount = 0;
+        updateBadge();
+        
+        // Update the last viewed timestamp
+        chrome.storage.local.set({ lastViewedTimestamp: Date.now() });
+    }
+});
 
 function sendToWebhook(url, data) {
     addToActivityLog(`Sending ${data.length} jobs to webhook...`);
