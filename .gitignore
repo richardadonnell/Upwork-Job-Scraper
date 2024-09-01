@@ -29,3 +29,5 @@ upwork-job-scraper/*.Identifier
 upwork-job-scraper/public
 upwork-job-scraper/package.json
 upwork-job-scraper/package-lock.json
+
+*.zip
