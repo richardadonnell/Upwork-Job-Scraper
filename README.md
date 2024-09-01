@@ -1,3 +1,24 @@
+<p align="center">
+  <img src="https://raw.githubusercontent.com/PKief/vscode-material-icon-theme/ec559a9f6bfd399b82bb44393651661b08aaf7ba/icons/folder-markdown-open.svg" width="20%" alt="UPWORK-JOB-SCRAPER-logo">
+</p>
+<p align="center">
+    <h1 align="center">UPWORK JOB SCRAPER + WEBHOOK</h1>
+</p>
+<p align="center">
+    <em><code>⭐ Chrome Browser Extension ⭐</code></em>
+</p>
+<p align="center">
+	<img src="https://img.shields.io/github/license/warezit/Upwork-Job-Scraper?style=default&logo=opensourceinitiative&logoColor=white&color=0080ff" alt="license">
+	<img src="https://img.shields.io/github/last-commit/warezit/Upwork-Job-Scraper?style=default&logo=git&logoColor=white&color=0080ff" alt="last-commit">
+	<img src="https://img.shields.io/github/languages/top/warezit/Upwork-Job-Scraper?style=default&color=0080ff" alt="repo-top-language">
+	<img src="https://img.shields.io/github/languages/count/warezit/Upwork-Job-Scraper?style=default&color=0080ff" alt="repo-language-count">
+</p>
+<p align="center">
+	<!-- default option, no dependency badges. -->
+</p>
+
+<br>
+
 # Upwork Job Scraper + Webhook Chrome Extension
 
 ## Overview
