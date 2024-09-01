@@ -39,7 +39,13 @@
 
 ##  Overview
 
-The Upwork-Job-Scraper is a software project designed to automate the process of extracting job listings from Upwork, utilizing Selenium to effectively gather and organize job details such as titles, descriptions, rates, and experience levels. By storing this information in a structured JSON format, the scraper facilitates easy analysis and retrieval of data. Additionally, it enhances user experience through notifications sent via webhook, ensuring users receive updates only for new job entries. Overall, this project provides a valuable tool for freelancers and job seekers to efficiently stay informed about relevant opportunities on Upwork.
+The Upwork Job Scraper is a software project designed to automate the process of extracting job listings from Upwork, utilizing Selenium to effectively gather and organize job details such as titles, descriptions, rates, and experience levels.
+
+By storing this information in a structured JSON format, the scraper facilitates easy analysis and retrieval of data. 
+
+Additionally, it enhances user experience through notifications sent via webhook (e.g. Make.com), ensuring users receive updates only for new job entries. 
+
+Overall, this project provides a valuable tool for freelancers and job seekers to efficiently stay informed about relevant opportunities on Upwork.
 
 ---
 
@@ -117,7 +123,9 @@ pip install -r requirements.txt
 
 ###  Usage
 
-To run the project, execute the following command:
+1. Copy the `.env.example` file to `.env` and fill in the required environment variables.
+
+2. Run the project, execute the following command:
 
 ```sh
 python main.py
