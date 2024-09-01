@@ -21,6 +21,8 @@
 
 # Upwork Job Scraper + Webhook Chrome Extension
 
+![Upwork Job Scraper Screenshot](upwork-job-scraper/screenshot-main.jpg)
+
 ## Overview
 
 This Chrome extension automatically scrapes job listings from Upwork and sends them to a specified webhook URL. It provides a user-friendly interface for configuring settings, viewing scraped jobs, and monitoring the extension's activity.
