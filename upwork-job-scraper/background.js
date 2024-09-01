@@ -91,15 +91,33 @@ function addToActivityLog(message) {
 }
 
 function scrapeJobs() {
-    const jobElements = document.querySelectorAll('[data-test="job-tile-list"] > section');
+    let jobElements;
+    if (window.location.href.includes("find-work/most-recent")) {
+        jobElements = document.querySelectorAll('[data-test="job-tile-list"] > section');
+    } else {
+        jobElements = document.querySelectorAll('.job-tile');
+    }
+    
     const jobs = Array.from(jobElements).map(jobElement => {
-        const titleElement = jobElement.querySelector('.job-tile-title a');
-        const descriptionElement = jobElement.querySelector('[data-test="job-description-text"]');
-        const budgetElement = jobElement.querySelector('[data-test="budget"]');
-        const postedElement = jobElement.querySelector('[data-test="posted-on"]');
-        const proposalsElement = jobElement.querySelector('[data-test="proposals"]');
-        const clientCountryElement = jobElement.querySelector('[data-test="client-country"]');
-        const paymentVerificationElement = jobElement.querySelector('[data-test="payment-verification-status"]');
+        let titleElement, descriptionElement, budgetElement, postedElement, proposalsElement, clientCountryElement, paymentVerificationElement;
+        
+        if (window.location.href.includes("find-work/most-recent")) {
+            titleElement = jobElement.querySelector('.job-tile-title a');
+            descriptionElement = jobElement.querySelector('[data-test="job-description-text"]');
+            budgetElement = jobElement.querySelector('[data-test="budget"]');
+            postedElement = jobElement.querySelector('[data-test="posted-on"]');
+            proposalsElement = jobElement.querySelector('[data-test="proposals"]');
+            clientCountryElement = jobElement.querySelector('[data-test="client-country"]');
+            paymentVerificationElement = jobElement.querySelector('[data-test="payment-verification-status"]');
+        } else {
+            titleElement = jobElement.querySelector('.job-tile-title a');
+            descriptionElement = jobElement.querySelector('.mb-0.text-body-sm');
+            budgetElement = jobElement.querySelector('.text-base-sm.mb-4 li:nth-child(3)');
+            postedElement = jobElement.querySelector('small[data-test="job-pubilshed-date"] span:last-child');
+            proposalsElement = jobElement.querySelector('li[data-test="proposals-tier"]');
+            clientCountryElement = jobElement.querySelector('li[data-test="location"] .air3-badge-tagline');
+            paymentVerificationElement = jobElement.querySelector('li[data-test="payment-verified"]');
+        }
         
         return {
             title: titleElement ? titleElement.textContent.trim() : '',
@@ -114,14 +132,6 @@ function scrapeJobs() {
             scrapedAt: Date.now()
         };
     });
-
-    // Check if there's a "Load More" button and click it if present
-    const loadMoreButton = document.querySelector('button[data-ev-label="load_more_button"]');
-    if (loadMoreButton) {
-        loadMoreButton.click();
-        // Wait for new content to load and scrape again
-        setTimeout(scrapeJobs, 2000);
-    }
 
     return jobs;
 }
