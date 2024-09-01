@@ -123,7 +123,7 @@ pip install -r requirements.txt
 
 ###  Usage
 
-1. Copy the `.env.example` file to `.env` and fill in the required environment variables.
+1. Copy the `.exmaple.env` file to `.env` and fill in the required environment variables.
 
 2. Run the project, execute the following command:
 
