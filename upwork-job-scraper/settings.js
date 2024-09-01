@@ -29,7 +29,40 @@ function sendMessageToBackground(message) {
     });
 }
 
-// Wrap the existing code in a function:
+// Add these functions at the top of your settings.js file
+
+let countdownInterval;
+
+function updateCountdown() {
+    chrome.alarms.get('checkJobs', (alarm) => {
+        if (alarm) {
+            const now = new Date().getTime();
+            const nextAlarm = alarm.scheduledTime;
+            const timeLeft = nextAlarm - now;
+
+            if (timeLeft > 0) {
+                const hours = Math.floor((timeLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
+
+                document.getElementById('next-check-countdown').textContent = 
+                    `Next check in: ${hours}h ${minutes}m ${seconds}s`;
+            } else {
+                document.getElementById('next-check-countdown').textContent = 'Check imminent...';
+            }
+        } else {
+            document.getElementById('next-check-countdown').textContent = 'Countdown not available';
+        }
+    });
+}
+
+function startCountdown() {
+    updateCountdown(); // Initial update
+    clearInterval(countdownInterval); // Clear any existing interval
+    countdownInterval = setInterval(updateCountdown, 1000); // Update every second
+}
+
+// Modify the existing initializeSettings function
 function initializeSettings() {
     chrome.runtime.sendMessage({ type: 'settingsPageOpened' });
 
@@ -153,19 +186,18 @@ function initializeSettings() {
             console.log('Check frequency saved');
             addLogEntry(`Check frequency saved: ${days}d ${hours}h ${minutes}m`);
             chrome.runtime.sendMessage({ type: 'updateCheckFrequency', frequency: totalMinutes });
+            startCountdown(); // Restart the countdown with the new frequency
         });
     });
 
     // Load saved check frequency when the page opens
     chrome.storage.sync.get('checkFrequency', (data) => {
-        const totalMinutes = data.checkFrequency || 1; // Default to 1 minute if not set
-        const days = Math.floor(totalMinutes / 1440);
-        const hours = Math.floor((totalMinutes % 1440) / 60);
-        const minutes = totalMinutes % 60;
-
-        document.getElementById('days').value = days || '';
-        document.getElementById('hours').value = hours || '';
-        document.getElementById('minutes').value = minutes || 1;
+        if (data.checkFrequency) {
+            document.getElementById('days').value = Math.floor(data.checkFrequency / 1440) || '';
+            document.getElementById('hours').value = Math.floor((data.checkFrequency % 1440) / 60) || '';
+            document.getElementById('minutes').value = data.checkFrequency % 60 || 1;
+        }
+        startCountdown(); // Start the countdown after loading the frequency
     });
 
     // Function to add log entries
