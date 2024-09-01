@@ -3,6 +3,16 @@ chrome.action.onClicked.addListener(() => {
     chrome.runtime.openOptionsPage();
 });
 
+// Add these variables at the top of the file
+let selectedFeedSource = 'most-recent';
+let customSearchUrl = '';
+let checkFrequency = 1; // Default to 1 minute
+
+function updateAlarm() {
+    chrome.alarms.clear("checkJobs");
+    chrome.alarms.create("checkJobs", { periodInMinutes: checkFrequency });
+}
+
 // Function to check for new jobs
 function checkForNewJobs() {
     addToActivityLog('Starting job check...');
@@ -37,10 +47,6 @@ function checkForNewJobs() {
     });
 }
 
-// Add these variables at the top of the file
-let selectedFeedSource = 'most-recent';
-let customSearchUrl = '';
-
 // Load saved check frequency when the extension starts
 chrome.storage.sync.get('checkFrequency', (data) => {
     if (data.checkFrequency) {
@@ -57,8 +63,14 @@ chrome.alarms.onAlarm.addListener((alarm) => {
 });
 
 // Run initial job check when extension is activated
-chrome.runtime.onStartup.addListener(checkForNewJobs);
-chrome.runtime.onInstalled.addListener(checkForNewJobs);
+chrome.runtime.onStartup.addListener(() => {
+    loadFeedSourceSettings();
+    checkForNewJobs();
+});
+chrome.runtime.onInstalled.addListener(() => {
+    loadFeedSourceSettings();
+    checkForNewJobs();
+});
 
 let newJobsCount = 0;
 
@@ -188,6 +200,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         checkFrequency = message.frequency;
         updateAlarm();
         addToActivityLog(`Check frequency updated to ${checkFrequency} minute(s)`);
+    } else if (message.type === 'updateFeedSources') {
+        loadFeedSourceSettings();
     }
 });
 
