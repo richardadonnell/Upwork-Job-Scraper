@@ -1,34 +1,250 @@
 body {
-    font-family: Arial, sans-serif;
-    margin: 20px;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #1e1e1e;
+    color: #e0e0e0;
+    margin: 0;
+    padding: 20px;
+    line-height: 1.6;
+}
+
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+/* Typography */
+h1, h2, h3 {
+    color: #4fc3f7;
 }
 
 h1 {
     font-size: 24px;
 }
 
-form {
+a {
+    color: #4fc3f7;
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+/* Form elements */
+input[type="text"], input[type="number"] {
+    width: 100%;
+    padding: 10px;
+    margin: 10px 0;
+    background-color: #333;
+    border: 1px solid #555;
+    color: #e0e0e0;
+    border-radius: 4px;
+}
+
+button {
+    background-color: #4fc3f7;
+    color: #1e1e1e;
+    border: none;
+    padding: 10px 20px;
+    cursor: pointer;
+    border-radius: 4px;
+    font-weight: bold;
+}
+
+button:hover {
+    background-color: #3ba8d9;
+}
+
+/* Containers */
+#log-container, #jobs-container {
+    margin-top: 20px;
+    border: 1px solid #555;
+    padding: 15px;
+    height: 300px;
+    overflow-y: auto;
+    background-color: #2a2a2a;
+    border-radius: 4px;
+}
+
+/* Add spacing above the manual scrape button */
+#manual-scrape {
+    margin-top: 20px;
+    margin-bottom: 30px;
+}
+
+/* Job items */
+.job-item {
+    margin-bottom: 15px;
+    background-color: #333;
+    padding: 10px;
+    border-radius: 4px;
+}
+
+.job-title {
+    cursor: pointer;
+    font-weight: bold;
+    color: #4fc3f7;
+}
+
+.job-details {
+    display: none;
+    margin-left: 20px;
+    margin-top: 10px;
+}
+
+/* Toggle switch */
+.toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 60px;
+    height: 34px;
+}
+
+.toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: .4s;
+    border-radius: 34px;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 26px;
+    width: 26px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    transition: .4s;
+    border-radius: 50%;
+}
+
+input:checked + .slider {
+    background-color: #4fc3f7;
+}
+
+input:checked + .slider:before {
+    transform: translateX(26px);
+}
+
+/* Layout */
+.header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.header img {
+    width: 48px;
+    height: 48px;
+    margin-right: 15px;
+}
+
+.toggle-container {
+    display: flex;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.toggle-label {
+    margin-left: 10px;
+}
+
+.button-group {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.frequency-container {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-bottom: 20px;
+    background-color: #2a2a2a;
+    padding: 15px;
+    border-radius: 4px;
+    /* Add right padding */
+    padding-right: 20px;
+}
+
+.frequency-input {
     display: flex;
     flex-direction: column;
 }
 
-label {
+.frequency-input label {
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+
+.frequency-input input {
+    width: 100%;
+    padding: 8px;
+    background-color: #333;
+    border: 1px solid #555;
+    color: #e0e0e0;
+    border-radius: 4px;
+    /* Add right padding to input fields */
+    padding-right: 15px;
+}
+
+#save-frequency {
+    align-self: flex-start;
     margin-top: 10px;
 }
 
-input {
-    margin-bottom: 10px;
+/* Custom elements */
+#next-check-countdown {
+    margin-bottom: 15px;
+    font-weight: bold;
+    color: #4fc3f7;
 }
 
-button {
+.buy-me-coffee {
+    text-align: center;
+    margin-top: 30px;
+}
+
+.buy-me-coffee img {
+    max-width: 200px;
+    transition: transform 0.3s ease;
+}
+
+.buy-me-coffee img:hover {
+    transform: scale(1.05);
+}
+
+/* Footer */
+footer {
     margin-top: 20px;
-    padding: 10px;
-    background-color: #4CAF50;
-    color: white;
-    border: none;
-    cursor: pointer;
+    text-align: center;
 }
 
-button:hover {
-    background-color: #45a049;
+.github-link {
+    display: inline-block;
+    padding: 10px 20px;
+    background-color: #24292e;
+    color: #ffffff;
+    text-decoration: none;
+    border-radius: 5px;
+    font-weight: bold;
+}
+
+.github-link img {
+    vertical-align: middle;
+    margin-right: 10px;
+    width: 16px;
+    height: 16px;
 }
