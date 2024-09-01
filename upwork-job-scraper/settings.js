@@ -358,15 +358,35 @@ function initializeSettings() {
 
     // Load saved feed source settings when the page opens
     chrome.storage.sync.get(['selectedFeedSource', 'customSearchUrl'], (data) => {
-        const selectedFeedSource = data.selectedFeedSource || 'most-recent';
+        const customSearchUrl = data.customSearchUrl || '';
+        const selectedFeedSource = customSearchUrl ? 'custom-search' : (data.selectedFeedSource || 'most-recent');
+        
         document.querySelector(`input[name="feed-source"][value="${selectedFeedSource}"]`).checked = true;
         
-        const customSearchUrl = document.getElementById('custom-search-url');
-        customSearchUrl.value = data.customSearchUrl || '';
-        customSearchUrl.disabled = selectedFeedSource !== 'custom-search';
+        const customSearchUrlInput = document.getElementById('custom-search-url');
+        customSearchUrlInput.value = customSearchUrl;
+        customSearchUrlInput.disabled = selectedFeedSource !== 'custom-search';
+        
+        // Update the UI based on the selected feed source
+        updateFeedSourceUI(selectedFeedSource);
     });
 
-    // Add this event listener after the other event listeners
+    // Add event listeners to radio buttons
+    document.querySelectorAll('input[name="feed-source"]').forEach((radio) => {
+        radio.addEventListener('change', (event) => {
+            updateFeedSourceUI(event.target.value);
+        });
+    });
+
+    // Add this new function to update the UI based on the selected feed source
+    function updateFeedSourceUI(selectedFeedSource) {
+        const customSearchUrl = document.getElementById('custom-search-url');
+        if (selectedFeedSource === 'custom-search') {
+            customSearchUrl.disabled = false;
+        } else {
+            customSearchUrl.disabled = true;
+        }
+    }
 
     document.getElementById('manual-scrape').addEventListener('click', () => {
         sendMessageToBackground({ type: 'manualScrape' })

@@ -20,13 +20,10 @@ async function checkForNewJobs() {
     addToActivityLog('Starting job check...');
     
     let url;
-    if (selectedFeedSource === 'most-recent') {
-        url = "https://www.upwork.com/nx/find-work/most-recent";
-    } else if (selectedFeedSource === 'custom-search' && customSearchUrl) {
+    if (selectedFeedSource === 'custom-search' && customSearchUrl) {
         url = customSearchUrl;
     } else {
-        addToActivityLog('No valid feed source selected');
-        return;
+        url = "https://www.upwork.com/nx/find-work/most-recent";
     }
 
     chrome.tabs.create({ url: url, active: false }, (tab) => {
@@ -277,6 +274,12 @@ function loadFeedSourceSettings() {
             customSearchUrl = data.customSearchUrl || '';
             webhookUrl = data.webhookUrl || '';
             webhookEnabled = data.webhookEnabled || false;
+
+            // If a custom URL is saved, use it regardless of the selectedFeedSource
+            if (customSearchUrl) {
+                selectedFeedSource = 'custom-search';
+            }
+
             resolve();
         });
     });
