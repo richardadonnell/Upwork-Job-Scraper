@@ -15,14 +15,18 @@ function checkForNewJobs() {
                 addToActivityLog('Error: ' + chrome.runtime.lastError.message);
             } else if (results && results[0]) {
                 const jobs = results[0].result;
+                addToActivityLog(`Scraped ${jobs.length} jobs`);
                 processJobs(jobs);
+            } else {
+                addToActivityLog('No jobs scraped or unexpected result');
             }
             chrome.tabs.remove(tab.id);
+            addToActivityLog('Job check completed');
         });
     });
 }
 
-let checkFrequency = 60; // Default to 1 minute
+let checkFrequency = 1; // Default to 1 minute
 
 function updateAlarm() {
     chrome.alarms.clear("checkJobs");
@@ -175,7 +179,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     } else if (message.type === 'updateCheckFrequency') {
         checkFrequency = message.frequency;
         updateAlarm();
-        addToActivityLog(`Check frequency updated to ${checkFrequency} minutes`);
+        addToActivityLog(`Check frequency updated to ${checkFrequency} minute(s)`);
     }
 });
 

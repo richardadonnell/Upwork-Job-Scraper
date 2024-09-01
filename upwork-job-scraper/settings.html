@@ -135,11 +135,30 @@
         #test-webhook:hover {
             background-color: #45a049;
         }
+        
+        .header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .header img {
+            width: 48px;
+            height: 48px;
+            margin-right: 15px;
+        }
+
+        .header h1 {
+            margin: 0;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Upwork Job Scraper Settings</h1>
+        <div class="header">
+            <img src="icon48.png" alt="Upwork Job Scraper Icon">
+            <h1>Upwork Job Scraper Settings</h1>
+        </div>
         
         <h2>Webhook Settings</h2>
         <div class="toggle-container">
