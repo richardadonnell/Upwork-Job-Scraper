@@ -39,6 +39,7 @@ function initializeSettings() {
         chrome.storage.sync.set({ webhookUrl: webhookUrl, webhookEnabled: webhookEnabled }, () => {
             console.log('Webhook settings saved');
             addLogEntry('Webhook settings saved');
+            chrome.runtime.sendMessage({ type: 'updateWebhookSettings' });
         });
     });
 
@@ -125,11 +126,12 @@ function initializeSettings() {
 
     // Save webhook setting when toggled
     document.getElementById('webhook-toggle').addEventListener('change', (event) => {
-        const isEnabled = event.target.checked;
-        chrome.storage.sync.set({ webhookEnabled: isEnabled }, () => {
-            console.log('Webhook setting saved:', isEnabled);
-            addLogEntry(`Webhook ${isEnabled ? 'enabled' : 'disabled'}`);
+        const webhookEnabled = event.target.checked;
+        chrome.storage.sync.set({ webhookEnabled: webhookEnabled }, () => {
+            console.log('Webhook ' + (webhookEnabled ? 'enabled' : 'disabled'));
+            addLogEntry(`Webhook ${webhookEnabled ? 'enabled' : 'disabled'}`);
             updateWebhookInputState();
+            chrome.runtime.sendMessage({ type: 'updateWebhookSettings' });
         });
     });
 

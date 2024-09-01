@@ -7,6 +7,7 @@ chrome.action.onClicked.addListener(() => {
 let selectedFeedSource = 'most-recent';
 let customSearchUrl = '';
 let checkFrequency = 1; // Default to 1 minute
+let webhookEnabled = false;
 
 function updateAlarm() {
     chrome.alarms.clear("checkJobs");
@@ -154,12 +155,10 @@ function processJobs(newJobs) {
                     newJobsCount++;
                 }
 
-                // Send each new job individually to the webhook
-                chrome.storage.sync.get('webhookUrl', (data) => {
-                    if (data.webhookUrl) {
-                        sendToWebhook(data.webhookUrl, [newJob]);
-                    }
-                });
+                // Only send to webhook if it's enabled
+                if (webhookEnabled && webhookUrl) {
+                    sendToWebhook(webhookUrl, [newJob]);
+                }
             }
         });
 
@@ -218,10 +217,17 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     } else if (message.type === 'ping') {
         sendResponse({ status: 'ready' });
         return true;
+    } else if (message.type === 'updateWebhookSettings') {
+        loadFeedSourceSettings();
     }
 });
 
 function sendToWebhook(url, data) {
+    if (!webhookEnabled) {
+        addToActivityLog('Webhook is disabled. Skipping send.');
+        return;
+    }
+    
     addToActivityLog(`Sending job to webhook...`);
     fetch(url, {
         method: 'POST',
@@ -266,9 +272,11 @@ function sendNotification(message) {
 // Update this function to load feed source settings
 function loadFeedSourceSettings() {
     return new Promise((resolve) => {
-        chrome.storage.sync.get(['selectedFeedSource', 'customSearchUrl'], (data) => {
+        chrome.storage.sync.get(['selectedFeedSource', 'customSearchUrl', 'webhookUrl', 'webhookEnabled'], (data) => {
             selectedFeedSource = data.selectedFeedSource || 'most-recent';
             customSearchUrl = data.customSearchUrl || '';
+            webhookUrl = data.webhookUrl || '';
+            webhookEnabled = data.webhookEnabled || false;
             resolve();
         });
     });
@@ -281,6 +289,8 @@ chrome.runtime.onInstalled.addListener(loadFeedSourceSettings);
 // Add this message listener to handle feed source updates
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.type === 'updateFeedSources') {
+        loadFeedSourceSettings();
+    } else if (message.type === 'updateWebhookSettings') {
         loadFeedSourceSettings();
     }
     // ... existing message handlers ...
