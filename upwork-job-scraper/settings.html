@@ -16,12 +16,12 @@
         <h2>Scraped Jobs</h2>
         <div id="jobs-container"></div>
 
-        <button id="manual-scrape" class="button-secondary">Manually Scrape Jobs</button>
+        <button id="manual-scrape">Manually Scrape Jobs</button>
 
         <h2>Webhook Settings</h2>
         <div class="toggle-container">
             <label class="toggle-switch">
-                <input type="checkbox" id="webhook-toggle">
+                <input type="checkbox" id="webhook-toggle" checked>
                 <span class="slider"></span>
             </label>
             <span class="toggle-label">Enable webhook</span>
@@ -29,8 +29,8 @@
         <label for="webhook-url">Webhook URL:</label>
         <input type="text" id="webhook-url" name="webhook-url" placeholder="Enter your webhook URL">
         <div class="button-group">
-            <button id="save-webhook-url">Save URL</button>
-            <button id="test-webhook" class="button-secondary">Test Webhook</button>
+            <button id="save">Save</button>
+            <button id="test-webhook">Test Webhook</button>
         </div>
 
         <h2>Notification Settings</h2>

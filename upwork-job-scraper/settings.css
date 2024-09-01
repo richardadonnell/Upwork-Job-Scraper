@@ -14,7 +14,7 @@ body {
 
 /* Typography */
 h1, h2, h3 {
-    color: #61eb38;
+    color: #4fc3f7;
 }
 
 h1 {
@@ -22,7 +22,7 @@ h1 {
 }
 
 a {
-    color: #61eb38;
+    color: #4fc3f7;
     text-decoration: none;
 }
 
@@ -42,7 +42,7 @@ input[type="text"], input[type="number"] {
 }
 
 button {
-    background-color: #61eb38;
+    background-color: #4fc3f7;
     color: #1e1e1e;
     border: none;
     padding: 10px 20px;
@@ -52,18 +52,7 @@ button {
 }
 
 button:hover {
-    background-color: #4ebc2d;
-}
-
-/* Add this new style for secondary buttons */
-.button-secondary {
-    background-color: transparent;
-    color: #61eb38;
-    border: 1px solid #61eb38;
-}
-
-.button-secondary:hover {
-    background-color: rgba(97, 235, 56, 0.1);
+    background-color: #3ba8d9;
 }
 
 /* Containers */
@@ -94,7 +83,7 @@ button:hover {
 .job-title {
     cursor: pointer;
     font-weight: bold;
-    color: #61eb38;
+    color: #4fc3f7;
 }
 
 .job-details {
@@ -142,7 +131,7 @@ button:hover {
 }
 
 input:checked + .slider {
-    background-color: #61eb38;
+    background-color: #4fc3f7;
 }
 
 input:checked + .slider:before {
@@ -220,7 +209,7 @@ input:checked + .slider:before {
 #next-check-countdown {
     margin-bottom: 15px;
     font-weight: bold;
-    color: #61eb38;
+    color: #4fc3f7;
 }
 
 .buy-me-coffee {
