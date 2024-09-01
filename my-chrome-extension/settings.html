@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upwork Job Scraper Settings</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #1e1e1e;
+            color: #e0e0e0;
+            margin: 0;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        h1, h2 {
+            color: #4fc3f7;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            background-color: #333;
+            border: 1px solid #555;
+            color: #e0e0e0;
+            border-radius: 4px;
+        }
+        button {
+            background-color: #4fc3f7;
+            color: #1e1e1e;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        button:hover {
+            background-color: #3ba8d9;
+        }
+        #log-container, #jobs-container {
+            margin-top: 20px;
+            border: 1px solid #555;
+            padding: 15px;
+            height: 300px;
+            overflow-y: auto;
+            background-color: #2a2a2a;
+            border-radius: 4px;
+        }
+        .job-item {
+            margin-bottom: 15px;
+            background-color: #333;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .job-title {
+            cursor: pointer;
+            font-weight: bold;
+            color: #4fc3f7;
+        }
+        .job-details {
+            display: none;
+            margin-left: 20px;
+            margin-top: 10px;
+        }
+        a {
+            color: #4fc3f7;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+        }
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 34px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        input:checked + .slider {
+            background-color: #4fc3f7;
+        }
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+        .toggle-container {
+            display: flex;
+            align-items: center;
+            margin-top: 10px;
+        }
+        .toggle-label {
+            margin-left: 10px;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        #test-webhook {
+            background-color: #4CAF50;
+        }
+
+        #test-webhook:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Upwork Job Scraper Settings</h1>
+        
+        <h2>Webhook Settings</h2>
+        <label for="webhook-url">Webhook URL:</label>
+        <input type="text" id="webhook-url" name="webhook-url" placeholder="Enter your webhook URL">
+        <div class="button-group">
+            <button id="save">Save</button>
+            <button id="test-webhook">Test Webhook</button>
+        </div>
+
+        <h2>Notification Settings</h2>
+        <div class="toggle-container">
+            <label class="toggle-switch">
+                <input type="checkbox" id="notification-toggle" checked>
+                <span class="slider"></span>
+            </label>
+            <span class="toggle-label">Enable browser push notifications</span>
+        </div>
+
+        <h2>Job Check Frequency</h2>
+        <div class="frequency-container">
+            <div class="frequency-input">
+                <label for="days">Days:</label>
+                <input type="number" id="days" min="0" max="365" placeholder="0">
+            </div>
+            <div class="frequency-input">
+                <label for="hours">Hours:</label>
+                <input type="number" id="hours" min="0" max="23" placeholder="0">
+            </div>
+            <div class="frequency-input">
+                <label for="minutes">Minutes:</label>
+                <input type="number" id="minutes" min="0" max="59" placeholder="1">
+            </div>
+            <div class="frequency-input">
+                <label for="seconds">Seconds:</label>
+                <input type="number" id="seconds" min="0" max="59" placeholder="0">
+            </div>
+            <button id="save-frequency">Save Frequency</button>
+        </div>
+
+        <h2>Scraped Jobs</h2>
+        <div id="jobs-container"></div>
+
+        <h2>Activity Log</h2>
+        <div id="log-container"></div>
+    </div>
+
+    <script src="settings.js"></script>
+</body>
+</html>
