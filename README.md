@@ -197,3 +197,5 @@ This project is protected under the [GPL-3.0](https://github.com/warezit/Upwork-
 - Inspiration from [this repo](https://github.com/Vleo4/upwork-bot)
 
 ---
+
+[![Buy Me A Coffee](https://img.buymeacoffee.com/button-api/?text=Buy%20me%20a%20coffee&emoji=&slug=warezitb&button_colour=FF5F5F&font_colour=ffffff&font_family=Cookie&outline_colour=000000&coffee_colour=ffffff)](https://buymeacoffee.com/warezitb)
