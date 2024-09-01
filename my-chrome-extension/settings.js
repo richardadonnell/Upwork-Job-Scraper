@@ -60,18 +60,16 @@ document.getElementById('save-frequency').addEventListener('click', () => {
 
 // Load saved check frequency when the page opens
 chrome.storage.sync.get('checkFrequency', (data) => {
-    if (data.checkFrequency) {
-        const totalSeconds = data.checkFrequency;
-        const days = Math.floor(totalSeconds / 86400);
-        const hours = Math.floor((totalSeconds % 86400) / 3600);
-        const minutes = Math.floor((totalSeconds % 3600) / 60);
-        const seconds = totalSeconds % 60;
+    const totalSeconds = data.checkFrequency || 60; // Default to 60 seconds if not set
+    const days = Math.floor(totalSeconds / 86400);
+    const hours = Math.floor((totalSeconds % 86400) / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
 
-        document.getElementById('days').value = days;
-        document.getElementById('hours').value = hours;
-        document.getElementById('minutes').value = minutes;
-        document.getElementById('seconds').value = seconds;
-    }
+    document.getElementById('days').value = days;
+    document.getElementById('hours').value = hours || '';
+    document.getElementById('minutes').value = minutes || '';
+    document.getElementById('seconds').value = seconds || '';
 });
 
 // Function to add log entries

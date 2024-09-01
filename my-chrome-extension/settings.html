@@ -143,10 +143,22 @@
 
         <h2>Job Check Frequency</h2>
         <div class="frequency-container">
-            <input type="number" id="days" min="0" max="365" placeholder="Days">
-            <input type="number" id="hours" min="0" max="23" placeholder="Hours">
-            <input type="number" id="minutes" min="0" max="59" placeholder="Minutes">
-            <input type="number" id="seconds" min="0" max="59" placeholder="Seconds">
+            <div class="frequency-input">
+                <label for="days">Days:</label>
+                <input type="number" id="days" min="0" max="365" placeholder="0">
+            </div>
+            <div class="frequency-input">
+                <label for="hours">Hours:</label>
+                <input type="number" id="hours" min="0" max="23" placeholder="0">
+            </div>
+            <div class="frequency-input">
+                <label for="minutes">Minutes:</label>
+                <input type="number" id="minutes" min="0" max="59" placeholder="1">
+            </div>
+            <div class="frequency-input">
+                <label for="seconds">Seconds:</label>
+                <input type="number" id="seconds" min="0" max="59" placeholder="0">
+            </div>
             <button id="save-frequency">Save Frequency</button>
         </div>
 
