@@ -73,20 +73,79 @@
         a:hover {
             text-decoration: underline;
         }
+        
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+        }
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 34px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        input:checked + .slider {
+            background-color: #4fc3f7;
+        }
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+        .toggle-container {
+            display: flex;
+            align-items: center;
+            margin-top: 10px;
+        }
+        .toggle-label {
+            margin-left: 10px;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>Upwork Job Scraper Settings</h1>
+        
+        <h2>Webhook Settings</h2>
         <label for="webhook-url">Webhook URL:</label>
         <input type="text" id="webhook-url" name="webhook-url" placeholder="Enter your webhook URL">
         <button id="save">Save</button>
 
-        <h2>Activity Log</h2>
-        <div id="log-container"></div>
+        <h2>Notification Settings</h2>
+        <div class="toggle-container">
+            <label class="toggle-switch">
+                <input type="checkbox" id="notification-toggle" checked>
+                <span class="slider"></span>
+            </label>
+            <span class="toggle-label">Enable browser push notifications</span>
+        </div>
 
         <h2>Scraped Jobs</h2>
         <div id="jobs-container"></div>
+
+        <h2>Activity Log</h2>
+        <div id="log-container"></div>
     </div>
 
     <script src="settings.js"></script>

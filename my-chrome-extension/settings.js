@@ -13,6 +13,27 @@ chrome.storage.sync.get('webhookUrl', (data) => {
     }
 });
 
+// Load saved notification setting when the page opens
+chrome.storage.sync.get('notificationsEnabled', (data) => {
+    const notificationToggle = document.getElementById('notification-toggle');
+    if (data.notificationsEnabled === undefined) {
+        // Default to enabled if not set
+        notificationToggle.checked = true;
+        chrome.storage.sync.set({ notificationsEnabled: true });
+    } else {
+        notificationToggle.checked = data.notificationsEnabled;
+    }
+});
+
+// Save notification setting when toggled
+document.getElementById('notification-toggle').addEventListener('change', (event) => {
+    const isEnabled = event.target.checked;
+    chrome.storage.sync.set({ notificationsEnabled: isEnabled }, () => {
+        console.log('Notification setting saved:', isEnabled);
+        addLogEntry(`Notifications ${isEnabled ? 'enabled' : 'disabled'}`);
+    });
+});
+
 // Function to add log entries
 function addLogEntry(message) {
     const logContainer = document.getElementById('log-container');
@@ -39,7 +60,15 @@ function addJobEntries(jobs) {
 
         const jobTitle = document.createElement('div');
         jobTitle.className = 'job-title';
-        jobTitle.textContent = `${job.title} (${job.posted})`;
+        
+        // Create a span for the time difference
+        const timeSpan = document.createElement('span');
+        timeSpan.id = `job-time-${index}`;
+        updateTimeDifference(job.scrapedAt, timeSpan);
+
+        jobTitle.textContent = `${job.title} `;
+        jobTitle.appendChild(timeSpan);
+        
         jobTitle.onclick = () => toggleJobDetails(index);
 
         const jobDetails = document.createElement('div');
@@ -57,6 +86,9 @@ function addJobEntries(jobs) {
         jobItem.appendChild(jobDetails);
         jobsContainer.appendChild(jobItem);
     });
+
+    // Start updating time differences
+    setInterval(() => updateAllTimeDifferences(jobs), 1000);
 }
 
 function toggleJobDetails(index) {
@@ -83,3 +115,39 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         addJobEntries(message.jobs);
     }
 });
+
+function updateTimeDifference(timestamp, element) {
+    if (!timestamp) {
+        element.textContent = '(unknown time)';
+        return;
+    }
+
+    const now = Date.now();
+    const diff = now - timestamp;
+    const seconds = Math.floor(diff / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(hours / 24);
+
+    let timeString;
+    if (days > 0) {
+        timeString = `${days} day${days > 1 ? 's' : ''} ago`;
+    } else if (hours > 0) {
+        timeString = `${hours} hour${hours > 1 ? 's' : ''} ago`;
+    } else if (minutes > 0) {
+        timeString = `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
+    } else {
+        timeString = `${seconds} second${seconds !== 1 ? 's' : ''} ago`;
+    }
+
+    element.textContent = `(${timeString})`;
+}
+
+function updateAllTimeDifferences(jobs) {
+    jobs.forEach((job, index) => {
+        const timeSpan = document.getElementById(`job-time-${index}`);
+        if (timeSpan) {
+            updateTimeDifference(job.scrapedAt, timeSpan);
+        }
+    });
+}

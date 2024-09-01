@@ -69,14 +69,13 @@ function scrapeJobs() {
             budget: budgetElement ? budgetElement.textContent.trim() : '',
             posted: postedElement ? postedElement.textContent.trim() : '',
             proposals: proposalsElement ? proposalsElement.textContent.trim() : '',
-            clientCountry: clientCountryElement ? clientCountryElement.textContent.trim() : ''
+            clientCountry: clientCountryElement ? clientCountryElement.textContent.trim() : '',
+            scrapedAt: Date.now()
         };
     });
 }
 
 function processJobs(newJobs) {
-    addToActivityLog(`Found ${newJobs.length} jobs`);
-
     chrome.storage.local.get('scrapedJobs', (data) => {
         let existingJobs = data.scrapedJobs || [];
         let updatedJobs = [];
@@ -99,11 +98,13 @@ function processJobs(newJobs) {
             // Send message to update the settings page if it's open
             chrome.runtime.sendMessage({ type: 'jobsUpdate', jobs: allJobs });
 
-            chrome.storage.sync.get('webhookUrl', (data) => {
+            chrome.storage.sync.get(['webhookUrl', 'notificationsEnabled'], (data) => {
                 if (data.webhookUrl) {
                     sendToWebhook(data.webhookUrl, updatedJobs);
+                } else if (data.notificationsEnabled && newJobsCount > 0) {
+                    sendNotification(`Found ${newJobsCount} new job${newJobsCount > 1 ? 's' : ''}!`);
                 } else {
-                    addToActivityLog('Webhook URL not set. Please set it in the extension settings.');
+                    addToActivityLog('Webhook URL not set and notifications disabled or no new jobs found.');
                 }
             });
         });
@@ -119,12 +120,35 @@ function sendToWebhook(url, data) {
         },
         body: JSON.stringify(data),
     })
-    .then(response => response.json())
+    .then(response => {
+        if (response.headers.get("content-type")?.includes("application/json")) {
+            return response.json();
+        } else {
+            return response.text();
+        }
+    })
     .then(result => {
-        addToActivityLog('Jobs sent to webhook successfully!');
+        if (typeof result === 'string') {
+            addToActivityLog(`Webhook response: ${result}`);
+        } else {
+            addToActivityLog('Jobs sent to webhook successfully!');
+        }
     })
     .catch(error => {
         addToActivityLog('Error sending jobs to webhook. Check the console for details.');
         console.error('Error:', error);
+    });
+}
+
+function sendNotification(message) {
+    chrome.notifications.create({
+        type: 'basic',
+        iconUrl: chrome.runtime.getURL('icon48.png'),
+        title: 'Upwork Job Scraper',
+        message: message
+    }, (notificationId) => {
+        if (chrome.runtime.lastError) {
+            console.error("Notification error: ", chrome.runtime.lastError.message);
+        }
     });
 }
