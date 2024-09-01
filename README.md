@@ -6,13 +6,16 @@ This Chrome extension automatically scrapes job listings from Upwork and sends t
 
 ## Features
 
-1. **Job Scraping**: Automatically scrapes recent job listings from Upwork at regular intervals.
-2. **Webhook Integration**: Sends newly scraped jobs to a user-defined webhook URL.
-3. **Customizable Check Frequency**: Allows users to set how often the extension checks for new jobs.
-4. **Browser Notifications**: Optional push notifications for new job alerts.
-5. **Activity Logging**: Keeps a log of the extension's activities for user review.
-6. **Job Viewing**: Displays scraped jobs within the extension's interface.
-7. **Webhook Toggle**: Enable or disable webhook functionality.
+1. **Job Scraping**: Automatically scrapes job listings from Upwork at regular intervals.
+2. **Multiple Feed Sources**: Supports scraping from "Most Recent Jobs" or a custom search URL.
+3. **Webhook Integration**: Sends newly scraped jobs to a user-defined webhook URL.
+4. **Customizable Check Frequency**: Allows users to set how often the extension checks for new jobs (in days, hours, and minutes).
+5. **Browser Notifications**: Optional push notifications for new job alerts.
+6. **Activity Logging**: Keeps a log of the extension's activities for user review.
+7. **Job Viewing**: Displays scraped jobs within the extension's interface.
+8. **Webhook Toggle**: Enable or disable webhook functionality.
+9. **Manual Scraping**: Allows users to trigger a job scrape manually.
+10. **Badge Notifications**: Shows the number of new jobs since last viewed on the extension icon.
 
 ## Installation
 
@@ -26,8 +29,10 @@ This Chrome extension automatically scrapes job listings from Upwork and sends t
 1. Click on the extension icon in Chrome to open the settings page.
 2. Configure the webhook URL where you want to receive job data.
 3. Set the desired job check frequency.
-4. Enable or disable browser notifications and webhook functionality as needed.
-5. View scraped jobs and the activity log directly in the settings page.
+4. Choose between "Most Recent Jobs" or "Custom Search URL" as your feed source.
+5. Enable or disable browser notifications and webhook functionality as needed.
+6. View scraped jobs and the activity log directly in the settings page.
+7. Use the "Manually Scrape Jobs" button to trigger an immediate job scrape.
 
 ## Configuration
 
@@ -47,18 +52,28 @@ Set the frequency for job checks using the following fields:
 
 Click "Save Frequency" to apply the changes.
 
+### Feed Sources
+
+Choose between:
+1. Most Recent Jobs
+2. Custom Search URL
+
+For Custom Search URL:
+1. Select "Custom Search URL" option.
+2. Enter the Upwork search URL in the provided field.
+3. Click "Save Feed Sources" to apply the changes.
+
 ### Notifications
 
 Toggle the switch to enable or disable browser push notifications for new jobs.
 
 ## Development
 
-The extension is built using HTML, CSS, and JavaScript. Key files include:
+The extension consists of the following main components:
 
-- `manifest.json`: Chrome extension configuration
-- `background.js`: Background script for job scraping and webhook sending
-- `settings.html` and `settings.js`: User interface for configuration
-- `icon48.png` and `icon128.png`: Extension icons
+1. `manifest.json`: Defines the extension's permissions and structure.
+2. `background.js`: Handles background processes, job scraping, and webhook communication.
+3. `settings.html` and `settings.js`: Manage the user interface and settings.
 
 To modify the extension:
 
@@ -74,6 +89,12 @@ To test the webhook functionality:
 3. Click the "Test Webhook" button.
 4. Check your webhook endpoint for the received test data.
 
+To test job scraping:
+
+1. Configure your desired feed source.
+2. Click the "Manually Scrape Jobs" button.
+3. Check the Activity Log and Scraped Jobs sections for results.
+
 ## Permissions
 
 This extension requires the following permissions:
@@ -87,7 +108,7 @@ This extension requires the following permissions:
 
 ## Limitations
 
-- The extension is designed to work specifically with Upwork's job listing page.
+- The extension is designed to work specifically with Upwork's job listing pages.
 - Frequent scraping may be detected by Upwork and could lead to IP blocking.
 - The extension relies on Upwork's current HTML structure; changes to their website may break the scraping functionality.
 
