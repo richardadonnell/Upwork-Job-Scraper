@@ -142,6 +142,13 @@
         <h1>Upwork Job Scraper Settings</h1>
         
         <h2>Webhook Settings</h2>
+        <div class="toggle-container">
+            <label class="toggle-switch">
+                <input type="checkbox" id="webhook-toggle" checked>
+                <span class="slider"></span>
+            </label>
+            <span class="toggle-label">Enable webhook</span>
+        </div>
         <label for="webhook-url">Webhook URL:</label>
         <input type="text" id="webhook-url" name="webhook-url" placeholder="Enter your webhook URL">
         <div class="button-group">
@@ -170,11 +177,7 @@
             </div>
             <div class="frequency-input">
                 <label for="minutes">Minutes:</label>
-                <input type="number" id="minutes" min="0" max="59" placeholder="1">
-            </div>
-            <div class="frequency-input">
-                <label for="seconds">Seconds:</label>
-                <input type="number" id="seconds" min="0" max="59" placeholder="0">
+                <input type="number" id="minutes" min="1" max="59" placeholder="1">
             </div>
             <button id="save-frequency">Save Frequency</button>
         </div>

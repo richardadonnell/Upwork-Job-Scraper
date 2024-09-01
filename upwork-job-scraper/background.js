@@ -26,7 +26,7 @@ let checkFrequency = 60; // Default to 1 minute
 
 function updateAlarm() {
     chrome.alarms.clear("checkJobs");
-    chrome.alarms.create("checkJobs", { periodInMinutes: checkFrequency / 60 });
+    chrome.alarms.create("checkJobs", { periodInMinutes: checkFrequency });
 }
 
 // Load saved check frequency when the extension starts
@@ -175,7 +175,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     } else if (message.type === 'updateCheckFrequency') {
         checkFrequency = message.frequency;
         updateAlarm();
-        addToActivityLog(`Check frequency updated to ${checkFrequency} seconds`);
+        addToActivityLog(`Check frequency updated to ${checkFrequency} minutes`);
     }
 });
 

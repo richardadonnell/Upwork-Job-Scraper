@@ -2,14 +2,20 @@ chrome.runtime.sendMessage({ type: 'settingsPageOpened' });
 
 document.getElementById('save').addEventListener('click', () => {
     const webhookUrl = document.getElementById('webhook-url').value;
-    chrome.storage.sync.set({ webhookUrl: webhookUrl }, () => {
-        console.log('Webhook URL saved');
-        addLogEntry('Webhook URL saved');
+    const webhookEnabled = document.getElementById('webhook-toggle').checked;
+    chrome.storage.sync.set({ webhookUrl: webhookUrl, webhookEnabled: webhookEnabled }, () => {
+        console.log('Webhook settings saved');
+        addLogEntry('Webhook settings saved');
     });
 });
 
 document.getElementById('test-webhook').addEventListener('click', () => {
     const webhookUrl = document.getElementById('webhook-url').value;
+    const webhookEnabled = document.getElementById('webhook-toggle').checked;
+    if (!webhookEnabled) {
+        alert('Please enable the webhook before testing.');
+        return;
+    }
     if (!webhookUrl) {
         alert('Please enter a webhook URL before testing.');
         return;
@@ -47,11 +53,20 @@ document.getElementById('test-webhook').addEventListener('click', () => {
     });
 });
 
-// Load saved webhook URL when the page opens
-chrome.storage.sync.get('webhookUrl', (data) => {
+// Load saved webhook settings when the page opens
+chrome.storage.sync.get(['webhookUrl', 'webhookEnabled'], (data) => {
     if (data.webhookUrl) {
         document.getElementById('webhook-url').value = data.webhookUrl;
     }
+    const webhookToggle = document.getElementById('webhook-toggle');
+    if (data.webhookEnabled === undefined) {
+        // Default to enabled if not set
+        webhookToggle.checked = true;
+        chrome.storage.sync.set({ webhookEnabled: true });
+    } else {
+        webhookToggle.checked = data.webhookEnabled;
+    }
+    updateWebhookInputState();
 });
 
 // Load saved notification setting when the page opens
@@ -75,40 +90,47 @@ document.getElementById('notification-toggle').addEventListener('change', (event
     });
 });
 
+// Save webhook setting when toggled
+document.getElementById('webhook-toggle').addEventListener('change', (event) => {
+    const isEnabled = event.target.checked;
+    chrome.storage.sync.set({ webhookEnabled: isEnabled }, () => {
+        console.log('Webhook setting saved:', isEnabled);
+        addLogEntry(`Webhook ${isEnabled ? 'enabled' : 'disabled'}`);
+        updateWebhookInputState();
+    });
+});
+
 // Add this after the other event listeners
 
 document.getElementById('save-frequency').addEventListener('click', () => {
     const days = parseInt(document.getElementById('days').value) || 0;
     const hours = parseInt(document.getElementById('hours').value) || 0;
-    const minutes = parseInt(document.getElementById('minutes').value) || 0;
-    const seconds = parseInt(document.getElementById('seconds').value) || 0;
+    const minutes = parseInt(document.getElementById('minutes').value) || 1;
 
-    const totalSeconds = (days * 86400) + (hours * 3600) + (minutes * 60) + seconds;
+    const totalMinutes = (days * 1440) + (hours * 60) + minutes;
 
-    if (totalSeconds < 60) {
+    if (totalMinutes < 1) {
         alert('Please set a frequency of at least 1 minute.');
         return;
     }
 
-    chrome.storage.sync.set({ checkFrequency: totalSeconds }, () => {
+    chrome.storage.sync.set({ checkFrequency: totalMinutes }, () => {
         console.log('Check frequency saved');
-        addLogEntry(`Check frequency saved: ${days}d ${hours}h ${minutes}m ${seconds}s`);
-        chrome.runtime.sendMessage({ type: 'updateCheckFrequency', frequency: totalSeconds });
+        addLogEntry(`Check frequency saved: ${days}d ${hours}h ${minutes}m`);
+        chrome.runtime.sendMessage({ type: 'updateCheckFrequency', frequency: totalMinutes });
     });
 });
 
 // Load saved check frequency when the page opens
 chrome.storage.sync.get('checkFrequency', (data) => {
-    const totalSeconds = data.checkFrequency || 60; // Default to 60 seconds if not set
-    const days = Math.floor(totalSeconds / 86400);
-    const hours = Math.floor((totalSeconds % 86400) / 3600);
-    const minutes = Math.floor((totalSeconds % 3600) / 60);
-    const seconds = totalSeconds % 60;
+    const totalMinutes = data.checkFrequency || 1; // Default to 1 minute if not set
+    const days = Math.floor(totalMinutes / 1440);
+    const hours = Math.floor((totalMinutes % 1440) / 60);
+    const minutes = totalMinutes % 60;
 
-    document.getElementById('days').value = days;
+    document.getElementById('days').value = days || '';
     document.getElementById('hours').value = hours || '';
-    document.getElementById('minutes').value = minutes || '';
-    document.getElementById('seconds').value = seconds || '';
+    document.getElementById('minutes').value = minutes || 1;
 });
 
 // Function to add log entries
@@ -227,4 +249,14 @@ function updateAllTimeDifferences(jobs) {
             updateTimeDifference(job.scrapedAt, timeSpan);
         }
     });
+}
+
+// Function to update webhook input state
+function updateWebhookInputState() {
+    const webhookUrl = document.getElementById('webhook-url');
+    const testWebhookButton = document.getElementById('test-webhook');
+    const isEnabled = document.getElementById('webhook-toggle').checked;
+
+    webhookUrl.disabled = !isEnabled;
+    testWebhookButton.disabled = !isEnabled;
 }
