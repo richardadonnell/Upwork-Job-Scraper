@@ -121,6 +121,20 @@
         .toggle-label {
             margin-left: 10px;
         }
+        
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        #test-webhook {
+            background-color: #4CAF50;
+        }
+
+        #test-webhook:hover {
+            background-color: #45a049;
+        }
     </style>
 </head>
 <body>
@@ -130,7 +144,10 @@
         <h2>Webhook Settings</h2>
         <label for="webhook-url">Webhook URL:</label>
         <input type="text" id="webhook-url" name="webhook-url" placeholder="Enter your webhook URL">
-        <button id="save">Save</button>
+        <div class="button-group">
+            <button id="save">Save</button>
+            <button id="test-webhook">Test Webhook</button>
+        </div>
 
         <h2>Notification Settings</h2>
         <div class="toggle-container">

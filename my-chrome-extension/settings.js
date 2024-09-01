@@ -8,6 +8,45 @@ document.getElementById('save').addEventListener('click', () => {
     });
 });
 
+document.getElementById('test-webhook').addEventListener('click', () => {
+    const webhookUrl = document.getElementById('webhook-url').value;
+    if (!webhookUrl) {
+        alert('Please enter a webhook URL before testing.');
+        return;
+    }
+
+    const testPayload = {
+        title: "Test Job",
+        url: "https://www.upwork.com/test-job",
+        description: "This is a test job posting to verify webhook functionality.",
+        budget: "$100-$500",
+        posted: "Just now",
+        proposals: "Less than 5",
+        clientCountry: "Test Country",
+        paymentVerified: true,
+        scrapedAt: Date.now()
+    };
+
+    fetch(webhookUrl, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(testPayload),
+    })
+    .then(response => response.text())
+    .then(result => {
+        console.log('Test webhook response:', result);
+        addLogEntry('Test webhook sent successfully');
+        alert('Test webhook sent successfully. Check your webhook endpoint for the received data.');
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        addLogEntry('Error sending test webhook');
+        alert('Error sending test webhook. Check the console for details.');
+    });
+});
+
 // Load saved webhook URL when the page opens
 chrome.storage.sync.get('webhookUrl', (data) => {
     if (data.webhookUrl) {
