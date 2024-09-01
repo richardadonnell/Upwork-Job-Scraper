@@ -108,6 +108,13 @@ function processJobs(newJobs) {
                 if (!data.lastViewedTimestamp || newJob.scrapedAt > data.lastViewedTimestamp) {
                     newJobsCount++;
                 }
+
+                // Send each new job individually to the webhook
+                chrome.storage.sync.get('webhookUrl', (data) => {
+                    if (data.webhookUrl) {
+                        sendToWebhook(data.webhookUrl, [newJob]);
+                    }
+                });
             }
         });
 
@@ -127,13 +134,9 @@ function processJobs(newJobs) {
             // Send message to update the settings page if it's open
             chrome.runtime.sendMessage({ type: 'jobsUpdate', jobs: allJobs });
 
-            chrome.storage.sync.get(['webhookUrl', 'notificationsEnabled'], (data) => {
-                if (data.webhookUrl) {
-                    sendToWebhook(data.webhookUrl, updatedJobs);
-                } else if (data.notificationsEnabled && addedJobsCount > 0) {
+            chrome.storage.sync.get('notificationsEnabled', (data) => {
+                if (data.notificationsEnabled && addedJobsCount > 0) {
                     sendNotification(`Found ${addedJobsCount} new job${addedJobsCount > 1 ? 's' : ''}!`);
-                } else {
-                    addToActivityLog('Webhook URL not set and notifications disabled or no new jobs found.');
                 }
             });
         });
@@ -161,7 +164,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 });
 
 function sendToWebhook(url, data) {
-    addToActivityLog(`Sending ${data.length} jobs to webhook...`);
+    addToActivityLog(`Sending job to webhook...`);
     fetch(url, {
         method: 'POST',
         headers: {
@@ -180,11 +183,11 @@ function sendToWebhook(url, data) {
         if (typeof result === 'string') {
             addToActivityLog(`Webhook response: ${result}`);
         } else {
-            addToActivityLog('Jobs sent to webhook successfully!');
+            addToActivityLog('Job sent to webhook successfully!');
         }
     })
     .catch(error => {
-        addToActivityLog('Error sending jobs to webhook. Check the console for details.');
+        addToActivityLog('Error sending job to webhook. Check the console for details.');
         console.error('Error:', error);
     });
 }
