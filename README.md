@@ -29,16 +29,16 @@ This Chrome extension automatically scrapes job listings from Upwork and sends t
 
 ## Features
 
-1. **Job Scraping**: Automatically scrapes job listings from Upwork at regular intervals.
-2. **Multiple Feed Sources**: Supports scraping from "Most Recent Jobs" or a custom search URL.
-3. **Webhook Integration**: Sends newly scraped jobs to a user-defined webhook URL.
-4. **Customizable Check Frequency**: Allows users to set how often the extension checks for new jobs (in days, hours, and minutes).
-5. **Browser Notifications**: Optional push notifications for new job alerts.
-6. **Activity Logging**: Keeps a log of the extension's activities for user review.
-7. **Job Viewing**: Displays scraped jobs within the extension's interface.
-8. **Webhook Toggle**: Enable or disable webhook functionality.
-9. **Manual Scraping**: Allows users to trigger a job scrape manually.
-10. **Badge Notifications**: Shows the number of new jobs since last viewed on the extension icon.
+1. 🔍 **Job Scraping**: Automatically scrapes job listings from Upwork at regular intervals.
+2. 📊 **Multiple Feed Sources**: Supports scraping from "Most Recent Jobs" or a custom search URL.
+3. 🔗 **Webhook Integration**: Sends newly scraped jobs to a user-defined webhook URL.
+4. ⏱️ **Customizable Check Frequency**: Allows users to set how often the extension checks for new jobs (in days, hours, and minutes).
+5. 🔔 **Browser Notifications**: Optional push notifications for new job alerts.
+6. 📝 **Activity Logging**: Keeps a log of the extension's activities for user review.
+7. 👀 **Job Viewing**: Displays scraped jobs within the extension's interface.
+8. 🔛 **Webhook Toggle**: Enable or disable webhook functionality.
+9. 🖱️ **Manual Scraping**: Allows users to trigger a job scrape manually.
+10. 🔢 **Badge Notifications**: Shows the number of new jobs since last viewed on the extension icon.
 
 ## Installation
 
