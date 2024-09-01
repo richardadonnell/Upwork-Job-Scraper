@@ -212,6 +212,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         addToActivityLog(`Check frequency updated to ${checkFrequency} minute(s)`);
     } else if (message.type === 'updateFeedSources') {
         loadFeedSourceSettings();
+    } else if (message.type === 'manualScrape') {
+        checkForNewJobs();
+        sendResponse({ success: true });
+        return true; // Indicates that the response will be sent asynchronously
+    } else if (message.type === 'ping') {
+        sendResponse({ status: 'ready' });
+        return true;
     }
 });
 

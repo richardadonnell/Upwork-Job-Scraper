@@ -151,6 +151,22 @@
         .header h1 {
             margin: 0;
         }
+
+        #manual-scrape {
+            margin-top: 10px;
+            margin-bottom: 20px;
+            background-color: #4fc3f7;
+            color: #1e1e1e;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+
+        #manual-scrape:hover {
+            background-color: #3ba8d9;
+        }
     </style>
 </head>
 <body>
@@ -226,6 +242,8 @@
 
         <h2>Scraped Jobs</h2>
         <div id="jobs-container"></div>
+
+        <button id="manual-scrape">Manually Scrape Jobs</button>
 
         <h2>Activity Log</h2>
         <div id="log-container"></div>
