@@ -12,6 +12,7 @@ This Chrome extension automatically scrapes job listings from Upwork and sends t
 4. **Browser Notifications**: Optional push notifications for new job alerts.
 5. **Activity Logging**: Keeps a log of the extension's activities for user review.
 6. **Job Viewing**: Displays scraped jobs within the extension's interface.
+7. **Webhook Toggle**: Enable or disable webhook functionality.
 
 ## Installation
 
@@ -25,16 +26,17 @@ This Chrome extension automatically scrapes job listings from Upwork and sends t
 1. Click on the extension icon in Chrome to open the settings page.
 2. Configure the webhook URL where you want to receive job data.
 3. Set the desired job check frequency.
-4. Enable or disable browser notifications as needed.
+4. Enable or disable browser notifications and webhook functionality as needed.
 5. View scraped jobs and the activity log directly in the settings page.
 
 ## Configuration
 
 ### Webhook Setup
 
-1. Enter your webhook URL in the provided input field.
-2. Click "Save" to store the URL.
-3. Use the "Test Webhook" button to verify your webhook is working correctly.
+1. Toggle the switch to enable or disable webhook functionality.
+2. Enter your webhook URL in the provided input field.
+3. Click "Save" to store the URL.
+4. Use the "Test Webhook" button to verify your webhook is working correctly.
 
 ### Job Check Frequency
 
@@ -42,7 +44,6 @@ Set the frequency for job checks using the following fields:
 - Days
 - Hours
 - Minutes
-- Seconds
 
 Click "Save Frequency" to apply the changes.
 
@@ -57,7 +58,7 @@ The extension is built using HTML, CSS, and JavaScript. Key files include:
 - `manifest.json`: Chrome extension configuration
 - `background.js`: Background script for job scraping and webhook sending
 - `settings.html` and `settings.js`: User interface for configuration
-- `settings.css`: Styles for the settings page
+- `icon48.png` and `icon128.png`: Extension icons
 
 To modify the extension:
 
@@ -68,9 +69,10 @@ To modify the extension:
 
 To test the webhook functionality:
 
-1. Enter a webhook URL in the settings.
-2. Click the "Test Webhook" button.
-3. Check your webhook endpoint for the received test data.
+1. Enable the webhook in the settings.
+2. Enter a webhook URL in the settings.
+3. Click the "Test Webhook" button.
+4. Check your webhook endpoint for the received test data.
 
 ## Permissions
 
@@ -101,9 +103,24 @@ Contributions to improve the extension are welcome. Please follow these steps:
 
 ## License
 
-This project is licensed under the GNU General Public License v3.0 (GPL-3.0). For more details, see the [LICENSE](LICENSE) file in the project repository.
+This project is licensed under the GNU General Public License v3.0 (GPL-3.0).
 
-The GPL-3.0 license ensures that the software remains free and open source. It requires that any modifications or derivative works based on this project must also be released under the same license terms.
+GNU General Public License v3.0 (GPL-3.0)
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+For the full license text, please see the LICENSE file in the root directory of this source tree or visit https://www.gnu.org/licenses/gpl-3.0.html.
 
 ## Disclaimer
 
