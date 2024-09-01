@@ -12,7 +12,8 @@
         "action"
     ],
     "host_permissions": [
-        "https://www.upwork.com/*"
+        "https://www.upwork.com/*",
+        "https://*.upwork.com/*"
     ],
     "action": {
         "default_popup": ""

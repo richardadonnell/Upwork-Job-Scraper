@@ -201,6 +201,29 @@
             <button id="save-frequency">Save Frequency</button>
         </div>
 
+        <h2>Feed Sources</h2>
+        <div class="feed-sources">
+            <div class="feed-source">
+                <input type="radio" id="most-recent-feed" name="feed-source" value="most-recent" checked>
+                <label for="most-recent-feed">Most Recent Jobs</label>
+            </div>
+            <div class="feed-source">
+                <input type="radio" id="custom-search-feed" name="feed-source" value="custom-search">
+                <label for="custom-search-feed">Custom Search URL</label>
+            </div>
+            <input type="text" id="custom-search-url" placeholder="Enter Upwork search URL" disabled>
+        </div>
+        <div class="custom-search-instructions">
+            <p>To use a custom search URL:</p>
+            <ol>
+                <li>Go to <a href="https://www.upwork.com/nx/search/jobs/" target="_blank">Upwork Job Search</a></li>
+                <li>Search for the jobs you're interested in</li>
+                <li>Copy the URL from your browser's address bar</li>
+                <li>Paste the URL into the "Custom Search URL" field above</li>
+            </ol>
+        </div>
+        <button id="save-feed-sources">Save Feed Sources</button>
+
         <h2>Scraped Jobs</h2>
         <div id="jobs-container"></div>
 

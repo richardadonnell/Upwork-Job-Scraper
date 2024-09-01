@@ -6,7 +6,18 @@ chrome.action.onClicked.addListener(() => {
 // Function to check for new jobs
 function checkForNewJobs() {
     addToActivityLog('Starting job check...');
-    chrome.tabs.create({ url: "https://www.upwork.com/nx/find-work/most-recent", active: false }, (tab) => {
+    
+    let url;
+    if (selectedFeedSource === 'most-recent') {
+        url = "https://www.upwork.com/nx/find-work/most-recent";
+    } else if (selectedFeedSource === 'custom-search' && customSearchUrl) {
+        url = customSearchUrl;
+    } else {
+        addToActivityLog('No valid feed source selected');
+        return;
+    }
+
+    chrome.tabs.create({ url: url, active: false }, (tab) => {
         chrome.scripting.executeScript({
             target: { tabId: tab.id },
             function: scrapeJobs,
@@ -15,23 +26,20 @@ function checkForNewJobs() {
                 addToActivityLog('Error: ' + chrome.runtime.lastError.message);
             } else if (results && results[0]) {
                 const jobs = results[0].result;
-                addToActivityLog(`Scraped ${jobs.length} jobs`);
+                addToActivityLog(`Scraped ${jobs.length} jobs from ${url}`);
                 processJobs(jobs);
             } else {
                 addToActivityLog('No jobs scraped or unexpected result');
             }
             chrome.tabs.remove(tab.id);
-            addToActivityLog('Job check completed');
+            addToActivityLog('Job check completed for ' + url);
         });
     });
 }
 
-let checkFrequency = 1; // Default to 1 minute
-
-function updateAlarm() {
-    chrome.alarms.clear("checkJobs");
-    chrome.alarms.create("checkJobs", { periodInMinutes: checkFrequency });
-}
+// Add these variables at the top of the file
+let selectedFeedSource = 'most-recent';
+let customSearchUrl = '';
 
 // Load saved check frequency when the extension starts
 chrome.storage.sync.get('checkFrequency', (data) => {
@@ -224,3 +232,23 @@ function sendNotification(message) {
         }
     });
 }
+
+// Add this function to load feed source settings
+function loadFeedSourceSettings() {
+    chrome.storage.sync.get(['selectedFeedSource', 'customSearchUrl'], (data) => {
+        selectedFeedSource = data.selectedFeedSource || 'most-recent';
+        customSearchUrl = data.customSearchUrl || '';
+    });
+}
+
+// Call this function when the extension starts
+chrome.runtime.onStartup.addListener(loadFeedSourceSettings);
+chrome.runtime.onInstalled.addListener(loadFeedSourceSettings);
+
+// Add this message listener to handle feed source updates
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message.type === 'updateFeedSources') {
+        loadFeedSourceSettings();
+    }
+    // ... existing message handlers ...
+});

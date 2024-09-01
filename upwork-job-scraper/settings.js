@@ -260,3 +260,41 @@ function updateWebhookInputState() {
     webhookUrl.disabled = !isEnabled;
     testWebhookButton.disabled = !isEnabled;
 }
+
+// Add these event listeners after the existing ones
+
+document.querySelectorAll('input[name="feed-source"]').forEach((radio) => {
+    radio.addEventListener('change', (event) => {
+        const customSearchUrl = document.getElementById('custom-search-url');
+        if (event.target.value === 'custom-search') {
+            customSearchUrl.disabled = false;
+        } else {
+            customSearchUrl.disabled = true;
+            customSearchUrl.value = ''; // Clear the custom URL when switching to Most Recent
+        }
+    });
+});
+
+document.getElementById('save-feed-sources').addEventListener('click', () => {
+    const selectedFeedSource = document.querySelector('input[name="feed-source"]:checked').value;
+    const customSearchUrl = document.getElementById('custom-search-url').value;
+
+    chrome.storage.sync.set({
+        selectedFeedSource: selectedFeedSource,
+        customSearchUrl: customSearchUrl
+    }, () => {
+        console.log('Feed sources saved');
+        addLogEntry('Feed sources saved');
+        chrome.runtime.sendMessage({ type: 'updateFeedSources' });
+    });
+});
+
+// Load saved feed source settings when the page opens
+chrome.storage.sync.get(['selectedFeedSource', 'customSearchUrl'], (data) => {
+    const selectedFeedSource = data.selectedFeedSource || 'most-recent';
+    document.querySelector(`input[name="feed-source"][value="${selectedFeedSource}"]`).checked = true;
+    
+    const customSearchUrl = document.getElementById('custom-search-url');
+    customSearchUrl.value = data.customSearchUrl || '';
+    customSearchUrl.disabled = selectedFeedSource !== 'custom-search';
+});
