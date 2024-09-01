@@ -14,7 +14,8 @@ function updateAlarm() {
 }
 
 // Function to check for new jobs
-function checkForNewJobs() {
+async function checkForNewJobs() {
+    await loadFeedSourceSettings();
     addToActivityLog('Starting job check...');
     
     let url;
@@ -64,11 +65,9 @@ chrome.alarms.onAlarm.addListener((alarm) => {
 
 // Run initial job check when extension is activated
 chrome.runtime.onStartup.addListener(() => {
-    loadFeedSourceSettings();
     checkForNewJobs();
 });
 chrome.runtime.onInstalled.addListener(() => {
-    loadFeedSourceSettings();
     checkForNewJobs();
 });
 
@@ -264,11 +263,14 @@ function sendNotification(message) {
     });
 }
 
-// Add this function to load feed source settings
+// Update this function to load feed source settings
 function loadFeedSourceSettings() {
-    chrome.storage.sync.get(['selectedFeedSource', 'customSearchUrl'], (data) => {
-        selectedFeedSource = data.selectedFeedSource || 'most-recent';
-        customSearchUrl = data.customSearchUrl || '';
+    return new Promise((resolve) => {
+        chrome.storage.sync.get(['selectedFeedSource', 'customSearchUrl'], (data) => {
+            selectedFeedSource = data.selectedFeedSource || 'most-recent';
+            customSearchUrl = data.customSearchUrl || '';
+            resolve();
+        });
     });
 }
 
