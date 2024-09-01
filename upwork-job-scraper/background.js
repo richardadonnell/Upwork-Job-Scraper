@@ -8,6 +8,7 @@ let selectedFeedSource = 'most-recent';
 let customSearchUrl = '';
 let checkFrequency = 1; // Default to 1 minute
 let webhookEnabled = false;
+let webhookUrl = '';
 
 function updateAlarm() {
     chrome.alarms.clear("checkJobs");
@@ -217,8 +218,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     } else if (message.type === 'ping') {
         sendResponse({ status: 'ready' });
         return true;
-    } else if (message.type === 'updateWebhookSettings') {
-        loadFeedSourceSettings();
+    } else if (message.type === 'updateWebhookEnabled') {
+        webhookEnabled = message.enabled;
+        addToActivityLog(`Webhook ${webhookEnabled ? 'enabled' : 'disabled'}`);
+    } else if (message.type === 'updateWebhookUrl') {
+        webhookUrl = message.url;
+        addToActivityLog('Webhook URL updated');
     }
 });
 

@@ -157,18 +157,26 @@ function initializeSettings() {
         });
     });
 
-    // Save webhook setting when toggled
+    // Modify the webhook toggle event listener
     document.getElementById('webhook-toggle').addEventListener('change', (event) => {
         const webhookEnabled = event.target.checked;
         chrome.storage.sync.set({ webhookEnabled: webhookEnabled }, () => {
             console.log('Webhook ' + (webhookEnabled ? 'enabled' : 'disabled'));
             addLogEntry(`Webhook ${webhookEnabled ? 'enabled' : 'disabled'}`);
             updateWebhookInputState();
-            chrome.runtime.sendMessage({ type: 'updateWebhookSettings' });
+            chrome.runtime.sendMessage({ type: 'updateWebhookEnabled', enabled: webhookEnabled });
         });
     });
 
-    // Add this after the other event listeners
+    // Modify the save button event listener
+    document.getElementById('save-webhook-url').addEventListener('click', () => {
+        const webhookUrl = document.getElementById('webhook-url').value;
+        chrome.storage.sync.set({ webhookUrl: webhookUrl }, () => {
+            console.log('Webhook URL saved');
+            addLogEntry('Webhook URL saved');
+            chrome.runtime.sendMessage({ type: 'updateWebhookUrl', url: webhookUrl });
+        });
+    });
 
     document.getElementById('save-frequency').addEventListener('click', () => {
         const days = parseInt(document.getElementById('days').value) || 0;
@@ -328,8 +336,6 @@ function initializeSettings() {
         testWebhookButton.disabled = !isEnabled;
     }
 
-    // Add these event listeners after the existing ones
-
     document.querySelectorAll('input[name="feed-source"]').forEach((radio) => {
         radio.addEventListener('change', (event) => {
             const customSearchUrl = document.getElementById('custom-search-url');
@@ -365,8 +371,6 @@ function initializeSettings() {
         customSearchUrl.value = data.customSearchUrl || '';
         customSearchUrl.disabled = selectedFeedSource !== 'custom-search';
     });
-
-    // Add this event listener after the other event listeners
 
     document.getElementById('manual-scrape').addEventListener('click', () => {
         sendMessageToBackground({ type: 'manualScrape' })
