@@ -36,6 +36,44 @@ document.getElementById('notification-toggle').addEventListener('change', (event
     });
 });
 
+// Add this after the other event listeners
+
+document.getElementById('save-frequency').addEventListener('click', () => {
+    const days = parseInt(document.getElementById('days').value) || 0;
+    const hours = parseInt(document.getElementById('hours').value) || 0;
+    const minutes = parseInt(document.getElementById('minutes').value) || 0;
+    const seconds = parseInt(document.getElementById('seconds').value) || 0;
+
+    const totalSeconds = (days * 86400) + (hours * 3600) + (minutes * 60) + seconds;
+
+    if (totalSeconds < 60) {
+        alert('Please set a frequency of at least 1 minute.');
+        return;
+    }
+
+    chrome.storage.sync.set({ checkFrequency: totalSeconds }, () => {
+        console.log('Check frequency saved');
+        addLogEntry(`Check frequency saved: ${days}d ${hours}h ${minutes}m ${seconds}s`);
+        chrome.runtime.sendMessage({ type: 'updateCheckFrequency', frequency: totalSeconds });
+    });
+});
+
+// Load saved check frequency when the page opens
+chrome.storage.sync.get('checkFrequency', (data) => {
+    if (data.checkFrequency) {
+        const totalSeconds = data.checkFrequency;
+        const days = Math.floor(totalSeconds / 86400);
+        const hours = Math.floor((totalSeconds % 86400) / 3600);
+        const minutes = Math.floor((totalSeconds % 3600) / 60);
+        const seconds = totalSeconds % 60;
+
+        document.getElementById('days').value = days;
+        document.getElementById('hours').value = hours;
+        document.getElementById('minutes').value = minutes;
+        document.getElementById('seconds').value = seconds;
+    }
+});
+
 // Function to add log entries
 function addLogEntry(message) {
     const logContainer = document.getElementById('log-container');

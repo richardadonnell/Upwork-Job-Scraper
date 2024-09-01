@@ -141,6 +141,15 @@
             <span class="toggle-label">Enable browser push notifications</span>
         </div>
 
+        <h2>Job Check Frequency</h2>
+        <div class="frequency-container">
+            <input type="number" id="days" min="0" max="365" placeholder="Days">
+            <input type="number" id="hours" min="0" max="23" placeholder="Hours">
+            <input type="number" id="minutes" min="0" max="59" placeholder="Minutes">
+            <input type="number" id="seconds" min="0" max="59" placeholder="Seconds">
+            <button id="save-frequency">Save Frequency</button>
+        </div>
+
         <h2>Scraped Jobs</h2>
         <div id="jobs-container"></div>
 

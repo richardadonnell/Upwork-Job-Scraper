@@ -22,8 +22,20 @@ function checkForNewJobs() {
     });
 }
 
-// Set up alarm to check for new jobs every minute
-chrome.alarms.create("checkJobs", { periodInMinutes: 1 });
+let checkFrequency = 60; // Default to 1 minute
+
+function updateAlarm() {
+    chrome.alarms.clear("checkJobs");
+    chrome.alarms.create("checkJobs", { periodInMinutes: checkFrequency / 60 });
+}
+
+// Load saved check frequency when the extension starts
+chrome.storage.sync.get('checkFrequency', (data) => {
+    if (data.checkFrequency) {
+        checkFrequency = data.checkFrequency;
+    }
+    updateAlarm();
+});
 
 // Listen for alarm
 chrome.alarms.onAlarm.addListener((alarm) => {
@@ -160,6 +172,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         
         // Update the last viewed timestamp
         chrome.storage.local.set({ lastViewedTimestamp: Date.now() });
+    } else if (message.type === 'updateCheckFrequency') {
+        checkFrequency = message.frequency;
+        updateAlarm();
+        addToActivityLog(`Check frequency updated to ${checkFrequency} seconds`);
     }
 });
 
