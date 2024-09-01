@@ -42,7 +42,7 @@ This Chrome extension automatically scrapes job listings from Upwork and sends t
 
 ## Installation
 
-1. Download the zip file from [this link](https://github.com/warezit/Upwork-Job-Scraper/releases/download/1.1/upwork-job-scraper-1.1.zip).
+1. Download the zip file from [this link](https://github.com/warezit/Upwork-Job-Scraper/releases/download/1.2/upwork-job-scraper-1.2.zip).
 2. Extract the zip file to a folder of your choice.
 3. Open Chrome and navigate to `chrome://extensions/` or `brave://extensions/`.
 4. Enable "Developer mode" by toggling the switch in the top right corner.
