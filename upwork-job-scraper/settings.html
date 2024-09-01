@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Upwork Job Scraper Settings</title>
     <link rel="stylesheet" href="settings.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
 </head>
 <body>
     <div class="container">
@@ -16,7 +19,7 @@
         <h2>Scraped Jobs</h2>
         <div id="jobs-container"></div>
 
-        <button id="manual-scrape">Manually Scrape Jobs</button>
+        <button id="manual-scrape" class="button-secondary">Manually Scrape Jobs</button>
 
         <h2>Webhook Settings</h2>
         <div class="toggle-container">
@@ -29,8 +32,8 @@
         <label for="webhook-url">Webhook URL:</label>
         <input type="text" id="webhook-url" name="webhook-url" placeholder="Enter your webhook URL">
         <div class="button-group">
-            <button id="save">Save</button>
-            <button id="test-webhook">Test Webhook</button>
+            <button id="save">Save URL</button>
+            <button id="test-webhook" class="button-secondary">Test Webhook</button>
         </div>
 
         <h2>Notification Settings</h2>
