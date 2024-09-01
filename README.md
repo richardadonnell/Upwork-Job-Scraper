@@ -23,14 +23,14 @@
 
 - [ Overview](#-overview)
 - [ Features](#-features)
-- [ Repository Structure](#-repository-structure)
+<!-- - [ Repository Structure](#-repository-structure) -->
 - [ Modules](#-modules)
 - [ Getting Started](#-getting-started)
-    - [ Prerequisites](#-prerequisites)
+    <!-- - [ Prerequisites](#-prerequisites) -->
     - [ Installation](#-installation)
     - [ Usage](#-usage)
     - [ Tests](#-tests)
-- [ Project Roadmap](#-project-roadmap)
+<!-- - [ Project Roadmap](#-project-roadmap) -->
 - [ Contributing](#-contributing)
 - [ License](#-license)
 - [ Acknowledgments](#-acknowledgments)
@@ -39,11 +39,13 @@
 
 ##  Overview
 
-The Upwork-Job-Scraper is a software project designed to automate the process of extracting job listings from Upwork, utilizing Selenium to effectively gather and organize job details such as titles, descriptions, rates, and experience levels. By storing this information in a structured JSON format, the scraper facilitates easy analysis and retrieval of data. Additionally, it enhances user experience through notifications sent via webhook (e.g Make.com), ensuring users receive updates only for new job entries. Overall, this project provides a valuable tool for freelancers and job seekers to efficiently stay informed about relevant opportunities on Upwork.
+The Upwork-Job-Scraper is a software project designed to automate the process of extracting job listings from Upwork, utilizing Selenium to effectively gather and organize job details such as titles, descriptions, rates, and experience levels. By storing this information in a structured JSON format, the scraper facilitates easy analysis and retrieval of data. Additionally, it enhances user experience through notifications sent via webhook, ensuring users receive updates only for new job entries. Overall, this project provides a valuable tool for freelancers and job seekers to efficiently stay informed about relevant opportunities on Upwork.
 
 ---
 
 ##  Features
+
+<details closed>
 
 |    |   Feature         | Description |
 |----|-------------------|---------------------------------------------------------------|
@@ -57,8 +59,9 @@ The Upwork-Job-Scraper is a software project designed to automate the process of
 | 🛡️ | **Security**      | Basic security measures like using `python-dotenv` for environment variable management are in place, but further measures for data protection and access control may be necessary. |
 | 📦 | **Dependencies**  | Key dependencies include `Selenium`, `Requests`, and `python-dotenv`, enabling web scraping, HTTP requests, and environment variable management respectively. |
 | 🚀 | **Scalability**   | The design allows for basic scalability, though heavy traffic may lead to performance bottlenecks due to the synchronous nature of Selenium-based scraping without optimizations. |
+</details>
 
----
+<!-- ---
 
 ##  Repository Structure
 
@@ -69,7 +72,7 @@ The Upwork-Job-Scraper is a software project designed to automate the process of
     ├── job_feed.py
     ├── main.py
     └── requirements.txt
-```
+``` -->
 
 ---
 
@@ -163,7 +166,7 @@ Contributions are welcome! Here are several ways you can contribute:
 8. **Review**: Once your PR is reviewed and approved, it will be merged into the main branch. Congratulations on your contribution!
 </details>
 
-<details closed>
+<details open>
 <summary>Contributor Graph</summary>
 <br>
 <p align="left">
