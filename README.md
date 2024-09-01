@@ -167,3 +167,10 @@ For the full license text, please see the LICENSE file in the root directory of 
 ## Disclaimer
 
 This extension is for educational purposes only. Use it responsibly and in accordance with Upwork's terms of service. The authors are not responsible for any misuse or violation of Upwork's policies.
+
+## Support My Work
+
+If you found this repository helpful and would like to show your support, consider buying me a coffee! Your contribution helps keep this project going. 
+
+[![Buy Me A Coffee](https://img.buymeacoffee.com/button-api/?text=Buy%20me%20a%20coffee&emoji=&slug=warezitb&button_colour=FF5F5F&font_colour=ffffff&font_family=Cookie&outline_colour=000000&coffee_colour=ffffff)](https://buymeacoffee.com/warezitb)
+
