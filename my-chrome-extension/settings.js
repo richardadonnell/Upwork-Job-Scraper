@@ -61,7 +61,6 @@ function addJobEntries(jobs) {
         const jobTitle = document.createElement('div');
         jobTitle.className = 'job-title';
         
-        // Create a span for the time difference
         const timeSpan = document.createElement('span');
         timeSpan.id = `job-time-${index}`;
         updateTimeDifference(job.scrapedAt, timeSpan);
@@ -80,6 +79,7 @@ function addJobEntries(jobs) {
             <p><strong>Budget:</strong> ${job.budget}</p>
             <p><strong>Proposals:</strong> ${job.proposals}</p>
             <p><strong>Client Country:</strong> ${job.clientCountry}</p>
+            <p><strong>Payment Verified:</strong> ${job.paymentVerified ? 'Yes' : 'No'}</p>
         `;
 
         jobItem.appendChild(jobTitle);

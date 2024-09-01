@@ -54,13 +54,14 @@ function addToActivityLog(message) {
 
 function scrapeJobs() {
     const jobElements = document.querySelectorAll('[data-test="job-tile-list"] > section');
-    return Array.from(jobElements).map(jobElement => {
+    const jobs = Array.from(jobElements).map(jobElement => {
         const titleElement = jobElement.querySelector('.job-tile-title a');
         const descriptionElement = jobElement.querySelector('[data-test="job-description-text"]');
         const budgetElement = jobElement.querySelector('[data-test="budget"]');
         const postedElement = jobElement.querySelector('[data-test="posted-on"]');
         const proposalsElement = jobElement.querySelector('[data-test="proposals"]');
         const clientCountryElement = jobElement.querySelector('[data-test="client-country"]');
+        const paymentVerificationElement = jobElement.querySelector('[data-test="payment-verification-status"]');
         
         return {
             title: titleElement ? titleElement.textContent.trim() : '',
@@ -70,9 +71,21 @@ function scrapeJobs() {
             posted: postedElement ? postedElement.textContent.trim() : '',
             proposals: proposalsElement ? proposalsElement.textContent.trim() : '',
             clientCountry: clientCountryElement ? clientCountryElement.textContent.trim() : '',
+            paymentVerified: paymentVerificationElement ? 
+                paymentVerificationElement.textContent.includes('Payment verified') : false,
             scrapedAt: Date.now()
         };
     });
+
+    // Check if there's a "Load More" button and click it if present
+    const loadMoreButton = document.querySelector('button[data-ev-label="load_more_button"]');
+    if (loadMoreButton) {
+        loadMoreButton.click();
+        // Wait for new content to load and scrape again
+        setTimeout(scrapeJobs, 2000);
+    }
+
+    return jobs;
 }
 
 function processJobs(newJobs) {
@@ -81,6 +94,9 @@ function processJobs(newJobs) {
         let updatedJobs = [];
         let newJobsCount = 0;
 
+        // Sort new jobs by posted time, newest first
+        newJobs.sort((a, b) => new Date(b.posted) - new Date(a.posted));
+
         newJobs.forEach(newJob => {
             if (!existingJobs.some(job => job.url === newJob.url)) {
                 updatedJobs.push(newJob);
@@ -88,8 +104,11 @@ function processJobs(newJobs) {
             }
         });
 
-        // Combine existing jobs with new unique jobs
+        // Combine new jobs with existing jobs, keeping the most recent ones
         let allJobs = [...updatedJobs, ...existingJobs];
+        
+        // Limit to a maximum of 100 jobs (or any other number you prefer)
+        allJobs = allJobs.slice(0, 100);
 
         // Store the updated scraped jobs
         chrome.storage.local.set({ scrapedJobs: allJobs }, () => {
