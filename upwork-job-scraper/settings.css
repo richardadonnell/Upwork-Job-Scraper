@@ -102,6 +102,11 @@ button:hover {
     color: #c4ffb3;  // Changed from #61eb38 to #c4ffb3
 }
 
+.job-title span {
+    color: #4f965a;
+    font-weight: normal;
+}
+
 .job-details {
     display: none;
     margin-left: 20px;
