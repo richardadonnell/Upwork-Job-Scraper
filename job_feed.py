@@ -12,7 +12,7 @@ load_dotenv()
 SEARCH_TERM = os.getenv('SEARCH_TERM')
 
 def get_job_list(browser: webdriver.Chrome, jobs_data, last_job_link):
-    browser.get(f"https://www.upwork.com/nx/search/jobs/?nbs=1&q={SEARCH_TERM}&page=1&per_page=50")
+    browser.get(f"https://www.upwork.com/nx/search/jobs/?nbs=1&q={SEARCH_TERM}&page=1&per_page=50&sort=recency")
 
     # print(browser.page_source)
     jobs_articles = browser.find_elements(By.CLASS_NAME, "job-tile")
