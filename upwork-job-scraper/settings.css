@@ -13,7 +13,7 @@ body {
 }
 
 /* Typography */
-h1, h2, h3 {
+h1, h2, h3, button {
     font-family: 'DM Serif Display', serif;
     color: #61eb38;
 }
@@ -54,6 +54,8 @@ button {
     cursor: pointer;
     border-radius: 4px;
     font-weight: bold;
+    font-family: 'DM Serif Display', serif;  /* Added this line */
+    font-size: 16px;  /* Added this line for better readability */
 }
 
 button:hover {
@@ -65,10 +67,8 @@ button:hover {
     background-color: transparent;
     color: #61eb38;
     border: 1px solid #61eb38;
-}
-
-.button-secondary:hover {
-    background-color: rgba(97, 235, 56, 0.1);
+    font-family: 'DM Serif Display', serif;  /* Added this line */
+    font-size: 16px;  /* Added this line for consistency */
 }
 
 /* Containers */
