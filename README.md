@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/PKief/vscode-material-icon-theme/ec559a9f6bfd399b82bb44393651661b08aaf7ba/icons/folder-markdown-open.svg" width="20%" alt="UPWORK-JOB-SCRAPER-logo">
+  <img src="upwork-job-scraper/icon128.png" width="128" height="128" alt="UPWORK-JOB-SCRAPER-logo">
 </p>
 <p align="center">
     <h1 align="center">UPWORK JOB SCRAPER + WEBHOOK</h1>
