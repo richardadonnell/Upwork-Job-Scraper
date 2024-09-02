@@ -190,7 +190,7 @@ try {
             } else {
                 titleElement = jobElement.querySelector('.job-tile-title a');
                 descriptionElement = jobElement.querySelector('.mb-0.text-body-sm');
-                budgetElement = jobElement.querySelector('.text-base-sm.mb-4 li:nth-child(3)');
+                budgetElement = jobElement.querySelector('ul.job-tile-info-list li[data-test="job-type-label"] strong');
                 postedElement = jobElement.querySelector('small[data-test="job-pubilshed-date"] span:last-child');
                 proposalsElement = jobElement.querySelector('li[data-test="proposals-tier"]');
                 clientCountryElement = jobElement.querySelector('li[data-test="location"] .air3-badge-tagline');
