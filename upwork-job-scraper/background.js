@@ -5,7 +5,7 @@ let checkFrequency = 5;
 let webhookEnabled = false;
 let masterEnabled = false;
 const ERROR_LOGGING_URL = 'https://hook.us1.make.com/nzeveapbb4wihpkc5xbixkx9sr397jfa';
-const APP_VERSION = '1.12';
+const APP_VERSION = '1.13';
 let newJobsCount = 0;
 let lastViewedTimestamp = 0;
 
@@ -62,7 +62,8 @@ function updateAlarm() {
 async function checkForNewJobs() {
     try {
         await loadFeedSourceSettings();
-        if (!masterEnabled) {
+        const isEnabled = await syncMasterToggleState();
+        if (!isEnabled) {
             addToActivityLog('Extension is disabled. Skipping job check.');
             return;
         }
@@ -262,16 +263,17 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 sendResponse({ status: 'ready' });
                 return false;
             case 'updateMasterToggle':
-                masterEnabled = message.enabled;
-                addToActivityLog(`Extension ${masterEnabled ? 'enabled' : 'disabled'} (all features)`);
-                if (masterEnabled) {
-                    updateAlarm();
-                } else {
-                    chrome.alarms.clear("checkJobs");
-                }
-                sendResponse({ success: true });
-                handled = true;
-                break;
+                chrome.storage.sync.set({ masterEnabled: message.enabled }, async () => {
+                    masterEnabled = message.enabled;
+                    addToActivityLog(`Extension ${masterEnabled ? 'enabled' : 'disabled'} (all features)`);
+                    if (masterEnabled) {
+                        await updateAlarm();
+                    } else {
+                        await chrome.alarms.clear("checkJobs");
+                    }
+                    sendResponse({ success: true });
+                });
+                return true; // Indicates we'll send a response asynchronously
             case 'getMasterToggleState':
                 sendResponse({ state: masterEnabled });
                 handled = true;
@@ -414,8 +416,20 @@ function safelyExecuteWithRetry(callback, maxRetries = 3, delay = 1000) {
 
 // Add this function to retrieve the master toggle state from storage
 function syncMasterToggleState() {
-    chrome.storage.sync.get('masterEnabled', (data) => {
-        masterEnabled = data.masterEnabled === true;
-        console.log('Master toggle state synced:', masterEnabled);
+    return new Promise((resolve) => {
+        chrome.storage.sync.get('masterEnabled', (data) => {
+            if (data.masterEnabled === undefined) {
+                // If not set, default to true and save it
+                chrome.storage.sync.set({ masterEnabled: true }, () => {
+                    masterEnabled = true;
+                    console.log('Master toggle state initialized to:', masterEnabled);
+                    resolve(masterEnabled);
+                });
+            } else {
+                masterEnabled = data.masterEnabled;
+                console.log('Master toggle state synced:', masterEnabled);
+                resolve(masterEnabled);
+            }
+        });
     });
 }
