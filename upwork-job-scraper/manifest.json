@@ -7,8 +7,7 @@
         "storage",
         "alarms",
         "notifications",
-        "scripting",
-        "tabs"
+        "scripting"
     ],
     "host_permissions": [
         "https://www.upwork.com/*"
