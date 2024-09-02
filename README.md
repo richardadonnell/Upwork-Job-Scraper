@@ -13,9 +13,6 @@
 	<img src="https://img.shields.io/github/languages/top/warezit/Upwork-Job-Scraper?style=default&color=0080ff" alt="repo-top-language">
 	<img src="https://img.shields.io/github/languages/count/warezit/Upwork-Job-Scraper?style=default&color=0080ff" alt="repo-language-count">
 </p>
-<p align="center">
-	<!-- default option, no dependency badges. -->
-</p>
 
 <br>
 
@@ -39,30 +36,27 @@ This Chrome extension automatically scrapes job listings from Upwork and sends t
 8. 🔛 **Webhook Toggle**: Enable or disable webhook functionality.
 9. 🖱️ **Manual Scraping**: Allows users to trigger a job scrape manually.
 10. 🔢 **Badge Notifications**: Shows the number of new jobs since last viewed on the extension icon.
+11. 🎛️ **Master Toggle**: Enable or disable all extension functionality.
+12. ⏳ **Next Check Countdown**: Displays a countdown to the next scheduled job check.
 
 ## Installation
 
-1. Download the zip file from [this link](https://github.com/warezit/Upwork-Job-Scraper/releases/download/1.2/upwork-job-scraper-1.2.zip).
-2. Extract the zip file to a folder of your choice.
-3. Open Chrome and navigate to `chrome://extensions/` or `brave://extensions/`.
-4. Enable "Developer mode" by toggling the switch in the top right corner.
-5. Click "Load unpacked" button that appears after enabling Developer mode.
-6. Navigate to the folder where you extracted the extension files and select it.
-7. The extension should now be installed and visible in your Chrome browser.
+1. Download or clone this repository.
+2. Open Chrome and navigate to `chrome://extensions`.
+3. Enable "Developer mode" in the top right corner.
+4. Click "Load unpacked" and select the `upwork-job-scraper` folder from the downloaded repository.
 
 ## Usage
 
-1. Click on the extension icon in Chrome to open the settings page.
-2. Configure the webhook URL where you want to receive job data.
-3. Set the desired job check frequency.
-4. Choose between "Most Recent Jobs" or "Custom Search URL" as your feed source.
-5. Enable or disable browser notifications and webhook functionality as needed.
-6. View scraped jobs and the activity log directly in the settings page.
-7. Use the "Manually Scrape Jobs" button to trigger an immediate job scrape.
+### Accessing Settings
 
-## Configuration
+Click on the extension icon in Chrome to open the settings page.
 
-### Webhook Setup
+### Master Toggle
+
+Use the master toggle at the top of the settings page to enable or disable all extension functionality.
+
+### Webhook Configuration
 
 1. Toggle the switch to enable or disable webhook functionality.
 2. Enter your webhook URL in the provided input field.
@@ -93,6 +87,10 @@ For Custom Search URL:
 
 Toggle the switch to enable or disable browser push notifications for new jobs.
 
+### Manual Scraping
+
+Use the "Manually Scrape Jobs" button to initiate an immediate job scrape.
+
 ## Development
 
 The extension consists of the following main components:
@@ -100,6 +98,7 @@ The extension consists of the following main components:
 1. `manifest.json`: Defines the extension's permissions and structure.
 2. `background.js`: Handles background processes, job scraping, and webhook communication.
 3. `settings.html` and `settings.js`: Manage the user interface and settings.
+4. `settings.css`: Styles the settings page.
 
 To modify the extension:
 
@@ -138,44 +137,10 @@ This extension requires the following permissions:
 - Frequent scraping may be detected by Upwork and could lead to IP blocking.
 - The extension relies on Upwork's current HTML structure; changes to their website may break the scraping functionality.
 
-## Contributing
+## Support
 
-Contributions to improve the extension are welcome. Please follow these steps:
+If you found this project helpful, consider supporting the developer:
 
-1. Fork the repository
-2. Create a new branch for your feature
-3. Commit your changes
-4. Push to the branch
-5. Create a new Pull Request
-
-## License
-
-This project is licensed under the GNU General Public License v3.0 (GPL-3.0).
-
-GNU General Public License v3.0 (GPL-3.0)
-
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program. If not, see <https://www.gnu.org/licenses/>.
-
-For the full license text, please see the LICENSE file in the root directory of this source tree or visit https://www.gnu.org/licenses/gpl-3.0.html.
-
-## Disclaimer
-
-This extension is for educational purposes only. Use it responsibly and in accordance with Upwork's terms of service. The authors are not responsible for any misuse or violation of Upwork's policies.
-
-## Support My Work
-
-If you found this repository helpful and would like to show your support, consider buying me a coffee! Your contribution helps keep this project going. 
-
-[![Buy Me A Coffee](https://img.buymeacoffee.com/button-api/?text=Buy%20me%20a%20coffee&emoji=&slug=warezitb&button_colour=FF5F5F&font_colour=ffffff&font_family=Cookie&outline_colour=000000&coffee_colour=ffffff)](https://buymeacoffee.com/warezitb)
-
+<a href="https://buymeacoffee.com/warezitb" target="_blank">
+    <img src="https://img.buymeacoffee.com/button-api/?text=Buy%20me%20a%20coffee&emoji=&slug=warezitb&button_colour=FF5F5F&font_colour=ffffff&font_family=Cookie&outline_colour=000000&coffee_colour=ffffff" alt="Buy Me A Coffee">
+</a>
