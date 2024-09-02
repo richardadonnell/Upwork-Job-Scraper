@@ -103,17 +103,51 @@ function initializeSettings() {
             return;
         }
 
-        const testPayload = {
-            title: "Test Job",
-            url: "https://www.upwork.com/test-job",
-            description: "This is a test job posting to verify webhook functionality.",
-            budget: "$100-$500",
-            posted: "Just now",
-            proposals: "Less than 5",
-            clientCountry: "Test Country",
-            paymentVerified: true,
-            scrapedAt: Date.now()
-        };
+        const testPayload = [
+            {
+                title: "Comprehensive Test Job",
+                url: "https://www.upwork.com/test-job-comprehensive",
+                description: "This is a comprehensive test job posting to verify webhook functionality for all possible fields.",
+                budget: "Fixed price and Hourly",
+                estimatedBudget: "$100-$500",
+                estimatedTime: "Less than 1 month",
+                postedTime: "Just now",
+                skills: ["JavaScript", "React", "Node.js", "Python", "Django", "PostgreSQL"],
+                clientCountry: "United States",
+                clientRating: "100%",
+                clientSpent: "$1M+",
+                proposals: "5 to 10",
+                paymentVerified: true,
+                scrapedAt: new Date().toISOString(),
+                experienceLevel: "Entry Level to Expert",
+                clientInfo: {
+                    totalSpent: "$5M+",
+                    totalHires: 100,
+                    activeContracts: 10,
+                    openJobs: 5,
+                    memberSince: "Jan 1, 2010",
+                    lastSeen: "1 hour ago"
+                },
+                jobType: "One-time project",
+                projectLength: "Long term",
+                workload: "Full time",
+                tierRequirement: "Top Rated and Up",
+                numberOfApplicants: 20,
+                clientTimeZone: "UTC-5",
+                preferredQualifications: ["5+ years of experience", "Fluent English", "Bachelor's degree"],
+                attachments: ["job_description.pdf", "wireframes.png"],
+                questionnaire: [
+                    "What is your experience with React?",
+                    "How do you handle state management in large applications?"
+                ],
+                visibility: "Anyone",
+                connects: 4,
+                projectID: "1234567890",
+                categoryID: "531770282580668418",
+                subcategoryID: "531770282580668419",
+                specializationID: "531770282589057033"
+            }
+        ];
 
         fetch(webhookUrl, {
             method: 'POST',
