@@ -3,13 +3,38 @@ body {
     background-color: #1e1e1e;
     color: #e0e0e0;
     margin: 0;
-    padding: 20px;
+    padding: 0;
     line-height: 1.6;
+}
+
+.main-nav {
+    background-color: #61eb38;
+    padding: 10px 0;
+    margin-bottom: 20px;
+}
+
+.nav-content {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+}
+
+.nav-content img {
+    width: 48px;
+    height: 48px;
+    margin-right: 15px;
+}
+
+.nav-content h1 {
+    color: #1e1e1e;
+    margin: 0;
+    font-size: 24px;
 }
 
 .container {
     max-width: 800px;
     margin: 0 auto;
+    padding: 0 20px;
 }
 
 /* Typography */
@@ -23,7 +48,9 @@ h1 {
 }
 
 h2 {
-    font-size: 24px;  /* Added this line for consistent heading sizes */
+    color: #61eb38;
+    font-size: 24px;
+    margin-top: 30px;
 }
 
 a {
