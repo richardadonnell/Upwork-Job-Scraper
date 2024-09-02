@@ -284,9 +284,15 @@ function initializeSettings() {
                 <p><strong>URL:</strong> <a href="${job.url}" target="_blank">${job.url}</a></p>
                 <p><strong>Description:</strong> ${job.description}</p>
                 <p><strong>Budget:</strong> ${job.budget}</p>
+                ${job.estimatedBudget ? `<p><strong>Estimated Budget:</strong> ${job.estimatedBudget}</p>` : ''}
+                ${job.estimatedTime ? `<p><strong>Estimated Time:</strong> ${job.estimatedTime}</p>` : ''}
+                <p><strong>Experience Level:</strong> ${job.experienceLevel}</p>
                 <p><strong>Proposals:</strong> ${job.proposals}</p>
                 <p><strong>Client Country:</strong> ${job.clientCountry}</p>
+                <p><strong>Client Rating:</strong> ${job.clientRating}</p>
+                <p><strong>Client Spent:</strong> ${job.clientSpent}</p>
                 <p><strong>Payment Verified:</strong> ${job.paymentVerified ? 'Yes' : 'No'}</p>
+                <p><strong>Skills:</strong> ${job.skills.join(', ')}</p>
             `;
 
             jobItem.appendChild(jobHeader);

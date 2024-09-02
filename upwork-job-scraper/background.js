@@ -335,6 +335,17 @@ async function scrapeJobs() {
           paymentVerified: job.querySelector('[data-test="payment-verification-status"] strong, [data-test="payment-verified"]')?.textContent.includes('verified') || false,
           scrapedAt: new Date().toISOString()
         };
+
+        // Additional information for fixed-price jobs
+        if (jobData.budget.includes('Fixed price')) {
+          jobData.experienceLevel = job.querySelector('[data-test="experience-level"] strong')?.textContent.trim() || 'N/A';
+          jobData.estimatedBudget = job.querySelector('[data-test="is-fixed-price"] strong:last-child')?.textContent.trim() || 'N/A';
+        } else {
+          // For hourly jobs
+          jobData.experienceLevel = job.querySelector('[data-test="experience-level"] strong')?.textContent.trim() || 'N/A';
+          jobData.estimatedTime = job.querySelector('[data-test="duration-label"] strong:last-child')?.textContent.trim() || 'N/A';
+        }
+
         scrapedJobs.push(jobData);
       } catch (jobError) {
         console.error('Error scraping individual job:', jobError);
