@@ -97,10 +97,18 @@ button:hover {
     border-radius: 4px;
 }
 
+.job-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
 .job-title {
+    flex-grow: 1;
+    margin-right: 10px;
     cursor: pointer;
     font-weight: bold;
-    color: #c4ffb3;  // Changed from #61eb38 to #c4ffb3
+    color: #c4ffb3;
 }
 
 .job-title span {
@@ -108,9 +116,14 @@ button:hover {
     font-weight: normal;
 }
 
+.open-job-button {
+    padding: 5px 10px;
+    font-size: 14px;
+    min-width: 60px;
+}
+
 .job-details {
     display: none;
-    margin-left: 20px;
     margin-top: 10px;
 }
 

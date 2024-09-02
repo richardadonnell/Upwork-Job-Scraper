@@ -224,6 +224,9 @@ function initializeSettings() {
             const jobItem = document.createElement('div');
             jobItem.className = 'job-item';
 
+            const jobHeader = document.createElement('div');
+            jobHeader.className = 'job-header';
+
             const jobTitle = document.createElement('div');
             jobTitle.className = 'job-title';
             
@@ -235,6 +238,17 @@ function initializeSettings() {
             jobTitle.appendChild(timeSpan);
             
             jobTitle.onclick = () => toggleJobDetails(index);
+
+            const openButton = document.createElement('button');
+            openButton.className = 'open-job-button button-secondary';
+            openButton.textContent = 'Open';
+            openButton.onclick = (e) => {
+                e.stopPropagation(); // Prevent triggering the jobTitle click event
+                window.open(job.url, '_blank');
+            };
+
+            jobHeader.appendChild(jobTitle);
+            jobHeader.appendChild(openButton);
 
             const jobDetails = document.createElement('div');
             jobDetails.className = 'job-details';
@@ -248,7 +262,7 @@ function initializeSettings() {
                 <p><strong>Payment Verified:</strong> ${job.paymentVerified ? 'Yes' : 'No'}</p>
             `;
 
-            jobItem.appendChild(jobTitle);
+            jobItem.appendChild(jobHeader);
             jobItem.appendChild(jobDetails);
             jobsContainer.appendChild(jobItem);
         });
