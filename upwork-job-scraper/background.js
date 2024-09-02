@@ -213,13 +213,13 @@ chrome.alarms.onAlarm.addListener((alarm) => {
 chrome.runtime.onStartup.addListener(() => {
     console.log('Chrome started, extension loaded');
     loadFeedSourceSettings();
-    loadMasterToggleState();
+    syncMasterToggleState();
 });
 
 chrome.runtime.onInstalled.addListener(() => {
     console.log('Extension installed or updated');
     loadFeedSourceSettings();
-    loadMasterToggleState();
+    syncMasterToggleState();
 });
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
@@ -269,6 +269,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 } else {
                     chrome.alarms.clear("checkJobs");
                 }
+                sendResponse({ success: true });
+                handled = true;
+                break;
+            case 'getMasterToggleState':
+                sendResponse({ state: masterEnabled });
                 handled = true;
                 break;
             case 'checkForNewVersion':
@@ -407,13 +412,10 @@ function safelyExecuteWithRetry(callback, maxRetries = 3, delay = 1000) {
     attempt();
 }
 
-// Add this new function to load the master toggle state
-function loadMasterToggleState() {
+// Add this function to retrieve the master toggle state from storage
+function syncMasterToggleState() {
     chrome.storage.sync.get('masterEnabled', (data) => {
         masterEnabled = data.masterEnabled === true;
-        if (masterEnabled) {
-            checkForNewJobs();
-        }
-        updateBadge();
+        console.log('Master toggle state synced:', masterEnabled);
     });
 }
