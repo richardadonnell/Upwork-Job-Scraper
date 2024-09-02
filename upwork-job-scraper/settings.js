@@ -492,31 +492,35 @@ function initializeSettings() {
         // Add more UI updates as needed
     }
 
-    // Load master toggle state from the background script
-    chrome.runtime.sendMessage({ type: 'getMasterToggleState' }, (response) => {
-        if (chrome.runtime.lastError) {
-            console.error('Error getting master toggle state:', chrome.runtime.lastError);
-        } else if (response && response.state !== undefined) {
-            updateUIBasedOnMasterToggle(response.state);
-            console.log('Master toggle state synchronized with background script');
-        }
-    });
+    // Add this new function to sync the master toggle state
+    function syncMasterToggleState() {
+        chrome.runtime.sendMessage({ type: 'getMasterToggleState' }, (response) => {
+            if (chrome.runtime.lastError) {
+                console.error('Error getting master toggle state:', chrome.runtime.lastError);
+            } else if (response && response.state !== undefined) {
+                document.getElementById('master-toggle').checked = response.state;
+                updateUIBasedOnMasterToggle(response.state);
+                console.log('Master toggle state synchronized with background script');
+            }
+        });
+    }
 
-    // Master toggle event listener
-    masterToggle.addEventListener('change', (event) => {
+    // Call this function when initializing and periodically
+    syncMasterToggleState();
+    setInterval(syncMasterToggleState, 5000); // Sync every 5 seconds
+
+    // Modify the master toggle event listener
+    document.getElementById('master-toggle').addEventListener('change', (event) => {
         const isEnabled = event.target.checked;
-        chrome.storage.sync.set({ masterEnabled: isEnabled }, () => {
-            console.log('Extension ' + (isEnabled ? 'enabled' : 'disabled'));
-            addLogEntry(`Extension ${isEnabled ? 'enabled' : 'disabled'} (all features)`);
-            // Send a message to the background script to update its state
-            chrome.runtime.sendMessage({ type: 'updateMasterToggle', enabled: isEnabled }, (response) => {
-                if (chrome.runtime.lastError) {
-                    console.error('Error updating master toggle state:', chrome.runtime.lastError);
-                } else if (response && response.success) {
-                    console.log('Background script updated with new master toggle state');
-                    updateUIBasedOnMasterToggle(isEnabled);
-                }
-            });
+        chrome.runtime.sendMessage({ type: 'updateMasterToggle', enabled: isEnabled }, (response) => {
+            if (chrome.runtime.lastError) {
+                console.error('Error updating master toggle state:', chrome.runtime.lastError);
+                // Revert the toggle if there was an error
+                event.target.checked = !isEnabled;
+            } else if (response && response.success) {
+                console.log('Background script updated with new master toggle state');
+                updateUIBasedOnMasterToggle(isEnabled);
+            }
         });
     });
 
