@@ -492,8 +492,32 @@ function initializeSettings() {
         chrome.storage.sync.set({ masterEnabled: isEnabled }, () => {
             console.log('Extension ' + (isEnabled ? 'enabled' : 'disabled'));
             addLogEntry(`Extension ${isEnabled ? 'enabled' : 'disabled'} (all features)`);
-            chrome.runtime.sendMessage({ type: 'updateMasterToggle', enabled: isEnabled });
+            // Send a message to the background script to update its state
+            chrome.runtime.sendMessage({ type: 'updateMasterToggle', enabled: isEnabled }, (response) => {
+                if (chrome.runtime.lastError) {
+                    console.error('Error updating master toggle state:', chrome.runtime.lastError);
+                } else if (response && response.success) {
+                    console.log('Background script updated with new master toggle state');
+                }
+            });
         });
+    });
+
+    // Add this function to check the current state of the master toggle
+    function checkMasterToggleState() {
+        chrome.runtime.sendMessage({ type: 'getMasterToggleState' }, (response) => {
+            if (chrome.runtime.lastError) {
+                console.error('Error getting master toggle state:', chrome.runtime.lastError);
+            } else if (response && response.state !== undefined) {
+                masterToggle.checked = response.state;
+                console.log('Master toggle state synchronized with background script');
+            }
+        });
+    }
+
+    // Call this function when the settings page is loaded
+    document.addEventListener('DOMContentLoaded', () => {
+        checkMasterToggleState();
     });
 
     // Add this new function to show the new version notification
