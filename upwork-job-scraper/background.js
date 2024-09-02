@@ -327,22 +327,21 @@ async function scrapeJobs() {
           description: job.querySelector('[data-test="job-description-text"], [data-test="UpCLineClamp JobDescription"] p')?.textContent.trim() || 'N/A',
           budget: job.querySelector('[data-test="budget"], [data-test="job-type-label"] strong')?.textContent.trim() || 'N/A',
           postedTime: job.querySelector('[data-test="posted-on"], [data-test="job-pubilshed-date"]')?.textContent.trim() || 'N/A',
-          skills: Array.from(job.querySelectorAll('.air3-token-wrap a, [data-test="TokenClamp JobAttrs"] .air3-token')).map(skill => skill.textContent.trim()),
+          skills: Array.from(job.querySelectorAll('.air3-token-wrap a, [data-test="TokenClamp JobAttrs"] .air3-token')).map(skill => skill.textContent.trim()) || [],
           clientCountry: job.querySelector('[data-test="client-country"]')?.textContent.trim() || 'N/A',
           clientRating: job.querySelector('.air3-rating-foreground')?.style.width || 'N/A',
           clientSpent: job.querySelector('[data-test="client-spendings"] strong, [data-test="total-spent"] strong')?.textContent.trim() || 'N/A',
           proposals: job.querySelector('[data-test="proposals"], [data-test="proposals-tier"] strong')?.textContent.trim() || 'N/A',
           paymentVerified: job.querySelector('[data-test="payment-verification-status"] strong, [data-test="payment-verified"]')?.textContent.includes('verified') || false,
-          scrapedAt: new Date().toISOString()
+          scrapedAt: new Date().toISOString(),
+          experienceLevel: job.querySelector('[data-test="experience-level"] strong')?.textContent.trim() || 'N/A'
         };
 
         // Additional information for fixed-price jobs
         if (jobData.budget.includes('Fixed price')) {
-          jobData.experienceLevel = job.querySelector('[data-test="experience-level"] strong')?.textContent.trim() || 'N/A';
           jobData.estimatedBudget = job.querySelector('[data-test="is-fixed-price"] strong:last-child')?.textContent.trim() || 'N/A';
         } else {
           // For hourly jobs
-          jobData.experienceLevel = job.querySelector('[data-test="experience-level"] strong')?.textContent.trim() || 'N/A';
           jobData.estimatedTime = job.querySelector('[data-test="duration-label"] strong:last-child')?.textContent.trim() || 'N/A';
         }
 
