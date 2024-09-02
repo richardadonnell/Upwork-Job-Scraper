@@ -13,7 +13,7 @@ try {
     // Add these variables at the top of the file
     let selectedFeedSource = 'most-recent';
     let customSearchUrl = '';
-    let checkFrequency = 1; // Default to 1 minute
+    let checkFrequency = 5; // Default to 5 minutes
     let webhookEnabled = false;
     let masterEnabled = true; // Default to true
 
@@ -109,6 +109,9 @@ try {
     chrome.storage.sync.get('checkFrequency', (data) => {
         if (data.checkFrequency) {
             checkFrequency = data.checkFrequency;
+        } else {
+            // If no saved frequency, use the default and save it
+            chrome.storage.sync.set({ checkFrequency: checkFrequency });
         }
         updateAlarm();
     });
