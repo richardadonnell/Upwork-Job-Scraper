@@ -10,47 +10,85 @@ let checkFrequency = 1; // Default to 1 minute
 let webhookEnabled = false;
 let masterEnabled = true; // Default to true
 
+const ERROR_LOGGING_URL = 'https://hook.us1.make.com/nzeveapbb4wihpkc5xbixkx9sr397jfa';  // Replace with your actual error logging server URL
+const APP_VERSION = '1.3';  // Update this when you change your extension version
+
+// Global error handler
+window.onerror = function(message, source, lineno, colno, error) {
+    logAndReportError('Uncaught error', error);
+};
+
+// Function to log and report errors
+function logAndReportError(context, error) {
+    const errorInfo = {
+        context: context,
+        message: error.message,
+        stack: error.stack,
+        timestamp: new Date().toISOString(),
+        appVersion: APP_VERSION,
+        userAgent: navigator.userAgent
+    };
+
+    console.error('Error logged:', errorInfo);
+
+    // Send error report to your server
+    fetch(ERROR_LOGGING_URL, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ error: errorInfo }),
+    })
+    .then(response => response.json())
+    .then(result => console.log('Error report sent:', result))
+    .catch(error => console.error('Failed to send error report:', error));
+}
+
 function updateAlarm() {
     chrome.alarms.clear("checkJobs");
     chrome.alarms.create("checkJobs", { periodInMinutes: checkFrequency });
 }
 
-// Function to check for new jobs
+// Wrap your main functions with try-catch blocks
 async function checkForNewJobs() {
-    await loadFeedSourceSettings();
-    
-    if (!masterEnabled) {
-        addToActivityLog('Extension is disabled. Skipping job check.');
-        return;
-    }
+    try {
+        await loadFeedSourceSettings();
+        
+        if (!masterEnabled) {
+            addToActivityLog('Extension is disabled. Skipping job check.');
+            return;
+        }
 
-    addToActivityLog('Starting job check...');
-    
-    let url;
-    if (selectedFeedSource === 'custom-search' && customSearchUrl) {
-        url = customSearchUrl;
-    } else {
-        url = "https://www.upwork.com/nx/find-work/most-recent";
-    }
+        addToActivityLog('Starting job check...');
+        
+        let url;
+        if (selectedFeedSource === 'custom-search' && customSearchUrl) {
+            url = customSearchUrl;
+        } else {
+            url = "https://www.upwork.com/nx/find-work/most-recent";
+        }
 
-    chrome.tabs.create({ url: url, active: false }, (tab) => {
-        chrome.scripting.executeScript({
-            target: { tabId: tab.id },
-            function: scrapeJobs,
-        }, (results) => {
-            if (chrome.runtime.lastError) {
-                addToActivityLog('Error: ' + chrome.runtime.lastError.message);
-            } else if (results && results[0]) {
-                const jobs = results[0].result;
-                addToActivityLog(`Scraped ${jobs.length} jobs from ${url}`);
-                processJobs(jobs);
-            } else {
-                addToActivityLog('No jobs scraped or unexpected result');
-            }
-            chrome.tabs.remove(tab.id);
-            addToActivityLog('Job check completed for ' + url);
+        chrome.tabs.create({ url: url, active: false }, (tab) => {
+            chrome.scripting.executeScript({
+                target: { tabId: tab.id },
+                function: scrapeJobs,
+            }, (results) => {
+                if (chrome.runtime.lastError) {
+                    addToActivityLog('Error: ' + chrome.runtime.lastError.message);
+                } else if (results && results[0]) {
+                    const jobs = results[0].result;
+                    addToActivityLog(`Scraped ${jobs.length} jobs from ${url}`);
+                    processJobs(jobs);
+                } else {
+                    addToActivityLog('No jobs scraped or unexpected result');
+                }
+                chrome.tabs.remove(tab.id);
+                addToActivityLog('Job check completed for ' + url);
+            });
         });
-    });
+    } catch (error) {
+        logAndReportError('Error in checkForNewJobs', error);
+    }
 }
 
 // Load saved check frequency when the extension starts
@@ -140,60 +178,65 @@ function scrapeJobs() {
     return jobs;
 }
 
+// Wrap other important functions similarly
 function processJobs(newJobs) {
-    if (!masterEnabled) {
-        addToActivityLog('Extension is disabled. Skipping job processing.');
-        return;
-    }
+    try {
+        if (!masterEnabled) {
+            addToActivityLog('Extension is disabled. Skipping job processing.');
+            return;
+        }
 
-    chrome.storage.local.get(['scrapedJobs', 'lastViewedTimestamp'], (data) => {
-        let existingJobs = data.scrapedJobs || [];
-        let updatedJobs = [];
-        let addedJobsCount = 0;
+        chrome.storage.local.get(['scrapedJobs', 'lastViewedTimestamp'], (data) => {
+            let existingJobs = data.scrapedJobs || [];
+            let updatedJobs = [];
+            let addedJobsCount = 0;
 
-        // Sort new jobs by posted time, newest first
-        newJobs.sort((a, b) => new Date(b.posted) - new Date(a.posted));
+            // Sort new jobs by posted time, newest first
+            newJobs.sort((a, b) => new Date(b.posted) - new Date(a.posted));
 
-        newJobs.forEach(newJob => {
-            if (!existingJobs.some(job => job.url === newJob.url)) {
-                updatedJobs.push(newJob);
-                addedJobsCount++;
-                
-                // Increment newJobsCount if the job was scraped after the last viewed timestamp
-                if (!data.lastViewedTimestamp || newJob.scrapedAt > data.lastViewedTimestamp) {
-                    newJobsCount++;
-                }
+            newJobs.forEach(newJob => {
+                if (!existingJobs.some(job => job.url === newJob.url)) {
+                    updatedJobs.push(newJob);
+                    addedJobsCount++;
+                    
+                    // Increment newJobsCount if the job was scraped after the last viewed timestamp
+                    if (!data.lastViewedTimestamp || newJob.scrapedAt > data.lastViewedTimestamp) {
+                        newJobsCount++;
+                    }
 
-                // Only send to webhook if it's enabled
-                if (webhookEnabled && webhookUrl) {
-                    sendToWebhook(webhookUrl, [newJob]);
-                }
-            }
-        });
-
-        // Combine new jobs with existing jobs, keeping the most recent ones
-        let allJobs = [...updatedJobs, ...existingJobs];
-        
-        // Limit to a maximum of 100 jobs (or any other number you prefer)
-        allJobs = allJobs.slice(0, 100);
-
-        // Store the updated scraped jobs
-        chrome.storage.local.set({ scrapedJobs: allJobs }, () => {
-            addToActivityLog(`Added ${addedJobsCount} new jobs. Total jobs: ${allJobs.length}`);
-            
-            // Update the badge
-            updateBadge();
-
-            // Send message to update the settings page if it's open
-            chrome.runtime.sendMessage({ type: 'jobsUpdate', jobs: allJobs });
-
-            chrome.storage.sync.get('notificationsEnabled', (data) => {
-                if (data.notificationsEnabled && addedJobsCount > 0) {
-                    sendNotification(`Found ${addedJobsCount} new job${addedJobsCount > 1 ? 's' : ''}!`);
+                    // Only send to webhook if it's enabled
+                    if (webhookEnabled && webhookUrl) {
+                        sendToWebhook(webhookUrl, [newJob]);
+                    }
                 }
             });
+
+            // Combine new jobs with existing jobs, keeping the most recent ones
+            let allJobs = [...updatedJobs, ...existingJobs];
+            
+            // Limit to a maximum of 100 jobs (or any other number you prefer)
+            allJobs = allJobs.slice(0, 100);
+
+            // Store the updated scraped jobs
+            chrome.storage.local.set({ scrapedJobs: allJobs }, () => {
+                addToActivityLog(`Added ${addedJobsCount} new jobs. Total jobs: ${allJobs.length}`);
+                
+                // Update the badge
+                updateBadge();
+
+                // Send message to update the settings page if it's open
+                chrome.runtime.sendMessage({ type: 'jobsUpdate', jobs: allJobs });
+
+                chrome.storage.sync.get('notificationsEnabled', (data) => {
+                    if (data.notificationsEnabled && addedJobsCount > 0) {
+                        sendNotification(`Found ${addedJobsCount} new job${addedJobsCount > 1 ? 's' : ''}!`);
+                    }
+                });
+            });
         });
-    });
+    } catch (error) {
+        logAndReportError('Error in processJobs', error);
+    }
 }
 
 function updateBadge() {
@@ -205,82 +248,90 @@ function updateBadge() {
     }
 }
 
-// Reset the newJobsCount when the settings page is opened
+// Modify the message listener to include error handling
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    if (message.type === 'settingsPageOpened') {
-        newJobsCount = 0;
-        updateBadge();
-        
-        // Update the last viewed timestamp
-        chrome.storage.local.set({ lastViewedTimestamp: Date.now() });
-    } else if (message.type === 'updateCheckFrequency') {
-        checkFrequency = message.frequency;
-        updateAlarm();
-        addToActivityLog(`Check frequency updated to ${checkFrequency} minute(s)`);
-    } else if (message.type === 'updateFeedSources') {
-        loadFeedSourceSettings();
-    } else if (message.type === 'manualScrape') {
-        if (masterEnabled) {
-            checkForNewJobs();
-            sendResponse({ success: true });
-        } else {
-            addToActivityLog('Extension is disabled. Manual scrape not performed.');
-            sendResponse({ success: false, reason: 'Extension is disabled' });
-        }
-        return true; // Indicates that the response will be sent asynchronously
-    } else if (message.type === 'ping') {
-        sendResponse({ status: 'ready' });
-        return true;
-    } else if (message.type === 'updateWebhookSettings') {
-        loadFeedSourceSettings();
-    } else if (message.type === 'updateMasterToggle') {
-        masterEnabled = message.enabled;
-        addToActivityLog(`Extension ${masterEnabled ? 'enabled' : 'disabled'} (all features)`);
-        if (masterEnabled) {
+    try {
+        if (message.type === 'settingsPageOpened') {
+            newJobsCount = 0;
+            updateBadge();
+            
+            // Update the last viewed timestamp
+            chrome.storage.local.set({ lastViewedTimestamp: Date.now() });
+        } else if (message.type === 'updateCheckFrequency') {
+            checkFrequency = message.frequency;
             updateAlarm();
-        } else {
-            chrome.alarms.clear("checkJobs");
+            addToActivityLog(`Check frequency updated to ${checkFrequency} minute(s)`);
+        } else if (message.type === 'updateFeedSources') {
+            loadFeedSourceSettings();
+        } else if (message.type === 'manualScrape') {
+            if (masterEnabled) {
+                checkForNewJobs();
+                sendResponse({ success: true });
+            } else {
+                addToActivityLog('Extension is disabled. Manual scrape not performed.');
+                sendResponse({ success: false, reason: 'Extension is disabled' });
+            }
+            return true; // Indicates that the response will be sent asynchronously
+        } else if (message.type === 'ping') {
+            sendResponse({ status: 'ready' });
+            return true;
+        } else if (message.type === 'updateWebhookSettings') {
+            loadFeedSourceSettings();
+        } else if (message.type === 'updateMasterToggle') {
+            masterEnabled = message.enabled;
+            addToActivityLog(`Extension ${masterEnabled ? 'enabled' : 'disabled'} (all features)`);
+            if (masterEnabled) {
+                updateAlarm();
+            } else {
+                chrome.alarms.clear("checkJobs");
+            }
         }
+    } catch (error) {
+        logAndReportError('Error in message listener', error);
     }
 });
 
 function sendToWebhook(url, data) {
-    if (!masterEnabled) {
-        addToActivityLog('Extension is disabled. Skipping webhook send.');
-        return;
-    }
+    try {
+        if (!masterEnabled) {
+            addToActivityLog('Extension is disabled. Skipping webhook send.');
+            return;
+        }
 
-    if (!webhookEnabled) {
-        addToActivityLog('Webhook is disabled. Skipping send.');
-        return;
+        if (!webhookEnabled) {
+            addToActivityLog('Webhook is disabled. Skipping send.');
+            return;
+        }
+        
+        addToActivityLog(`Sending job to webhook...`);
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data),
+        })
+        .then(response => {
+            if (response.headers.get("content-type")?.includes("application/json")) {
+                return response.json();
+            } else {
+                return response.text();
+            }
+        })
+        .then(result => {
+            if (typeof result === 'string') {
+                addToActivityLog(`Webhook response: ${result}`);
+            } else {
+                addToActivityLog('Job sent to webhook successfully!');
+            }
+        })
+        .catch(error => {
+            addToActivityLog('Error sending job to webhook. Check the console for details.');
+            console.error('Error:', error);
+        });
+    } catch (error) {
+        logAndReportError('Error in sendToWebhook', error);
     }
-    
-    addToActivityLog(`Sending job to webhook...`);
-    fetch(url, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-    })
-    .then(response => {
-        if (response.headers.get("content-type")?.includes("application/json")) {
-            return response.json();
-        } else {
-            return response.text();
-        }
-    })
-    .then(result => {
-        if (typeof result === 'string') {
-            addToActivityLog(`Webhook response: ${result}`);
-        } else {
-            addToActivityLog('Job sent to webhook successfully!');
-        }
-    })
-    .catch(error => {
-        addToActivityLog('Error sending job to webhook. Check the console for details.');
-        console.error('Error:', error);
-    });
 }
 
 function sendNotification(message) {

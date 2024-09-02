@@ -13,7 +13,8 @@
     ],
     "host_permissions": [
         "https://www.upwork.com/*",
-        "https://*.upwork.com/*"
+        "https://*.upwork.com/*",
+        "https://hook.us1.make.com/*"  // Add this line
     ],
     "action": {
         "default_popup": ""
