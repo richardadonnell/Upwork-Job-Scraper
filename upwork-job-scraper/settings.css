@@ -108,6 +108,8 @@ button:hover {
     overflow-y: auto;
     background-color: #2a2a2a;
     border-radius: 4px;
+    scrollbar-width: thin;
+    scrollbar-color: #61eb38 #2a2a2a;
 }
 
 /* Add spacing above the manual scrape button */
@@ -329,4 +331,31 @@ p, span, label, input, textarea, select, option {
     font-size: 18px;
     font-weight: bold;
     margin-left: 15px;
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+}
+
+::-webkit-scrollbar-track {
+    background: #2a2a2a;
+    border-radius: 6px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #61eb38;
+    border-radius: 6px;
+    border: 3px solid #2a2a2a;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #4ebc2d;
+}
+
+/* For Firefox */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: #61eb38 #2a2a2a;
 }
