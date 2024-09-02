@@ -482,7 +482,10 @@ try {
             const githubManifest = await response.json();
             const githubVersion = githubManifest.version;
 
-            if (githubVersion !== APP_VERSION) {
+            // Fetch the current version from the local manifest
+            const currentVersion = chrome.runtime.getManifest().version;
+
+            if (githubVersion !== currentVersion) {
                 chrome.storage.local.set({ newVersionAvailable: true });
                 addToActivityLog('New version available. Visit GitHub to download the latest version.');
             } else {
