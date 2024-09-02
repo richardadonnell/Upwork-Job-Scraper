@@ -3,7 +3,7 @@ let selectedFeedSource = 'most-recent';
 let customSearchUrl = '';
 let checkFrequency = 5;
 let webhookEnabled = false;
-let masterEnabled = true;
+let masterEnabled = false;
 const ERROR_LOGGING_URL = 'https://hook.us1.make.com/nzeveapbb4wihpkc5xbixkx9sr397jfa';
 const APP_VERSION = '1.10';
 let newJobsCount = 0;
@@ -206,14 +206,14 @@ chrome.alarms.onAlarm.addListener((alarm) => {
 
 chrome.runtime.onStartup.addListener(() => {
     console.log('Chrome started, extension loaded');
-    checkForNewJobs();
     loadFeedSourceSettings();
+    loadMasterToggleState();
 });
 
 chrome.runtime.onInstalled.addListener(() => {
     console.log('Extension installed or updated');
-    checkForNewJobs();
     loadFeedSourceSettings();
+    loadMasterToggleState();
 });
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
@@ -382,4 +382,14 @@ function safelyExecuteWithRetry(callback, maxRetries = 3, delay = 1000) {
         }
     }
     attempt();
+}
+
+// Add this new function to load the master toggle state
+function loadMasterToggleState() {
+    chrome.storage.sync.get('masterEnabled', (data) => {
+        masterEnabled = data.masterEnabled === true;
+        if (masterEnabled) {
+            checkForNewJobs();
+        }
+    });
 }

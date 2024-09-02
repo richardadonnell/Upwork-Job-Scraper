@@ -461,8 +461,7 @@ function initializeSettings() {
 
     // Load master toggle state
     chrome.storage.sync.get('masterEnabled', (data) => {
-        masterToggle.checked = data.masterEnabled !== false; // Default to true if not set
-        // Remove the call to updateUIState
+        masterToggle.checked = data.masterEnabled === true; // Default to false if not set
     });
 
     // Master toggle event listener
@@ -471,7 +470,6 @@ function initializeSettings() {
         chrome.storage.sync.set({ masterEnabled: isEnabled }, () => {
             console.log('Extension ' + (isEnabled ? 'enabled' : 'disabled'));
             addLogEntry(`Extension ${isEnabled ? 'enabled' : 'disabled'} (all features)`);
-            // Remove the call to updateUIState
             chrome.runtime.sendMessage({ type: 'updateMasterToggle', enabled: isEnabled });
         });
     });
