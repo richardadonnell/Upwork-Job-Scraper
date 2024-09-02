@@ -5,7 +5,7 @@ let checkFrequency = 5;
 let webhookEnabled = false;
 let masterEnabled = false;
 const ERROR_LOGGING_URL = 'https://hook.us1.make.com/nzeveapbb4wihpkc5xbixkx9sr397jfa';
-const APP_VERSION = '1.13';
+const APP_VERSION = '1.14';
 let newJobsCount = 0;
 let lastViewedTimestamp = 0;
 
