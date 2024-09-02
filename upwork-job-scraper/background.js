@@ -11,7 +11,7 @@ let webhookEnabled = false;
 let masterEnabled = true; // Default to true
 
 const ERROR_LOGGING_URL = 'https://hook.us1.make.com/nzeveapbb4wihpkc5xbixkx9sr397jfa';  // Replace with your actual error logging server URL
-const APP_VERSION = '1.3';  // Update this when you change your extension version
+const APP_VERSION = '1.4';  // Update this when you change your extension version
 
 // Global error handler
 window.onerror = function(message, source, lineno, colno, error) {
