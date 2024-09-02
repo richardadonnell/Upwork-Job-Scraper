@@ -483,7 +483,16 @@ function initializeSettings() {
 
     // Load master toggle state
     chrome.storage.sync.get('masterEnabled', (data) => {
-        masterToggle.checked = data.masterEnabled === true; // Default to false if not set
+        if (data.masterEnabled === undefined) {
+            // If not set, default to true and save it
+            chrome.storage.sync.set({ masterEnabled: true }, () => {
+                masterToggle.checked = true;
+                console.log('Master toggle state initialized to: true');
+            });
+        } else {
+            masterToggle.checked = data.masterEnabled;
+            console.log('Master toggle state synchronized:', data.masterEnabled);
+        }
     });
 
     // Master toggle event listener
@@ -496,6 +505,9 @@ function initializeSettings() {
             chrome.runtime.sendMessage({ type: 'updateMasterToggle', enabled: isEnabled }, (response) => {
                 if (chrome.runtime.lastError) {
                     console.error('Error updating master toggle state:', chrome.runtime.lastError);
+                    // Revert the toggle if there was an error
+                    masterToggle.checked = !isEnabled;
+                    addLogEntry('Error updating extension state. Please try again.');
                 } else if (response && response.success) {
                     console.log('Background script updated with new master toggle state');
                 }
@@ -505,12 +517,16 @@ function initializeSettings() {
 
     // Add this function to check the current state of the master toggle
     function checkMasterToggleState() {
-        chrome.runtime.sendMessage({ type: 'getMasterToggleState' }, (response) => {
-            if (chrome.runtime.lastError) {
-                console.error('Error getting master toggle state:', chrome.runtime.lastError);
-            } else if (response && response.state !== undefined) {
-                masterToggle.checked = response.state;
-                console.log('Master toggle state synchronized with background script');
+        chrome.storage.sync.get('masterEnabled', (data) => {
+            if (data.masterEnabled === undefined) {
+                // If not set, default to true and save it
+                chrome.storage.sync.set({ masterEnabled: true }, () => {
+                    masterToggle.checked = true;
+                    console.log('Master toggle state initialized to: true');
+                });
+            } else {
+                masterToggle.checked = data.masterEnabled;
+                console.log('Master toggle state synchronized:', data.masterEnabled);
             }
         });
     }
