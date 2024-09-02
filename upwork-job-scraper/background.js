@@ -5,7 +5,7 @@ let checkFrequency = 5;
 let webhookEnabled = false;
 let masterEnabled = false;
 const ERROR_LOGGING_URL = 'https://hook.us1.make.com/nzeveapbb4wihpkc5xbixkx9sr397jfa';
-const APP_VERSION = '1.14';
+const APP_VERSION = '1.15';
 let newJobsCount = 0;
 let lastViewedTimestamp = 0;
 
@@ -275,9 +275,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 });
                 return true; // Indicates we'll send a response asynchronously
             case 'getMasterToggleState':
-                sendResponse({ state: masterEnabled });
-                handled = true;
-                break;
+                getMasterToggleState().then(state => {
+                    sendResponse({ state: state });
+                });
+                return true; // Indicates we'll send a response asynchronously
             case 'checkForNewVersion':
                 checkForNewVersion().then(() => sendResponse({ success: true })).catch(error => sendResponse({ success: false, error: error.message }));
                 return true;
@@ -430,6 +431,15 @@ function syncMasterToggleState() {
                 console.log('Master toggle state synced:', masterEnabled);
                 resolve(masterEnabled);
             }
+        });
+    });
+}
+
+// Add this new function to get the current master toggle state
+function getMasterToggleState() {
+    return new Promise((resolve) => {
+        chrome.storage.sync.get('masterEnabled', (data) => {
+            resolve(data.masterEnabled !== false); // Default to true if undefined
         });
     });
 }
