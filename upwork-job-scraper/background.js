@@ -68,6 +68,9 @@ try {
         try {
             await loadFeedSourceSettings();
             
+            // Check for new version before scraping jobs
+            await checkForNewVersion();
+
             if (!masterEnabled) {
                 addToActivityLog('Extension is disabled. Skipping job check.');
                 return;
@@ -465,6 +468,31 @@ try {
 
     // Expose the function to the global scope so it can be called from the console
     globalThis.sendTestError = sendTestError;
+
+    // Add this function to fetch the manifest from GitHub and compare versions
+    async function checkForNewVersion() {
+        try {
+            const response = await fetch('https://raw.githubusercontent.com/warezit/Upwork-Job-Scraper/main/upwork-job-scraper/manifest.json');
+            if (!response.ok) {
+                throw new Error('Failed to fetch manifest from GitHub');
+            }
+            const githubManifest = await response.json();
+            const githubVersion = githubManifest.version;
+
+            if (githubVersion !== APP_VERSION) {
+                chrome.storage.local.set({ newVersionAvailable: true });
+            } else {
+                chrome.storage.local.set({ newVersionAvailable: false });
+            }
+        } catch (error) {
+            console.error('Error checking for new version:', error);
+            logAndReportError('Error checking for new version', error);
+        }
+    }
+
+    // Call this function when the extension starts
+    chrome.runtime.onStartup.addListener(checkForNewVersion);
+    chrome.runtime.onInstalled.addListener(checkForNewVersion);
 
 } catch (error) {
     console.error('Uncaught error in background script:', error);
