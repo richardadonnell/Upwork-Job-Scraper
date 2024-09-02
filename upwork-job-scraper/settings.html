@@ -10,12 +10,22 @@
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <img src="icon48.png" alt="Upwork Job Scraper Icon">
-            <h1>Upwork Job Scraper + Webhook Settings</h1>
+    <nav class="main-nav">
+        <div class="container">
+            <div class="nav-content">
+                <img src="icon48.png" alt="Upwork Job Scraper Icon">
+                <h1>Upwork Job Scraper + Webhook Settings</h1>
+            </div>
         </div>
-        
+    </nav>
+    <div class="container">
+        <div class="master-toggle-container">
+            <label class="toggle-switch">
+                <input type="checkbox" id="master-toggle" checked>
+                <span class="slider"></span>
+            </label>
+            <span class="toggle-label">Enable Extension (Job Scraping & All Features)</span>
+        </div>
         <h2>Scraped Jobs</h2>
         <div id="jobs-container"></div>
 
@@ -67,7 +77,9 @@
         <div class="feed-sources">
             <div class="feed-source">
                 <input type="radio" id="most-recent-feed" name="feed-source" value="most-recent" checked>
-                <label for="most-recent-feed">Most Recent Jobs</label>
+                <label for="most-recent-feed">
+                    <a href="https://www.upwork.com/nx/find-work/most-recent" target="_blank">Most Recent</a> Jobs
+                </label>
             </div>
             <div class="feed-source">
                 <input type="radio" id="custom-search-feed" name="feed-source" value="custom-search">
@@ -95,7 +107,7 @@
 
         <div class="buy-me-coffee">
             <h3>Support My Work</h3>
-            <p>If you found this repository helpful and would like to show your support, consider buying me a coffee! Your contribution helps keep this project going.</p>
+            <p>If you found this repository helpful and would like to show your support, consider buying me a coffee!<br>Your contribution helps keep this project going.</p>
             <a href="https://buymeacoffee.com/warezitb" target="_blank">
                 <img src="https://img.buymeacoffee.com/button-api/?text=Buy%20me%20a%20coffee&emoji=&slug=warezitb&button_colour=FF5F5F&font_colour=ffffff&font_family=Cookie&outline_colour=000000&coffee_colour=ffffff" alt="Buy Me A Coffee">
             </a>
@@ -108,6 +120,9 @@
                 <img src="https://github.com/favicon.ico" alt="GitHub">
                 View on GitHub
             </a>
+        </p>
+        <p class="hire-me">
+            <a href="https://rogerabledog.com/" target="_blank">Hire me!</a>
         </p>
     </footer>
 

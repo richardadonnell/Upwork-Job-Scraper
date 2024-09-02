@@ -224,6 +224,9 @@ function initializeSettings() {
             const jobItem = document.createElement('div');
             jobItem.className = 'job-item';
 
+            const jobHeader = document.createElement('div');
+            jobHeader.className = 'job-header';
+
             const jobTitle = document.createElement('div');
             jobTitle.className = 'job-title';
             
@@ -235,6 +238,17 @@ function initializeSettings() {
             jobTitle.appendChild(timeSpan);
             
             jobTitle.onclick = () => toggleJobDetails(index);
+
+            const openButton = document.createElement('button');
+            openButton.className = 'open-job-button button-secondary';
+            openButton.textContent = 'Open';
+            openButton.onclick = (e) => {
+                e.stopPropagation(); // Prevent triggering the jobTitle click event
+                window.open(job.url, '_blank');
+            };
+
+            jobHeader.appendChild(jobTitle);
+            jobHeader.appendChild(openButton);
 
             const jobDetails = document.createElement('div');
             jobDetails.className = 'job-details';
@@ -248,7 +262,7 @@ function initializeSettings() {
                 <p><strong>Payment Verified:</strong> ${job.paymentVerified ? 'Yes' : 'No'}</p>
             `;
 
-            jobItem.appendChild(jobTitle);
+            jobItem.appendChild(jobHeader);
             jobItem.appendChild(jobDetails);
             jobsContainer.appendChild(jobItem);
         });
@@ -401,6 +415,25 @@ function initializeSettings() {
                 console.error('Error sending message:', error);
                 addLogEntry('Error initiating manual scrape');
             });
+    });
+
+    const masterToggle = document.getElementById('master-toggle');
+
+    // Load master toggle state
+    chrome.storage.sync.get('masterEnabled', (data) => {
+        masterToggle.checked = data.masterEnabled !== false; // Default to true if not set
+        // Remove the call to updateUIState
+    });
+
+    // Master toggle event listener
+    masterToggle.addEventListener('change', (event) => {
+        const isEnabled = event.target.checked;
+        chrome.storage.sync.set({ masterEnabled: isEnabled }, () => {
+            console.log('Extension ' + (isEnabled ? 'enabled' : 'disabled'));
+            addLogEntry(`Extension ${isEnabled ? 'enabled' : 'disabled'} (all features)`);
+            // Remove the call to updateUIState
+            chrome.runtime.sendMessage({ type: 'updateMasterToggle', enabled: isEnabled });
+        });
     });
 }
 
