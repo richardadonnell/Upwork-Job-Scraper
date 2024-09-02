@@ -68,6 +68,23 @@ function initializeSettings() {
     console.log('Initializing settings...');
     chrome.runtime.sendMessage({ type: 'settingsPageOpened' });
 
+    // Check for new version notification
+    chrome.storage.local.get('newVersionAvailable', (data) => {
+        if (data.newVersionAvailable) {
+            const notification = document.createElement('div');
+            notification.id = 'version-notification';
+            notification.style.backgroundColor = '#ffcc00';
+            notification.style.padding = '10px';
+            notification.style.marginBottom = '10px';
+            notification.style.textAlign = 'center';
+            notification.innerHTML = `
+                <strong>New Version Available!</strong> 
+                <a href="https://github.com/warezit/Upwork-Job-Scraper" target="_blank">Visit GitHub to download the latest version.</a>
+            `;
+            document.body.insertBefore(notification, document.body.firstChild);
+        }
+    });
+
     document.getElementById('save').addEventListener('click', () => {
         const webhookUrl = document.getElementById('webhook-url').value;
         const webhookEnabled = document.getElementById('webhook-toggle').checked;
