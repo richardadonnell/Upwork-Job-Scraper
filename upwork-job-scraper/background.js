@@ -8,6 +8,7 @@ let selectedFeedSource = 'most-recent';
 let customSearchUrl = '';
 let checkFrequency = 1; // Default to 1 minute
 let webhookEnabled = false;
+let masterEnabled = true; // Default to true
 
 function updateAlarm() {
     chrome.alarms.clear("checkJobs");
@@ -16,6 +17,11 @@ function updateAlarm() {
 
 // Function to check for new jobs
 async function checkForNewJobs() {
+    if (!masterEnabled) {
+        addToActivityLog('Job scraping is disabled. Skipping check.');
+        return;
+    }
+
     await loadFeedSourceSettings();
     addToActivityLog('Starting job check...');
     
@@ -216,6 +222,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         return true;
     } else if (message.type === 'updateWebhookSettings') {
         loadFeedSourceSettings();
+    } else if (message.type === 'updateMasterToggle') {
+        masterEnabled = message.enabled;
+        addToActivityLog(`Extension ${masterEnabled ? 'enabled' : 'disabled'} (all features)`);
+        if (masterEnabled) {
+            updateAlarm();
+        } else {
+            chrome.alarms.clear("checkJobs");
+        }
     }
 });
 

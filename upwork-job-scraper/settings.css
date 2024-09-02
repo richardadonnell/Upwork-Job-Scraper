@@ -315,3 +315,18 @@ footer {
 p, span, label, input, textarea, select, option {
     font-family: 'DM Sans', sans-serif;
 }
+
+.master-toggle-container {
+    display: flex;
+    align-items: center;
+    margin: 20px 0;
+    padding: 15px;
+    background-color: #2a2a2a;
+    border-radius: 4px;
+}
+
+.master-toggle-container .toggle-label {
+    font-size: 18px;
+    font-weight: bold;
+    margin-left: 15px;
+}

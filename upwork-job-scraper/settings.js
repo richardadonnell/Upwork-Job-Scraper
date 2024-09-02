@@ -416,6 +416,34 @@ function initializeSettings() {
                 addLogEntry('Error initiating manual scrape');
             });
     });
+
+    const masterToggle = document.getElementById('master-toggle');
+
+    // Load master toggle state
+    chrome.storage.sync.get('masterEnabled', (data) => {
+        masterToggle.checked = data.masterEnabled !== false; // Default to true if not set
+        updateUIState(masterToggle.checked);
+    });
+
+    // Master toggle event listener
+    masterToggle.addEventListener('change', (event) => {
+        const isEnabled = event.target.checked;
+        chrome.storage.sync.set({ masterEnabled: isEnabled }, () => {
+            console.log('Extension ' + (isEnabled ? 'enabled' : 'disabled'));
+            addLogEntry(`Extension ${isEnabled ? 'enabled' : 'disabled'} (all features)`);
+            updateUIState(isEnabled);
+            chrome.runtime.sendMessage({ type: 'updateMasterToggle', enabled: isEnabled });
+        });
+    });
+
+    function updateUIState(isEnabled) {
+        const elements = document.querySelectorAll('input, button');
+        elements.forEach(element => {
+            if (element.id !== 'master-toggle') {
+                element.disabled = !isEnabled;
+            }
+        });
+    }
 }
 
 // Use this to initialize the settings page:
