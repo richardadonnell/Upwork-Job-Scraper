@@ -61,7 +61,6 @@ function updateAlarm() {
 async function checkForNewJobs() {
     try {
         await loadFeedSourceSettings();
-        await checkForNewVersion();
         if (!masterEnabled) {
             addToActivityLog('Extension is disabled. Skipping job check.');
             return;
