@@ -1,32 +1,39 @@
+// Add this line at the beginning of the file
+'use strict';
+
 // Variables
 let selectedFeedSource = 'most-recent';
 let customSearchUrl = '';
 let checkFrequency = 5;
 let webhookEnabled = false;
+let webhookUrl = ''; // Add this line
 let masterEnabled = false;
 const ERROR_LOGGING_URL = 'https://hook.us1.make.com/nzeveapbb4wihpkc5xbixkx9sr397jfa';
 const APP_VERSION = '1.15';
 let newJobsCount = 0;
 let lastViewedTimestamp = 0;
 
+// Add this after the variable declarations
+console.log('Background script loaded. APP_VERSION:', APP_VERSION);
+
 // Error logging function
 function logAndReportError(context, error) {
     const errorInfo = {
         context,
-        message: error.message,
-        stack: error.stack,
+        message: error.message || 'Unknown error',
+        stack: error.stack || 'No stack trace available',
         timestamp: new Date().toISOString(),
         appVersion: APP_VERSION,
         userAgent: navigator.userAgent
     };
-    console.error('Error logged:', errorInfo);
+    console.error('Error logged:', JSON.stringify(errorInfo, null, 2));
     fetch(ERROR_LOGGING_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ error: errorInfo }),
-    }).then(response => response.json())
+    }).then(response => response.text())
       .then(result => console.log('Error report sent:', result))
-      .catch(error => console.error('Failed to send error report:', error));
+      .catch(error => console.error('Failed to send error report:', error.message));
 }
 
 // Add to activity log function
@@ -102,40 +109,48 @@ async function checkForNewJobs() {
 // Process jobs
 function processJobs(newJobs) {
     try {
+        if (!Array.isArray(newJobs)) {
+            logAndReportError('Invalid newJobs data', new Error('newJobs is not an array'));
+            return;
+        }
         if (!masterEnabled) {
             addToActivityLog('Extension is disabled. Skipping job processing.');
             return;
         }
         safelyExecuteWithRetry(() => {
-            chrome.storage.local.get(['scrapedJobs', 'lastViewedTimestamp'], (data) => {
-                let existingJobs = data.scrapedJobs || [];
-                let updatedJobs = [];
-                let addedJobsCount = 0;
-                lastViewedTimestamp = data.lastViewedTimestamp || 0;
-                newJobs.sort((a, b) => new Date(b.posted) - new Date(a.posted));
-                newJobs.forEach(newJob => {
-                    if (!existingJobs.some(job => job.url === newJob.url)) {
-                        updatedJobs.push(newJob);
-                        addedJobsCount++;
-                        if (new Date(newJob.scrapedAt).getTime() > lastViewedTimestamp) {
-                            newJobsCount++;
+            chrome.storage.sync.get(['webhookEnabled', 'webhookUrl'], (webhookSettings) => {
+                console.log('Webhook settings:', webhookSettings);
+                chrome.storage.local.get(['scrapedJobs', 'lastViewedTimestamp'], (data) => {
+                    let existingJobs = data.scrapedJobs || [];
+                    let updatedJobs = [];
+                    let addedJobsCount = 0;
+                    lastViewedTimestamp = data.lastViewedTimestamp || 0;
+                    newJobs.sort((a, b) => new Date(b.posted) - new Date(a.posted));
+                    newJobs.forEach(newJob => {
+                        if (!existingJobs.some(job => job.url === newJob.url)) {
+                            updatedJobs.push(newJob);
+                            addedJobsCount++;
+                            if (new Date(newJob.scrapedAt).getTime() > lastViewedTimestamp) {
+                                newJobsCount++;
+                            }
+                            if (webhookSettings.webhookEnabled && webhookSettings.webhookUrl) {
+                                console.log('Attempting to send job to webhook:', newJob);
+                                sendToWebhook(webhookSettings.webhookUrl, [newJob]);
+                            }
                         }
-                        if (webhookEnabled && webhookUrl) {
-                            sendToWebhook(webhookUrl, [newJob]);
-                        }
-                    }
-                });
-                let allJobs = [...updatedJobs, ...existingJobs].slice(0, 100);
-                chrome.storage.local.set({ scrapedJobs: allJobs }, () => {
-                    addToActivityLog(`Added ${addedJobsCount} new jobs. Total jobs: ${allJobs.length}`);
-                    updateBadge();
-                    safelyExecuteWithRetry(() => {
-                        chrome.runtime.sendMessage({ type: 'jobsUpdate', jobs: allJobs });
                     });
-                    chrome.storage.sync.get('notificationsEnabled', (data) => {
-                        if (data.notificationsEnabled && addedJobsCount > 0) {
-                            sendNotification(`Found ${addedJobsCount} new job${addedJobsCount > 1 ? 's' : ''}!`);
-                        }
+                    let allJobs = [...updatedJobs, ...existingJobs].slice(0, 100);
+                    chrome.storage.local.set({ scrapedJobs: allJobs }, () => {
+                        addToActivityLog(`Added ${addedJobsCount} new jobs. Total jobs: ${allJobs.length}`);
+                        updateBadge();
+                        safelyExecuteWithRetry(() => {
+                            chrome.runtime.sendMessage({ type: 'jobsUpdate', jobs: allJobs });
+                        });
+                        chrome.storage.sync.get('notificationsEnabled', (data) => {
+                            if (data.notificationsEnabled && addedJobsCount > 0) {
+                                sendNotification(`Found ${addedJobsCount} new job${addedJobsCount > 1 ? 's' : ''}!`);
+                            }
+                        });
                     });
                 });
             });
@@ -211,14 +226,20 @@ chrome.alarms.onAlarm.addListener((alarm) => {
     }
 });
 
-chrome.runtime.onStartup.addListener(() => {
-    console.log('Chrome started, extension loaded');
+// Modify the existing chrome.runtime.onInstalled listener
+chrome.runtime.onInstalled.addListener((details) => {
+    console.log('Extension installed or updated. Reason:', details.reason);
     loadFeedSourceSettings();
     syncMasterToggleState();
 });
 
-chrome.runtime.onInstalled.addListener(() => {
-    console.log('Extension installed or updated');
+// Add a new listener for extension updates
+chrome.runtime.onUpdateAvailable.addListener((details) => {
+    console.log('Update available:', details.version);
+});
+
+chrome.runtime.onStartup.addListener(() => {
+    console.log('Chrome started, extension loaded');
     loadFeedSourceSettings();
     syncMasterToggleState();
 });
@@ -249,6 +270,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 });
                 return true;
             case 'updateWebhookSettings':
+                webhookUrl = message.webhookUrl;
+                webhookEnabled = message.webhookEnabled;
+                console.log('Webhook settings updated in background script');
                 loadFeedSourceSettings().then(() => sendResponse({ success: true }));
                 return true;
             case 'manualScrape':
@@ -295,17 +319,19 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
 // Webhook and notification functions
 function sendToWebhook(url, data) {
+    console.log('sendToWebhook called. masterEnabled:', masterEnabled, 'webhookEnabled:', webhookEnabled);
     if (!masterEnabled || !webhookEnabled) return;
     addToActivityLog(`Sending job to webhook...`);
     fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
-    }).then(response => {
+    })
+    .then(response => {
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
-        return response.text(); // Change this from response.json() to response.text()
+        return response.text();
     })
     .then(result => {
         addToActivityLog(`Job sent to webhook successfully! Response: ${result}`);
