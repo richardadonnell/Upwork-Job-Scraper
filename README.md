@@ -21,7 +21,7 @@
 
 # Upwork Job Scraper + Webhook Chrome Extension
 
-![Upwork Job Scraper Screenshot](upwork-job-scraper/screenshot-1.3.png)
+![Upwork Job Scraper Screenshot](upwork-job-scraper/screenshot-1.3.1.png)
 
 ## Overview
 
