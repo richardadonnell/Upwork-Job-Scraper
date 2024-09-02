@@ -481,9 +481,25 @@ function initializeSettings() {
 
     const masterToggle = document.getElementById('master-toggle');
 
-    // Load master toggle state
-    chrome.storage.sync.get('masterEnabled', (data) => {
-        masterToggle.checked = data.masterEnabled === true; // Default to false if not set
+    // Function to update UI based on master toggle state
+    function updateUIBasedOnMasterToggle(isEnabled) {
+        masterToggle.checked = isEnabled;
+        // Update other UI elements based on the master toggle state
+        // For example, disable/enable other toggles and inputs
+        document.getElementById('webhook-toggle').disabled = !isEnabled;
+        document.getElementById('webhook-url').disabled = !isEnabled;
+        document.getElementById('notification-toggle').disabled = !isEnabled;
+        // Add more UI updates as needed
+    }
+
+    // Load master toggle state from the background script
+    chrome.runtime.sendMessage({ type: 'getMasterToggleState' }, (response) => {
+        if (chrome.runtime.lastError) {
+            console.error('Error getting master toggle state:', chrome.runtime.lastError);
+        } else if (response && response.state !== undefined) {
+            updateUIBasedOnMasterToggle(response.state);
+            console.log('Master toggle state synchronized with background script');
+        }
     });
 
     // Master toggle event listener
@@ -498,26 +514,10 @@ function initializeSettings() {
                     console.error('Error updating master toggle state:', chrome.runtime.lastError);
                 } else if (response && response.success) {
                     console.log('Background script updated with new master toggle state');
+                    updateUIBasedOnMasterToggle(isEnabled);
                 }
             });
         });
-    });
-
-    // Add this function to check the current state of the master toggle
-    function checkMasterToggleState() {
-        chrome.runtime.sendMessage({ type: 'getMasterToggleState' }, (response) => {
-            if (chrome.runtime.lastError) {
-                console.error('Error getting master toggle state:', chrome.runtime.lastError);
-            } else if (response && response.state !== undefined) {
-                masterToggle.checked = response.state;
-                console.log('Master toggle state synchronized with background script');
-            }
-        });
-    }
-
-    // Call this function when the settings page is loaded
-    document.addEventListener('DOMContentLoaded', () => {
-        checkMasterToggleState();
     });
 
     // Add this new function to show the new version notification
