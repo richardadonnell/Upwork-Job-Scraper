@@ -38,6 +38,7 @@ This Chrome extension automatically scrapes job listings from Upwork and sends t
 10. 🔢 **Badge Notifications**: Shows the number of new jobs since last viewed on the extension icon.
 11. 🎛️ **Master Toggle**: Enable or disable all extension functionality.
 12. ⏳ **Next Check Countdown**: Displays a countdown to the next scheduled job check.
+13. 🐞 **Error Logging**: Automatically logs and reports errors to a specified webhook for debugging.
 
 ## Installation
 
@@ -96,7 +97,7 @@ Use the "Manually Scrape Jobs" button to initiate an immediate job scrape.
 The extension consists of the following main components:
 
 1. `manifest.json`: Defines the extension's permissions and structure.
-2. `background.js`: Handles background processes, job scraping, and webhook communication.
+2. `background.js`: Handles background processes, job scraping, webhook communication, and error logging.
 3. `settings.html` and `settings.js`: Manage the user interface and settings.
 4. `settings.css`: Styles the settings page.
 
