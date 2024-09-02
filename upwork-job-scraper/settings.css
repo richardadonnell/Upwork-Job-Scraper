@@ -239,8 +239,6 @@ input:checked + .slider:before {
     background-color: #2a2a2a;
     padding: 15px;
     border-radius: 4px;
-    /* Add right padding */
-    padding-right: 20px;
 }
 
 .frequency-input {
@@ -254,14 +252,12 @@ input:checked + .slider:before {
 }
 
 .frequency-input input {
-    width: 100%;
+    width: calc(100% - 15px); /* Subtract padding from width */
     padding: 8px;
     background-color: #333;
     border: 1px solid #555;
     color: #e0e0e0;
     border-radius: 4px;
-    /* Add right padding to input fields */
-    padding-right: 15px;
 }
 
 #save-frequency {
@@ -358,4 +354,22 @@ p, span, label, input, textarea, select, option {
 * {
     scrollbar-width: thin;
     scrollbar-color: #61eb38 #2a2a2a;
+}
+
+/* Hire me link */
+.hire-me {
+    margin-top: 10px;
+    font-size: 10px;  /* Reduced from 14px to 12px */
+}
+
+.hire-me a {
+    color: #61eb38;
+    text-decoration: none;
+    font-weight: bold;
+    transition: color 0.3s ease;
+}
+
+.hire-me a:hover {
+    color: #4ebc2d;
+    text-decoration: underline;
 }
