@@ -127,10 +127,8 @@ This extension requires the following permissions:
 
 - `storage`: To save user preferences and scraped job data
 - `alarms`: For scheduling periodic job checks
-- `tabs`: To create a tab for job scraping
 - `scripting`: To run scripts on the Upwork website
 - `notifications`: For sending browser notifications
-- `action`: To handle extension icon clicks
 
 ## Limitations
 
