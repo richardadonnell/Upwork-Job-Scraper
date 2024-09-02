@@ -352,6 +352,9 @@ try {
                     chrome.alarms.clear("checkJobs");
                 }
                 handled = true;
+            } else if (message.type === 'checkForNewVersion') {
+                checkForNewVersion().then(() => sendResponse({ success: true })).catch(error => sendResponse({ success: false, error: error.message }));
+                return true; // Will respond asynchronously
             }
 
             if (handled) {
@@ -481,6 +484,7 @@ try {
 
             if (githubVersion !== APP_VERSION) {
                 chrome.storage.local.set({ newVersionAvailable: true });
+                addToActivityLog('New version available. Visit GitHub to download the latest version.');
             } else {
                 chrome.storage.local.set({ newVersionAvailable: false });
             }
@@ -490,9 +494,14 @@ try {
         }
     }
 
-    // Call this function when the extension starts
-    chrome.runtime.onStartup.addListener(checkForNewVersion);
-    chrome.runtime.onInstalled.addListener(checkForNewVersion);
+    // Add this message listener to handle version check requests
+    chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+        if (message.type === 'checkForNewVersion') {
+            checkForNewVersion().then(() => sendResponse({ success: true })).catch(error => sendResponse({ success: false, error: error.message }));
+            return true; // Will respond asynchronously
+        }
+        // ... existing message handlers ...
+    });
 
 } catch (error) {
     console.error('Uncaught error in background script:', error);
