@@ -284,9 +284,15 @@ function initializeSettings() {
                 <p><strong>URL:</strong> <a href="${job.url}" target="_blank">${job.url}</a></p>
                 <p><strong>Description:</strong> ${job.description}</p>
                 <p><strong>Budget:</strong> ${job.budget}</p>
+                ${job.estimatedBudget ? `<p><strong>Estimated Budget:</strong> ${job.estimatedBudget}</p>` : ''}
+                ${job.estimatedTime ? `<p><strong>Estimated Time:</strong> ${job.estimatedTime}</p>` : ''}
+                <p><strong>Experience Level:</strong> ${job.experienceLevel}</p>
                 <p><strong>Proposals:</strong> ${job.proposals}</p>
                 <p><strong>Client Country:</strong> ${job.clientCountry}</p>
+                <p><strong>Client Rating:</strong> ${job.clientRating}</p>
+                <p><strong>Client Spent:</strong> ${job.clientSpent}</p>
                 <p><strong>Payment Verified:</strong> ${job.paymentVerified ? 'Yes' : 'No'}</p>
+                <p><strong>Skills:</strong> ${job.skills && job.skills.length > 0 ? job.skills.join(', ') : 'N/A'}</p>
             `;
 
             jobItem.appendChild(jobHeader);
@@ -330,7 +336,8 @@ function initializeSettings() {
         }
 
         const now = Date.now();
-        const diff = now - timestamp;
+        const scrapedAt = new Date(timestamp).getTime();
+        const diff = now - scrapedAt;
         const seconds = Math.floor(diff / 1000);
         const minutes = Math.floor(seconds / 60);
         const hours = Math.floor(minutes / 60);
@@ -393,7 +400,13 @@ function initializeSettings() {
         }, () => {
             console.log('Feed sources saved');
             addLogEntry('Feed sources saved');
-            chrome.runtime.sendMessage({ type: 'updateFeedSources' });
+            chrome.runtime.sendMessage({ type: 'updateFeedSources' }, (response) => {
+                if (response && response.success) {
+                    addLogEntry('Feed sources updated successfully');
+                } else {
+                    addLogEntry('Failed to update feed sources');
+                }
+            });
         });
     });
 
@@ -448,8 +461,7 @@ function initializeSettings() {
 
     // Load master toggle state
     chrome.storage.sync.get('masterEnabled', (data) => {
-        masterToggle.checked = data.masterEnabled !== false; // Default to true if not set
-        // Remove the call to updateUIState
+        masterToggle.checked = data.masterEnabled === true; // Default to false if not set
     });
 
     // Master toggle event listener
@@ -458,7 +470,6 @@ function initializeSettings() {
         chrome.storage.sync.set({ masterEnabled: isEnabled }, () => {
             console.log('Extension ' + (isEnabled ? 'enabled' : 'disabled'));
             addLogEntry(`Extension ${isEnabled ? 'enabled' : 'disabled'} (all features)`);
-            // Remove the call to updateUIState
             chrome.runtime.sendMessage({ type: 'updateMasterToggle', enabled: isEnabled });
         });
     });
