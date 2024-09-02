@@ -41,8 +41,20 @@ try {
             },
             body: JSON.stringify({ error: errorInfo }),
         })
-        .then(response => response.json())
-        .then(result => console.log('Error report sent:', result))
+        .then(response => {
+            if (response.headers.get("content-type")?.includes("application/json")) {
+                return response.json();
+            } else {
+                return response.text();
+            }
+        })
+        .then(result => {
+            if (typeof result === 'string') {
+                console.log('Error report sent. Response:', result);
+            } else {
+                console.log('Error report sent:', result);
+            }
+        })
         .catch(error => console.error('Failed to send error report:', error));
     }
 
