@@ -68,28 +68,16 @@ function initializeSettings() {
     console.log('Initializing settings...');
     chrome.runtime.sendMessage({ type: 'settingsPageOpened' });
 
-    // Check for new version notification
+    // Check for new version
     chrome.runtime.sendMessage({ type: 'checkForNewVersion' }, (response) => {
-        if (response.success) {
+        if (response && response.success) {
             chrome.storage.local.get('newVersionAvailable', (data) => {
                 if (data.newVersionAvailable) {
-                    const notification = document.createElement('div');
-                    notification.id = 'version-notification';
-                    notification.style.backgroundColor = '#b22222'; // Deep red background color
-                    notification.style.color = '#ffffff'; // White text color for better contrast
-                    notification.style.padding = '10px';
-                    notification.style.marginBottom = '10px';
-                    notification.style.textAlign = 'center';
-                    notification.innerHTML = `
-                        <strong>New Version Available!</strong> 
-                        <a href="https://github.com/warezit/Upwork-Job-Scraper" target="_blank" style="color: #ffffff; text-decoration: underline;">Visit GitHub to download the latest version.</a>
-                    `;
-                    document.body.insertBefore(notification, document.body.firstChild);
-                    addLogEntry('New version available. Visit GitHub to download the latest version.');
+                    showNewVersionNotification();
                 }
             });
         } else {
-            console.error('Error checking for new version:', response.error);
+            console.error('Error checking for new version:', response ? response.error : 'Unknown error');
         }
     });
 
@@ -473,6 +461,23 @@ function initializeSettings() {
             chrome.runtime.sendMessage({ type: 'updateMasterToggle', enabled: isEnabled });
         });
     });
+
+    // Add this new function to show the new version notification
+    function showNewVersionNotification() {
+        const notification = document.createElement('div');
+        notification.id = 'version-notification';
+        notification.style.backgroundColor = '#b22222';
+        notification.style.color = '#ffffff';
+        notification.style.padding = '10px';
+        notification.style.marginBottom = '10px';
+        notification.style.textAlign = 'center';
+        notification.innerHTML = `
+            <strong>New Version Available!</strong> 
+            <a href="https://github.com/warezit/Upwork-Job-Scraper" target="_blank" style="color: #ffffff; text-decoration: underline;">Visit GitHub to download the latest version.</a>
+        `;
+        document.body.insertBefore(notification, document.body.firstChild);
+        addLogEntry('New version available. Visit GitHub to download the latest version.');
+    }
 }
 
 // Use this to initialize the settings page:
