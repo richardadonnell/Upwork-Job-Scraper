@@ -1,12 +1,13 @@
 function waitForBackgroundScript() {
+    console.log('Waiting for background script...');
     return new Promise((resolve) => {
         const checkBackgroundScript = () => {
             chrome.runtime.sendMessage({ type: 'ping' }, (response) => {
                 if (chrome.runtime.lastError) {
-                    // Background script not ready, check again in 100ms
+                    console.log('Background script not ready, retrying...');
                     setTimeout(checkBackgroundScript, 100);
                 } else {
-                    // Background script is ready
+                    console.log('Background script is ready');
                     resolve();
                 }
             });
@@ -64,6 +65,7 @@ function startCountdown() {
 
 // Modify the existing initializeSettings function
 function initializeSettings() {
+    console.log('Initializing settings...');
     chrome.runtime.sendMessage({ type: 'settingsPageOpened' });
 
     document.getElementById('save').addEventListener('click', () => {
@@ -439,5 +441,8 @@ function initializeSettings() {
 
 // Use this to initialize the settings page:
 waitForBackgroundScript().then(() => {
+    console.log('Starting initialization...');
     initializeSettings();
+}).catch(error => {
+    console.error('Error during initialization:', error);
 });

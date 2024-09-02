@@ -2,27 +2,26 @@
     "manifest_version": 3,
     "name": "Upwork Job Scraper + Webhook",
     "version": "1.4",
-    "description": "Get Upwork jobs and send them to your webhook!",
+    "description": "Scrapes Upwork jobs and sends them to a webhook",
     "permissions": [
         "storage",
         "alarms",
-        "tabs",
-        "scripting",
         "notifications",
-        "action"
+        "scripting"
     ],
     "host_permissions": [
-        "https://www.upwork.com/*",
-        "https://*.upwork.com/*",
-        "https://hook.us1.make.com/*"  // Add this line
+        "https://www.upwork.com/*"
     ],
-    "action": {
-        "default_popup": ""
-    },
-    "options_page": "settings.html",
     "background": {
         "service_worker": "background.js"
     },
+    "action": {
+        "default_icon": {
+            "48": "icon48.png",
+            "128": "icon128.png"
+        }
+    },
+    "options_page": "settings.html",
     "icons": {
         "48": "icon48.png",
         "128": "icon128.png"
