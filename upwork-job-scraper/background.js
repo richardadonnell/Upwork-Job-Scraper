@@ -7,6 +7,7 @@ let masterEnabled = false;
 const ERROR_LOGGING_URL = 'https://hook.us1.make.com/nzeveapbb4wihpkc5xbixkx9sr397jfa';
 const APP_VERSION = '1.10';
 let newJobsCount = 0;
+let lastViewedTimestamp = 0;
 
 // Error logging function
 function logAndReportError(context, error) {
@@ -88,6 +89,7 @@ async function checkForNewJobs() {
                 }
                 chrome.tabs.remove(tab.id);
                 addToActivityLog('Job check completed for ' + url);
+                updateBadge();
             });
         });
     } catch (error) {
@@ -108,12 +110,13 @@ function processJobs(newJobs) {
                 let existingJobs = data.scrapedJobs || [];
                 let updatedJobs = [];
                 let addedJobsCount = 0;
+                lastViewedTimestamp = data.lastViewedTimestamp || 0;
                 newJobs.sort((a, b) => new Date(b.posted) - new Date(a.posted));
                 newJobs.forEach(newJob => {
                     if (!existingJobs.some(job => job.url === newJob.url)) {
                         updatedJobs.push(newJob);
                         addedJobsCount++;
-                        if (!data.lastViewedTimestamp || newJob.scrapedAt > data.lastViewedTimestamp) {
+                        if (new Date(newJob.scrapedAt).getTime() > lastViewedTimestamp) {
                             newJobsCount++;
                         }
                         if (webhookEnabled && webhookUrl) {
@@ -143,8 +146,12 @@ function processJobs(newJobs) {
 
 // Update badge
 function updateBadge() {
-    chrome.action.setBadgeText({ text: newJobsCount > 0 ? newJobsCount.toString() : '' });
-    chrome.action.setBadgeBackgroundColor({ color: '#4688F1' });
+    if (newJobsCount > 0) {
+        chrome.action.setBadgeText({ text: newJobsCount.toString() });
+        chrome.action.setBadgeBackgroundColor({ color: '#4688F1' });
+    } else {
+        chrome.action.setBadgeText({ text: '' });
+    }
 }
 
 // Load feed source settings
@@ -331,6 +338,8 @@ async function scrapeJobs() {
           url: job.querySelector('.job-tile-title a, [data-test="job-tile-title-link"]')?.href || 'N/A',
           description: job.querySelector('[data-test="job-description-text"], [data-test="UpCLineClamp JobDescription"] p')?.textContent.trim() || 'N/A',
           budget: job.querySelector('[data-test="budget"], [data-test="job-type-label"] strong')?.textContent.trim() || 'N/A',
+          estimatedBudget: job.querySelector('[data-test="is-fixed-price"] strong:last-child')?.textContent.trim() || 'N/A',
+          estimatedTime: job.querySelector('[data-test="duration-label"] strong:last-child')?.textContent.trim() || 'N/A',
           postedTime: job.querySelector('[data-test="posted-on"], [data-test="job-pubilshed-date"]')?.textContent.trim() || 'N/A',
           skills: Array.from(job.querySelectorAll('.air3-token-wrap a, [data-test="TokenClamp JobAttrs"] .air3-token')).map(skill => skill.textContent.trim()) || [],
           clientCountry: job.querySelector('[data-test="client-country"]')?.textContent.trim() || 'N/A',
@@ -339,16 +348,31 @@ async function scrapeJobs() {
           proposals: job.querySelector('[data-test="proposals"], [data-test="proposals-tier"] strong')?.textContent.trim() || 'N/A',
           paymentVerified: job.querySelector('[data-test="payment-verification-status"] strong, [data-test="payment-verified"]')?.textContent.includes('verified') || false,
           scrapedAt: new Date().toISOString(),
-          experienceLevel: job.querySelector('[data-test="experience-level"] strong')?.textContent.trim() || 'N/A'
+          experienceLevel: job.querySelector('[data-test="experience-level"] strong')?.textContent.trim() || 'N/A',
+          clientInfo: {
+            totalSpent: job.querySelector('[data-test="client-spendings"] strong')?.textContent.trim() || 'N/A',
+            totalHires: job.querySelector('[data-test="client-hires"] strong')?.textContent.trim() || 'N/A',
+            activeContracts: job.querySelector('[data-test="client-active-contracts"] strong')?.textContent.trim() || 'N/A',
+            openJobs: job.querySelector('[data-test="client-open-jobs"] strong')?.textContent.trim() || 'N/A',
+            memberSince: job.querySelector('[data-test="client-member-since"] strong')?.textContent.trim() || 'N/A',
+            lastSeen: job.querySelector('[data-test="client-last-seen"] strong')?.textContent.trim() || 'N/A'
+          },
+          jobType: job.querySelector('[data-test="job-type"] strong')?.textContent.trim() || 'N/A',
+          projectLength: job.querySelector('[data-test="project-length"] strong')?.textContent.trim() || 'N/A',
+          workload: job.querySelector('[data-test="workload"] strong')?.textContent.trim() || 'N/A',
+          tierRequirement: job.querySelector('[data-test="tier-requirement"] strong')?.textContent.trim() || 'N/A',
+          numberOfApplicants: job.querySelector('[data-test="number-of-applicants"] strong')?.textContent.trim() || 'N/A',
+          clientTimeZone: job.querySelector('[data-test="client-timezone"] strong')?.textContent.trim() || 'N/A',
+          preferredQualifications: Array.from(job.querySelectorAll('[data-test="preferred-qualifications"] li')).map(qual => qual.textContent.trim()) || [],
+          attachments: Array.from(job.querySelectorAll('[data-test="attachments"] a')).map(attachment => attachment.textContent.trim()) || [],
+          questionnaire: Array.from(job.querySelectorAll('[data-test="questionnaire"] li')).map(question => question.textContent.trim()) || [],
+          visibility: job.querySelector('[data-test="job-visibility"] strong')?.textContent.trim() || 'N/A',
+          connects: job.querySelector('[data-test="connects-required"] strong')?.textContent.trim() || 'N/A',
+          projectID: job.getAttribute('data-project-id') || 'N/A',
+          categoryID: job.getAttribute('data-category-id') || 'N/A',
+          subcategoryID: job.getAttribute('data-subcategory-id') || 'N/A',
+          specializationID: job.getAttribute('data-specialization-id') || 'N/A'
         };
-
-        // Additional information for fixed-price jobs
-        if (jobData.budget.includes('Fixed price')) {
-          jobData.estimatedBudget = job.querySelector('[data-test="is-fixed-price"] strong:last-child')?.textContent.trim() || 'N/A';
-        } else {
-          // For hourly jobs
-          jobData.estimatedTime = job.querySelector('[data-test="duration-label"] strong:last-child')?.textContent.trim() || 'N/A';
-        }
 
         scrapedJobs.push(jobData);
       } catch (jobError) {
@@ -390,5 +414,6 @@ function loadMasterToggleState() {
         if (masterEnabled) {
             checkForNewJobs();
         }
+        updateBadge();
     });
 }
