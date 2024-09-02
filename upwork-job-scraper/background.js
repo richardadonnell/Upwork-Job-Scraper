@@ -178,7 +178,8 @@ try {
         
         const jobs = Array.from(jobElements).map(jobElement => {
             let titleElement, descriptionElement, budgetElement, postedElement, proposalsElement, clientCountryElement, paymentVerificationElement;
-            
+            let jobType, experienceLevel, duration, estimatedBudget;
+
             if (window.location.href.includes("find-work/most-recent")) {
                 titleElement = jobElement.querySelector('.job-tile-title a');
                 descriptionElement = jobElement.querySelector('[data-test="job-description-text"]');
@@ -195,6 +196,12 @@ try {
                 proposalsElement = jobElement.querySelector('li[data-test="proposals-tier"]');
                 clientCountryElement = jobElement.querySelector('li[data-test="location"] .air3-badge-tagline');
                 paymentVerificationElement = jobElement.querySelector('li[data-test="payment-verified"]');
+
+                // Additional elements for custom URL
+                jobType = jobElement.querySelector('ul.job-tile-info-list li[data-test="job-type-label"] strong');
+                experienceLevel = jobElement.querySelector('ul.job-tile-info-list li[data-test="experience-level"] strong');
+                duration = jobElement.querySelector('ul.job-tile-info-list li[data-test="duration-label"] strong');
+                estimatedBudget = jobElement.querySelector('ul.job-tile-info-list li[data-test="is-fixed-price"] strong');
             }
             
             return {
@@ -207,6 +214,10 @@ try {
                 clientCountry: clientCountryElement ? clientCountryElement.textContent.trim() : '',
                 paymentVerified: paymentVerificationElement ? 
                     paymentVerificationElement.textContent.includes('Payment verified') : false,
+                jobType: jobType ? jobType.textContent.trim() : '',
+                experienceLevel: experienceLevel ? experienceLevel.textContent.trim() : '',
+                duration: duration ? duration.textContent.trim() : '',
+                estimatedBudget: estimatedBudget ? estimatedBudget.textContent.trim() : '',
                 scrapedAt: Date.now()
             };
         });
