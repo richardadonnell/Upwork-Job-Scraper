@@ -400,7 +400,13 @@ function initializeSettings() {
         }, () => {
             console.log('Feed sources saved');
             addLogEntry('Feed sources saved');
-            chrome.runtime.sendMessage({ type: 'updateFeedSources' });
+            chrome.runtime.sendMessage({ type: 'updateFeedSources' }, (response) => {
+                if (response && response.success) {
+                    addLogEntry('Feed sources updated successfully');
+                } else {
+                    addLogEntry('Failed to update feed sources');
+                }
+            });
         });
     });
 

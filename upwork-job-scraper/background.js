@@ -151,11 +151,9 @@ function updateBadge() {
 // Load feed source settings
 function loadFeedSourceSettings() {
     return new Promise((resolve) => {
-        chrome.storage.sync.get(['selectedFeedSource', 'customSearchUrl', 'webhookUrl', 'webhookEnabled'], (data) => {
+        chrome.storage.sync.get(['selectedFeedSource', 'customSearchUrl'], (data) => {
             selectedFeedSource = data.selectedFeedSource || 'most-recent';
             customSearchUrl = data.customSearchUrl || '';
-            webhookUrl = data.webhookUrl || '';
-            webhookEnabled = data.webhookEnabled || false;
             if (customSearchUrl) {
                 selectedFeedSource = 'custom-search';
             }
@@ -235,6 +233,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 handled = true;
                 break;
             case 'updateFeedSources':
+                loadFeedSourceSettings().then(() => {
+                    addToActivityLog(`Feed source updated to: ${selectedFeedSource}`);
+                    if (selectedFeedSource === 'custom-search') {
+                        addToActivityLog(`Custom search URL: ${customSearchUrl}`);
+                    }
+                    sendResponse({ success: true });
+                });
+                return true;
             case 'updateWebhookSettings':
                 loadFeedSourceSettings().then(() => sendResponse({ success: true }));
                 return true;
