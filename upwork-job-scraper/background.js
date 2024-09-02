@@ -9,7 +9,7 @@ let webhookEnabled = false;
 let webhookUrl = ''; // Add this line
 let masterEnabled = false;
 const ERROR_LOGGING_URL = 'https://hook.us1.make.com/nzeveapbb4wihpkc5xbixkx9sr397jfa';
-const APP_VERSION = '1.16';
+const APP_VERSION = '1.17';
 let newJobsCount = 0;
 let lastViewedTimestamp = 0;
 
