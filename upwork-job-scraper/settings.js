@@ -330,7 +330,8 @@ function initializeSettings() {
         }
 
         const now = Date.now();
-        const diff = now - timestamp;
+        const scrapedAt = new Date(timestamp).getTime();
+        const diff = now - scrapedAt;
         const seconds = Math.floor(diff / 1000);
         const minutes = Math.floor(seconds / 60);
         const hours = Math.floor(minutes / 60);
