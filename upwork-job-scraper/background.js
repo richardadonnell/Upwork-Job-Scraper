@@ -17,12 +17,13 @@ function updateAlarm() {
 
 // Function to check for new jobs
 async function checkForNewJobs() {
+    await loadFeedSourceSettings();
+    
     if (!masterEnabled) {
-        addToActivityLog('Job scraping is disabled. Skipping check.');
+        addToActivityLog('Extension is disabled. Skipping job check.');
         return;
     }
 
-    await loadFeedSourceSettings();
     addToActivityLog('Starting job check...');
     
     let url;
@@ -140,6 +141,11 @@ function scrapeJobs() {
 }
 
 function processJobs(newJobs) {
+    if (!masterEnabled) {
+        addToActivityLog('Extension is disabled. Skipping job processing.');
+        return;
+    }
+
     chrome.storage.local.get(['scrapedJobs', 'lastViewedTimestamp'], (data) => {
         let existingJobs = data.scrapedJobs || [];
         let updatedJobs = [];
@@ -214,8 +220,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     } else if (message.type === 'updateFeedSources') {
         loadFeedSourceSettings();
     } else if (message.type === 'manualScrape') {
-        checkForNewJobs();
-        sendResponse({ success: true });
+        if (masterEnabled) {
+            checkForNewJobs();
+            sendResponse({ success: true });
+        } else {
+            addToActivityLog('Extension is disabled. Manual scrape not performed.');
+            sendResponse({ success: false, reason: 'Extension is disabled' });
+        }
         return true; // Indicates that the response will be sent asynchronously
     } else if (message.type === 'ping') {
         sendResponse({ status: 'ready' });
@@ -234,6 +245,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 });
 
 function sendToWebhook(url, data) {
+    if (!masterEnabled) {
+        addToActivityLog('Extension is disabled. Skipping webhook send.');
+        return;
+    }
+
     if (!webhookEnabled) {
         addToActivityLog('Webhook is disabled. Skipping send.');
         return;
@@ -268,6 +284,11 @@ function sendToWebhook(url, data) {
 }
 
 function sendNotification(message) {
+    if (!masterEnabled) {
+        addToActivityLog('Extension is disabled. Skipping notification.');
+        return;
+    }
+
     chrome.notifications.create({
         type: 'basic',
         iconUrl: chrome.runtime.getURL('icon48.png'),
