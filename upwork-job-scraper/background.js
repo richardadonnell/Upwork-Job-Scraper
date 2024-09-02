@@ -33,17 +33,21 @@ function addToActivityLog(message) {
     const logEntry = `${new Date().toLocaleString()}: ${message}`;
     console.log(logEntry);
 
-    chrome.storage.local.get('activityLog', (data) => {
-        const log = data.activityLog || [];
-        log.unshift(logEntry);
-        if (log.length > 100) log.pop();
-        chrome.storage.local.set({ activityLog: log });
+    safelyExecuteWithRetry(() => {
+        chrome.storage.local.get('activityLog', (data) => {
+            const log = data.activityLog || [];
+            log.unshift(logEntry);
+            if (log.length > 100) log.pop();
+            chrome.storage.local.set({ activityLog: log });
+        });
     });
 
-    chrome.runtime.sendMessage({ type: 'logUpdate', content: logEntry }, (response) => {
-        if (chrome.runtime.lastError) {
-            console.log("Settings page not available for log update");
-        }
+    safelyExecuteWithRetry(() => {
+        chrome.runtime.sendMessage({ type: 'logUpdate', content: logEntry }, (response) => {
+            if (chrome.runtime.lastError) {
+                console.log("Settings page not available for log update");
+            }
+        });
     });
 }
 
@@ -65,18 +69,23 @@ async function checkForNewJobs() {
         addToActivityLog('Starting job check...');
         const url = (selectedFeedSource === 'custom-search' && customSearchUrl) ? customSearchUrl : "https://www.upwork.com/nx/find-work/most-recent";
         chrome.tabs.create({ url, active: false }, (tab) => {
+            if (!tab) {
+                throw new Error('Failed to create tab');
+            }
             chrome.scripting.executeScript({
                 target: { tabId: tab.id },
                 function: scrapeJobs,
             }, (results) => {
                 if (chrome.runtime.lastError) {
                     addToActivityLog('Error: ' + chrome.runtime.lastError.message);
-                } else if (results && results[0]) {
+                    logAndReportError('Error in checkForNewJobs - executeScript', chrome.runtime.lastError);
+                } else if (results && results[0] && Array.isArray(results[0].result)) {
                     const jobs = results[0].result;
                     addToActivityLog(`Scraped ${jobs.length} jobs from ${url}`);
                     processJobs(jobs);
                 } else {
                     addToActivityLog('No jobs scraped or unexpected result');
+                    logAndReportError('Error in checkForNewJobs - unexpected result', new Error('Unexpected scraping result'));
                 }
                 chrome.tabs.remove(tab.id);
                 addToActivityLog('Job check completed for ' + url);
@@ -84,6 +93,7 @@ async function checkForNewJobs() {
         });
     } catch (error) {
         logAndReportError('Error in checkForNewJobs', error);
+        addToActivityLog('Error occurred during job check: ' + error.message);
     }
 }
 
@@ -94,32 +104,36 @@ function processJobs(newJobs) {
             addToActivityLog('Extension is disabled. Skipping job processing.');
             return;
         }
-        chrome.storage.local.get(['scrapedJobs', 'lastViewedTimestamp'], (data) => {
-            let existingJobs = data.scrapedJobs || [];
-            let updatedJobs = [];
-            let addedJobsCount = 0;
-            newJobs.sort((a, b) => new Date(b.posted) - new Date(a.posted));
-            newJobs.forEach(newJob => {
-                if (!existingJobs.some(job => job.url === newJob.url)) {
-                    updatedJobs.push(newJob);
-                    addedJobsCount++;
-                    if (!data.lastViewedTimestamp || newJob.scrapedAt > data.lastViewedTimestamp) {
-                        newJobsCount++;
+        safelyExecuteWithRetry(() => {
+            chrome.storage.local.get(['scrapedJobs', 'lastViewedTimestamp'], (data) => {
+                let existingJobs = data.scrapedJobs || [];
+                let updatedJobs = [];
+                let addedJobsCount = 0;
+                newJobs.sort((a, b) => new Date(b.posted) - new Date(a.posted));
+                newJobs.forEach(newJob => {
+                    if (!existingJobs.some(job => job.url === newJob.url)) {
+                        updatedJobs.push(newJob);
+                        addedJobsCount++;
+                        if (!data.lastViewedTimestamp || newJob.scrapedAt > data.lastViewedTimestamp) {
+                            newJobsCount++;
+                        }
+                        if (webhookEnabled && webhookUrl) {
+                            sendToWebhook(webhookUrl, [newJob]);
+                        }
                     }
-                    if (webhookEnabled && webhookUrl) {
-                        sendToWebhook(webhookUrl, [newJob]);
-                    }
-                }
-            });
-            let allJobs = [...updatedJobs, ...existingJobs].slice(0, 100);
-            chrome.storage.local.set({ scrapedJobs: allJobs }, () => {
-                addToActivityLog(`Added ${addedJobsCount} new jobs. Total jobs: ${allJobs.length}`);
-                updateBadge();
-                chrome.runtime.sendMessage({ type: 'jobsUpdate', jobs: allJobs });
-                chrome.storage.sync.get('notificationsEnabled', (data) => {
-                    if (data.notificationsEnabled && addedJobsCount > 0) {
-                        sendNotification(`Found ${addedJobsCount} new job${addedJobsCount > 1 ? 's' : ''}!`);
-                    }
+                });
+                let allJobs = [...updatedJobs, ...existingJobs].slice(0, 100);
+                chrome.storage.local.set({ scrapedJobs: allJobs }, () => {
+                    addToActivityLog(`Added ${addedJobsCount} new jobs. Total jobs: ${allJobs.length}`);
+                    updateBadge();
+                    safelyExecuteWithRetry(() => {
+                        chrome.runtime.sendMessage({ type: 'jobsUpdate', jobs: allJobs });
+                    });
+                    chrome.storage.sync.get('notificationsEnabled', (data) => {
+                        if (data.notificationsEnabled && addedJobsCount > 0) {
+                            sendNotification(`Found ${addedJobsCount} new job${addedJobsCount > 1 ? 's' : ''}!`);
+                        }
+                    });
                 });
             });
         });
@@ -193,11 +207,13 @@ chrome.alarms.onAlarm.addListener((alarm) => {
 });
 
 chrome.runtime.onStartup.addListener(() => {
+    console.log('Chrome started, extension loaded');
     checkForNewJobs();
     loadFeedSourceSettings();
 });
 
 chrome.runtime.onInstalled.addListener(() => {
+    console.log('Extension installed or updated');
     checkForNewJobs();
     loadFeedSourceSettings();
 });
@@ -298,59 +314,56 @@ globalThis.sendTestError = function(customMessage = "This is a test error") {
 };
 
 // Scrape jobs function
-function scrapeJobs() {
-    let jobElements;
-    if (window.location.href.includes("find-work/most-recent")) {
-        jobElements = document.querySelectorAll('[data-test="job-tile-list"] > section');
-    } else {
-        jobElements = document.querySelectorAll('.job-tile');
-    }
-    
-    const jobs = Array.from(jobElements).map(jobElement => {
-        let titleElement, descriptionElement, budgetElement, postedElement, proposalsElement, clientCountryElement, paymentVerificationElement;
-        let jobType, experienceLevel, duration, estimatedBudget;
+async function scrapeJobs() {
+  try {
+    const jobElements = document.querySelectorAll('[data-test="JobsList"] > article, [data-test="job-tile-list"] > section');
+    const scrapedJobs = [];
 
-        if (window.location.href.includes("find-work/most-recent")) {
-            titleElement = jobElement.querySelector('.job-tile-title a');
-            descriptionElement = jobElement.querySelector('[data-test="job-description-text"]');
-            budgetElement = jobElement.querySelector('[data-test="budget"]');
-            postedElement = jobElement.querySelector('[data-test="posted-on"]');
-            proposalsElement = jobElement.querySelector('[data-test="proposals"]');
-            clientCountryElement = jobElement.querySelector('[data-test="client-country"]');
-            paymentVerificationElement = jobElement.querySelector('[data-test="payment-verification-status"]');
-        } else {
-            titleElement = jobElement.querySelector('.job-tile-title a');
-            descriptionElement = jobElement.querySelector('.mb-0.text-body-sm');
-            budgetElement = jobElement.querySelector('ul.job-tile-info-list li[data-test="job-type-label"] strong');
-            postedElement = jobElement.querySelector('small[data-test="job-pubilshed-date"] span:last-child');
-            proposalsElement = jobElement.querySelector('li[data-test="proposals-tier"]');
-            clientCountryElement = jobElement.querySelector('li[data-test="location"] .air3-badge-tagline');
-            paymentVerificationElement = jobElement.querySelector('li[data-test="payment-verified"]');
-
-            // Additional elements for custom URL
-            jobType = jobElement.querySelector('ul.job-tile-info-list li[data-test="job-type-label"] strong');
-            experienceLevel = jobElement.querySelector('ul.job-tile-info-list li[data-test="experience-level"] strong');
-            duration = jobElement.querySelector('ul.job-tile-info-list li[data-test="duration-label"] strong');
-            estimatedBudget = jobElement.querySelector('ul.job-tile-info-list li[data-test="is-fixed-price"] strong');
-        }
-        
-        return {
-            title: titleElement ? titleElement.textContent.trim() : '',
-            url: titleElement ? titleElement.href : '',
-            description: descriptionElement ? descriptionElement.textContent.trim() : '',
-            budget: budgetElement ? budgetElement.textContent.trim() : '',
-            posted: postedElement ? postedElement.textContent.trim() : '',
-            proposals: proposalsElement ? proposalsElement.textContent.trim() : '',
-            clientCountry: clientCountryElement ? clientCountryElement.textContent.trim() : '',
-            paymentVerified: paymentVerificationElement ? 
-                paymentVerificationElement.textContent.includes('Payment verified') : false,
-            jobType: jobType ? jobType.textContent.trim() : '',
-            experienceLevel: experienceLevel ? experienceLevel.textContent.trim() : '',
-            duration: duration ? duration.textContent.trim() : '',
-            estimatedBudget: estimatedBudget ? estimatedBudget.textContent.trim() : '',
-            scrapedAt: Date.now()
+    jobElements.forEach(job => {
+      try {
+        const jobData = {
+          title: job.querySelector('.job-tile-title a, [data-test="job-tile-title-link"]')?.textContent.trim() || 'N/A',
+          url: job.querySelector('.job-tile-title a, [data-test="job-tile-title-link"]')?.href || 'N/A',
+          description: job.querySelector('[data-test="job-description-text"], [data-test="UpCLineClamp JobDescription"] p')?.textContent.trim() || 'N/A',
+          budget: job.querySelector('[data-test="budget"], [data-test="job-type-label"] strong')?.textContent.trim() || 'N/A',
+          postedTime: job.querySelector('[data-test="posted-on"], [data-test="job-pubilshed-date"]')?.textContent.trim() || 'N/A',
+          skills: Array.from(job.querySelectorAll('.air3-token-wrap a, [data-test="TokenClamp JobAttrs"] .air3-token')).map(skill => skill.textContent.trim()),
+          clientCountry: job.querySelector('[data-test="client-country"]')?.textContent.trim() || 'N/A',
+          clientRating: job.querySelector('.air3-rating-foreground')?.style.width || 'N/A',
+          clientSpent: job.querySelector('[data-test="client-spendings"] strong, [data-test="total-spent"] strong')?.textContent.trim() || 'N/A',
+          proposals: job.querySelector('[data-test="proposals"], [data-test="proposals-tier"] strong')?.textContent.trim() || 'N/A',
+          paymentVerified: job.querySelector('[data-test="payment-verification-status"] strong, [data-test="payment-verified"]')?.textContent.includes('verified') || false,
+          scrapedAt: new Date().toISOString()
         };
+        scrapedJobs.push(jobData);
+      } catch (jobError) {
+        console.error('Error scraping individual job:', jobError);
+      }
     });
 
-    return jobs;
+    return scrapedJobs;
+  } catch (error) {
+    console.error('Error scraping jobs:', error);
+    return [];
+  }
+}
+
+// Add this function at the beginning of the file
+function safelyExecuteWithRetry(callback, maxRetries = 3, delay = 1000) {
+    let retries = 0;
+    function attempt() {
+        try {
+            callback();
+        } catch (error) {
+            console.error('Error in safelyExecuteWithRetry:', error);
+            if (retries < maxRetries) {
+                retries++;
+                console.log(`Retrying in ${delay}ms... (Attempt ${retries} of ${maxRetries})`);
+                setTimeout(attempt, delay);
+            } else {
+                console.error('Max retries reached. Operation failed.');
+            }
+        }
+    }
+    attempt();
 }
