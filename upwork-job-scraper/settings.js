@@ -63,10 +63,18 @@ function startCountdown() {
     countdownInterval = setInterval(updateCountdown, 1000); // Update every second
 }
 
+// Add this near the top of the file, after other function declarations
+function trackEvent(eventName, eventParams) {
+    if (typeof sendEvent === 'function') {
+        sendEvent(eventName, eventParams);
+    }
+}
+
 // Modify the existing initializeSettings function
 function initializeSettings() {
     console.log('Initializing settings...');
     chrome.runtime.sendMessage({ type: 'settingsPageOpened' });
+    trackEvent('settings_page_opened', {});
 
     document.getElementById('save').addEventListener('click', () => {
         const webhookUrl = document.getElementById('webhook-url').value;
@@ -75,6 +83,7 @@ function initializeSettings() {
             console.log('Webhook settings saved');
             addLogEntry('Webhook settings saved');
             chrome.runtime.sendMessage({ type: 'updateWebhookSettings' });
+            trackEvent('webhook_settings_saved', { enabled: webhookEnabled });
         });
     });
 
@@ -120,11 +129,13 @@ function initializeSettings() {
             console.log('Test webhook response:', result);
             addLogEntry('Test webhook sent successfully');
             alert('Test webhook sent successfully. Check your webhook endpoint for the received data.');
+            trackEvent('test_webhook_sent', { success: true });
         })
         .catch(error => {
             console.error('Error:', error);
             addLogEntry('Error sending test webhook');
             alert('Error sending test webhook. Check the console for details.');
+            trackEvent('test_webhook_sent', { success: false, error: error.message });
         });
     });
 
@@ -162,6 +173,7 @@ function initializeSettings() {
         chrome.storage.sync.set({ notificationsEnabled: isEnabled }, () => {
             console.log('Notification setting saved:', isEnabled);
             addLogEntry(`Notifications ${isEnabled ? 'enabled' : 'disabled'}`);
+            trackEvent('notification_setting_changed', { enabled: isEnabled });
         });
     });
 
@@ -173,6 +185,7 @@ function initializeSettings() {
             addLogEntry(`Webhook ${webhookEnabled ? 'enabled' : 'disabled'}`);
             updateWebhookInputState();
             chrome.runtime.sendMessage({ type: 'updateWebhookSettings' });
+            trackEvent('webhook_setting_changed', { enabled: webhookEnabled });
         });
     });
 
@@ -195,6 +208,7 @@ function initializeSettings() {
             addLogEntry(`Check frequency saved: ${days}d ${hours}h ${minutes}m`);
             chrome.runtime.sendMessage({ type: 'updateCheckFrequency', frequency: totalMinutes });
             startCountdown(); // Restart the countdown with the new frequency
+            trackEvent('check_frequency_changed', { days, hours, minutes });
         });
     });
 
@@ -392,6 +406,7 @@ function initializeSettings() {
             console.log('Feed sources saved');
             addLogEntry('Feed sources saved');
             chrome.runtime.sendMessage({ type: 'updateFeedSources' });
+            trackEvent('feed_sources_changed', { selectedFeedSource, customSearchUrl });
         });
     });
 
@@ -436,13 +451,16 @@ function initializeSettings() {
             .then((response) => {
                 if (response && response.success) {
                     addLogEntry('Manual scrape initiated');
+                    trackEvent('manual_scrape_initiated', {});
                 } else {
                     addLogEntry('Failed to initiate manual scrape');
+                    trackEvent('manual_scrape_failed', {});
                 }
             })
             .catch((error) => {
                 console.error('Error sending message:', error);
                 addLogEntry('Error initiating manual scrape');
+                trackEvent('manual_scrape_error', { error: error.message });
             });
     });
 
@@ -462,6 +480,7 @@ function initializeSettings() {
             addLogEntry(`Extension ${isEnabled ? 'enabled' : 'disabled'} (all features)`);
             // Remove the call to updateUIState
             chrome.runtime.sendMessage({ type: 'updateMasterToggle', enabled: isEnabled });
+            trackEvent('master_toggle_changed', { enabled: isEnabled });
         });
     });
 }
