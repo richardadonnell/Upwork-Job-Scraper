@@ -351,10 +351,11 @@ function initializeSettings() {
     }
 
     function updateAllTimeDifferences(jobs) {
-        jobs.forEach((job, index) => {
-            const timeSpan = document.getElementById(`job-time-${index}`);
+        const visibleJobs = document.querySelectorAll('.job-item:not([style*="display: none"])');
+        visibleJobs.forEach((jobItem, index) => {
+            const timeSpan = jobItem.querySelector(`#job-time-${index}`);
             if (timeSpan) {
-                updateTimeDifference(job.scrapedAt, timeSpan);
+                updateTimeDifference(jobs[index].scrapedAt, timeSpan);
             }
         });
     }
