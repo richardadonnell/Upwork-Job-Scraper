@@ -1,375 +1,376 @@
-body {
-    font-family: 'DM Sans', sans-serif;
-    background-color: #1e1e1e;
-    color: #e0e0e0;
-    margin: 0;
-    padding: 0;
-    line-height: 1.6;
-}
-
-.main-nav {
-    background-color: #61eb38;
-    padding: 10px 0;
-    margin-bottom: 20px;
-}
-
-.nav-content {
-    display: flex;
-    align-items: center;
-    justify-content: flex-start;
-}
-
-.nav-content img {
-    width: 48px;
-    height: 48px;
-    margin-right: 15px;
-}
-
-.nav-content h1 {
-    color: #1e1e1e;
-    margin: 0;
-    font-size: 24px;
-}
-
-.container {
-    max-width: 800px;
-    margin: 0 auto;
-    padding: 0 20px;
-}
-
-/* Typography */
-h1, h2, h3, button {
-    font-family: 'DM Serif Display', serif;
-    color: #61eb38;
-}
-
-h1 {
-    font-size: 28px;  /* Increased from 24px for better visibility */
-}
-
-h2 {
-    color: #61eb38;
-    font-size: 24px;
-    margin-top: 30px;
-}
-
-a {
-    color: #61eb38;
-    text-decoration: none;
-}
-
-a:hover {
-    text-decoration: underline;
-}
-
-/* Form elements */
-input[type="text"], input[type="number"] {
-    font-family: 'DM Sans', sans-serif;
-    width: 100%;
-    padding: 10px;
-    margin: 10px 0;
-    background-color: #333;
-    border: 1px solid #555;
-    color: #e0e0e0;
-    border-radius: 4px;
-}
-
-button {
-    background-color: #61eb38;
-    color: #1e1e1e;
-    border: none;
-    padding: 10px 20px;
-    cursor: pointer;
-    border-radius: 4px;
-    font-weight: bold;
-    font-family: 'DM Serif Display', serif;  /* Added this line */
-    font-size: 16px;  /* Added this line for better readability */
-}
-
-button:hover {
-    background-color: #4ebc2d;
-}
-
-/* Add this new style for secondary buttons */
-.button-secondary {
-    background-color: transparent;
-    color: #61eb38;
-    border: 1px solid #61eb38;
-    font-family: 'DM Serif Display', serif;  /* Added this line */
-    font-size: 16px;  /* Added this line for consistency */
-}
-
-/* Containers */
-#log-container, #jobs-container {
-    margin-top: 20px;
-    border: 1px solid #555;
-    padding: 15px;
-    height: 300px;
-    overflow-y: auto;
-    background-color: #2a2a2a;
-    border-radius: 4px;
-    scrollbar-width: thin;
-    scrollbar-color: #61eb38 #2a2a2a;
-}
-
-/* Add spacing above the manual scrape button */
-#manual-scrape {
-    margin-top: 20px;
-    margin-bottom: 30px;
-}
-
-/* Job items */
-.job-item {
-    margin-bottom: 15px;
-    background-color: #333;
-    padding: 10px;
-    border-radius: 4px;
-}
-
-.job-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.job-title {
-    flex-grow: 1;
-    margin-right: 10px;
-    cursor: pointer;
-    font-weight: bold;
-    color: #c4ffb3;
-}
-
-.job-title span {
-    color: #4f965a;
-    font-weight: normal;
-}
-
-.open-job-button {
-    padding: 5px 10px;
-    font-size: 14px;
-    min-width: 60px;
-}
-
-.job-details {
-    display: none;
-    margin-top: 10px;
-}
-
-/* Toggle switch */
-.toggle-switch {
-    position: relative;
-    display: inline-block;
-    width: 60px;
-    height: 34px;
-}
-
-.toggle-switch input {
-    opacity: 0;
-    width: 0;
-    height: 0;
-}
-
-.slider {
-    position: absolute;
-    cursor: pointer;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: #ccc;
-    transition: .4s;
-    border-radius: 34px;
-}
-
-.slider:before {
-    position: absolute;
-    content: "";
-    height: 26px;
-    width: 26px;
-    left: 4px;
-    bottom: 4px;
-    background-color: white;
-    transition: .4s;
-    border-radius: 50%;
-}
-
-input:checked + .slider {
-    background-color: #61eb38;
-}
-
-input:checked + .slider:before {
-    transform: translateX(26px);
-}
-
-/* Layout */
-.header {
-    display: flex;
-    align-items: center;
-    margin-bottom: 20px;
-}
-
-.header img {
-    width: 48px;
-    height: 48px;
-    margin-right: 15px;
-}
-
-.toggle-container {
-    display: flex;
-    align-items: center;
-    margin-bottom: 15px;
-}
-
-.toggle-label {
-    margin-left: 10px;
-}
-
-.button-group {
-    display: flex;
-    gap: 10px;
-    margin-top: 10px;
-}
-
-.frequency-container {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-    margin-bottom: 20px;
-    background-color: #2a2a2a;
-    padding: 15px;
-    border-radius: 4px;
-}
-
-.frequency-input {
-    display: flex;
-    flex-direction: column;
-}
-
-.frequency-input label {
-    margin-bottom: 5px;
-    font-weight: bold;
-}
-
-.frequency-input input {
-    width: calc(100% - 15px); /* Subtract padding from width */
-    padding: 8px;
-    background-color: #333;
-    border: 1px solid #555;
-    color: #e0e0e0;
-    border-radius: 4px;
-}
-
-#save-frequency {
-    align-self: flex-start;
-    margin-top: 10px;
-}
-
-/* Custom elements */
-#next-check-countdown {
-    margin-bottom: 15px;
-    font-weight: bold;
-    color: #61eb38;
-}
-
-.buy-me-coffee {
-    text-align: center;
-    margin-top: 30px;
-}
-
-.buy-me-coffee img {
-    max-width: 200px;
-    transition: transform 0.3s ease;
-}
-
-.buy-me-coffee img:hover {
-    transform: scale(1.05);
-}
-
-/* Footer */
-footer {
-    margin-top: 20px;
-    text-align: center;
-}
-
-.github-link {
-    display: inline-block;
-    padding: 10px 20px;
-    background-color: #24292e;
-    color: #ffffff;
-    text-decoration: none;
-    border-radius: 5px;
-    font-weight: bold;
-}
-
-.github-link img {
-    vertical-align: middle;
-    margin-right: 10px;
-    width: 16px;
-    height: 16px;
-}
-
-/* Add this to ensure all other text uses DM Sans */
-p, span, label, input, textarea, select, option {
-    font-family: 'DM Sans', sans-serif;
-}
-
-.master-toggle-container {
-    display: flex;
-    align-items: center;
-    margin: 20px 0;
-    padding: 15px;
-    background-color: #2a2a2a;
-    border-radius: 4px;
-}
-
-.master-toggle-container .toggle-label {
-    font-size: 18px;
-    font-weight: bold;
-    margin-left: 15px;
-}
-
-/* Scrollbar Styling */
-::-webkit-scrollbar {
-    width: 12px;
-    height: 12px;
-}
-
-::-webkit-scrollbar-track {
-    background: #2a2a2a;
-    border-radius: 6px;
-}
-
-::-webkit-scrollbar-thumb {
-    background: #61eb38;
-    border-radius: 6px;
-    border: 3px solid #2a2a2a;
-}
-
-::-webkit-scrollbar-thumb:hover {
-    background: #4ebc2d;
-}
-
-/* For Firefox */
-* {
-    scrollbar-width: thin;
-    scrollbar-color: #61eb38 #2a2a2a;
-}
-
-/* Hire me link */
-.hire-me {
-    margin-top: 10px;
-    font-size: 10px;  /* Reduced from 14px to 12px */
-}
-
-.hire-me a {
-    color: #61eb38;
-    text-decoration: none;
-    font-weight: bold;
-    transition: color 0.3s ease;
-}
-
-.hire-me a:hover {
-    color: #4ebc2d;
-    text-decoration: underline;
-}
+body {
+    font-family: 'DM Sans', sans-serif;
+    background-color: #1e1e1e;
+    color: #e0e0e0;
+    margin: 0;
+    padding: 0;
+    line-height: 1.6;
+}
+
+.main-nav {
+    background-color: #61eb38;
+    padding: 10px 0;
+    margin-bottom: 20px;
+}
+
+.nav-content {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+}
+
+.nav-content img {
+    width: 48px;
+    height: 48px;
+    margin-right: 15px;
+}
+
+.nav-content h1 {
+    color: #1e1e1e;
+    margin: 0;
+    font-size: 24px;
+}
+
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+/* Typography */
+h1, h2, h3, button {
+    font-family: 'DM Serif Display', serif;
+    color: #61eb38;
+}
+
+h1 {
+    font-size: 28px;  /* Increased from 24px for better visibility */
+}
+
+h2 {
+    color: #61eb38;
+    font-size: 24px;
+    margin-top: 30px;
+}
+
+a {
+    color: #61eb38;
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+/* Form elements */
+input[type="text"], input[type="number"] {
+    font-family: 'DM Sans', sans-serif;
+    width: 100%;
+    padding: 10px;
+    margin: 10px 0;
+    background-color: #333;
+    border: 1px solid #555;
+    color: #e0e0e0;
+    border-radius: 4px;
+}
+
+button {
+    background-color: #61eb38;
+    color: #1e1e1e;
+    border: none;
+    padding: 10px 20px;
+    cursor: pointer;
+    border-radius: 4px;
+    font-weight: bold;
+    font-family: 'DM Serif Display', serif;  /* Added this line */
+    font-size: 16px;  /* Added this line for better readability */
+}
+
+button:hover {
+    background-color: #4ebc2d;
+}
+
+/* Add this new style for secondary buttons */
+.button-secondary {
+    background-color: transparent;
+    color: #61eb38;
+    border: 1px solid #61eb38;
+    font-family: 'DM Serif Display', serif;  /* Added this line */
+    font-size: 16px;  /* Added this line for consistency */
+}
+
+/* Containers */
+#log-container, #jobs-container {
+    margin-top: 20px;
+    border: 1px solid #555;
+    padding: 15px;
+    height: 300px;
+    overflow-y: auto;
+    background-color: #2a2a2a;
+    border-radius: 4px;
+    scrollbar-width: thin;
+    scrollbar-color: #61eb38 #2a2a2a;
+}
+
+/* Add spacing above the manual scrape button */
+#manual-scrape {
+    margin-top: 20px;
+    margin-bottom: 30px;
+}
+
+/* Job items */
+.job-item {
+    margin-bottom: 15px;
+    background-color: #333;
+    padding: 10px;
+    border-radius: 4px;
+}
+
+.job-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.job-title {
+    flex-grow: 1;
+    margin-right: 10px;
+    cursor: pointer;
+    font-weight: bold;
+    color: #c4ffb3;
+}
+
+.job-title span {
+    color: #4f965a;
+    font-weight: normal;
+}
+
+.open-job-button {
+    padding: 5px 10px;
+    font-size: 14px;
+    min-width: 60px;
+}
+
+.job-details {
+    display: none;
+    margin-top: 10px;
+}
+
+/* Toggle switch */
+.toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 60px;
+    height: 34px;
+}
+
+.toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: .4s;
+    border-radius: 34px;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 26px;
+    width: 26px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    transition: .4s;
+    border-radius: 50%;
+}
+
+input:checked + .slider {
+    background-color: #61eb38;
+}
+
+input:checked + .slider:before {
+    transform: translateX(26px);
+}
+
+/* Layout */
+.header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.header img {
+    width: 48px;
+    height: 48px;
+    margin-right: 15px;
+}
+
+.toggle-container {
+    display: flex;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.toggle-label {
+    margin-left: 10px;
+}
+
+.button-group {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.frequency-container {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-bottom: 20px;
+    background-color: #2a2a2a;
+    padding: 15px;
+    border-radius: 4px;
+}
+
+.frequency-input {
+    display: flex;
+    flex-direction: column;
+}
+
+.frequency-input label {
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+
+.frequency-input input {
+    width: calc(100% - 15px); /* Subtract padding from width */
+    padding: 8px;
+    background-color: #333;
+    border: 1px solid #555;
+    color: #e0e0e0;
+    border-radius: 4px;
+}
+
+#save-frequency {
+    align-self: flex-start;
+    margin-top: 10px;
+}
+
+/* Custom elements */
+#next-check-countdown {
+    margin-bottom: 15px;
+    font-weight: bold;
+    color: #61eb38;
+}
+
+.buy-me-coffee {
+    text-align: center;
+    margin-top: 30px;
+}
+
+.buy-me-coffee img {
+    max-width: 200px;
+    transition: transform 0.3s ease;
+}
+
+.buy-me-coffee img:hover {
+    transform: scale(1.05);
+}
+
+/* Footer */
+footer {
+    margin-top: 20px;
+    text-align: center;
+}
+
+.github-link {
+    display: inline-block;
+    padding: 10px 20px;
+    background-color: #24292e;
+    color: #ffffff;
+    text-decoration: none;
+    border-radius: 5px;
+    font-weight: bold;
+}
+
+.github-link img {
+    vertical-align: middle;
+    margin-right: 10px;
+    width: 16px;
+    height: 16px;
+}
+
+/* Add this to ensure all other text uses DM Sans */
+p, span, label, input, textarea, select, option {
+    font-family: 'DM Sans', sans-serif;
+}
+
+.master-toggle-container {
+    display: flex;
+    align-items: center;
+    margin: 20px 0;
+    padding: 15px;
+    background-color: #2a2a2a;
+    border-radius: 4px;
+}
+
+.master-toggle-container .toggle-label {
+    font-size: 18px;
+    font-weight: bold;
+    margin-left: 15px;
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+}
+
+::-webkit-scrollbar-track {
+    background: #2a2a2a;
+    border-radius: 6px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #61eb38;
+    border-radius: 6px;
+    border: 3px solid #2a2a2a;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #4ebc2d;
+}
+
+/* For Firefox */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: #61eb38 #2a2a2a;
+}
+
+/* Hire me link */
+.hire-me {
+    margin-top: 10px;
+    font-size: 10px;  /* Reduced from 14px to 12px */
+}
+
+.hire-me a {
+    color: #61eb38;
+    text-decoration: none;
+    font-weight: bold;
+    transition: color 0.3s ease;
+}
+
+.hire-me a:hover {
+    color: #4ebc2d;
+    text-decoration: underline;
+}
+
