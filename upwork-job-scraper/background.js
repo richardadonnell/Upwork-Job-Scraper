@@ -454,13 +454,19 @@ try {
             type: 'basic',
             iconUrl: chrome.runtime.getURL('icon48.png'),
             title: 'Upwork Job Scraper',
-            message: message
+            message: message,
+            requireInteraction: true  // This makes the notification persist until the user interacts with it
         }, (notificationId) => {
             if (chrome.runtime.lastError) {
                 console.error("Notification error: ", chrome.runtime.lastError.message);
             }
         });
     }
+
+    // Add this new listener for notification clicks
+    chrome.notifications.onClicked.addListener((notificationId) => {
+        chrome.runtime.openOptionsPage();
+    });
 
     // Update this function to load feed source settings
     function loadFeedSourceSettings() {

@@ -68,11 +68,22 @@ function trackEvent(eventName, eventParams) {
     console.log(`Event tracked: ${eventName}`, eventParams);
 }
 
-// Modify the existing initializeSettings function
+// Add this function at the top of your settings.js file
+function scrollToJobsList() {
+    const jobsContainer = document.getElementById('jobs-container');
+    if (jobsContainer) {
+        jobsContainer.scrollIntoView({ behavior: 'smooth' });
+    }
+}
+
+// Modify the initializeSettings function
 function initializeSettings() {
     console.log('Initializing settings...');
     chrome.runtime.sendMessage({ type: 'settingsPageOpened' });
     trackEvent('settings_page_opened', {});
+
+    // Add this line to scroll to the jobs list when the page is opened
+    scrollToJobsList();
 
     document.getElementById('save').addEventListener('click', () => {
         const webhookUrl = document.getElementById('webhook-url').value;
@@ -320,6 +331,7 @@ function initializeSettings() {
             addLogEntry(message.content);
         } else if (message.type === 'jobsUpdate') {
             addJobEntries(message.jobs);
+            scrollToJobsList();  // Scroll to jobs list when new jobs are added
         }
     });
 
