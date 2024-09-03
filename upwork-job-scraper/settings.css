@@ -310,7 +310,6 @@ input:checked + .slider:before {
 }
 
 .frequency-input input {
-    width: calc(100% - 0.9375em);
     padding: 0.5em;
     background-color: #333;
     border: 0.0625em solid #555;
