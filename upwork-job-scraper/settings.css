@@ -121,7 +121,23 @@ button:hover {
 }
 
 /* Containers */
-#log-container, #jobs-container {
+#jobs-container {
+    font-size: 0.9em;
+    margin-top: 1.25em;
+    border: 0.0625em solid #555;
+    padding: 0.9375em;
+    height: auto;
+    max-height: 18.75em;
+    overflow-y: auto;
+    background-color: #2a2a2a;
+    border-radius: 0.25em;
+    scrollbar-width: thin;
+    scrollbar-color: #61eb38 #2a2a2a;
+}
+
+#log-container {
+    font-size: 0.7em;
+    color:#868686;
     margin-top: 1.25em;
     border: 0.0625em solid #555;
     padding: 0.9375em;
@@ -137,7 +153,6 @@ button:hover {
 /* Add spacing above the manual scrape button */
 #manual-scrape {
     margin-top: 1.25em;
-    margin-bottom: 1.875em;
 }
 
 /* Job items */
