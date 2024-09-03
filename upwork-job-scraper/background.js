@@ -18,7 +18,7 @@ try {
     let masterEnabled = true; // Default to true
 
     const ERROR_LOGGING_URL = 'https://hook.us1.make.com/nzeveapbb4wihpkc5xbixkx9sr397jfa';
-    const APP_VERSION = '1.18';  // Update this when you change your extension version
+    const APP_VERSION = '1.19';  // Update this when you change your extension version
 
     // Function to log and report errors
     function logAndReportError(context, error) {
@@ -68,9 +68,6 @@ try {
         try {
             await loadFeedSourceSettings();
             
-            // Check for new version before scraping jobs
-            await checkForNewVersion();
-
             if (!masterEnabled) {
                 addToActivityLog('Extension is disabled. Skipping job check.');
                 return;
@@ -181,8 +178,7 @@ try {
         
         const jobs = Array.from(jobElements).map(jobElement => {
             let titleElement, descriptionElement, budgetElement, postedElement, proposalsElement, clientCountryElement, paymentVerificationElement;
-            let jobType, experienceLevel, duration, estimatedBudget;
-
+            
             if (window.location.href.includes("find-work/most-recent")) {
                 titleElement = jobElement.querySelector('.job-tile-title a');
                 descriptionElement = jobElement.querySelector('[data-test="job-description-text"]');
@@ -194,17 +190,11 @@ try {
             } else {
                 titleElement = jobElement.querySelector('.job-tile-title a');
                 descriptionElement = jobElement.querySelector('.mb-0.text-body-sm');
-                budgetElement = jobElement.querySelector('ul.job-tile-info-list li[data-test="job-type-label"] strong');
+                budgetElement = jobElement.querySelector('.text-base-sm.mb-4 li:nth-child(3)');
                 postedElement = jobElement.querySelector('small[data-test="job-pubilshed-date"] span:last-child');
                 proposalsElement = jobElement.querySelector('li[data-test="proposals-tier"]');
                 clientCountryElement = jobElement.querySelector('li[data-test="location"] .air3-badge-tagline');
                 paymentVerificationElement = jobElement.querySelector('li[data-test="payment-verified"]');
-
-                // Additional elements for custom URL
-                jobType = jobElement.querySelector('ul.job-tile-info-list li[data-test="job-type-label"] strong');
-                experienceLevel = jobElement.querySelector('ul.job-tile-info-list li[data-test="experience-level"] strong');
-                duration = jobElement.querySelector('ul.job-tile-info-list li[data-test="duration-label"] strong');
-                estimatedBudget = jobElement.querySelector('ul.job-tile-info-list li[data-test="is-fixed-price"] strong');
             }
             
             return {
@@ -217,10 +207,6 @@ try {
                 clientCountry: clientCountryElement ? clientCountryElement.textContent.trim() : '',
                 paymentVerified: paymentVerificationElement ? 
                     paymentVerificationElement.textContent.includes('Payment verified') : false,
-                jobType: jobType ? jobType.textContent.trim() : '',
-                experienceLevel: experienceLevel ? experienceLevel.textContent.trim() : '',
-                duration: duration ? duration.textContent.trim() : '',
-                estimatedBudget: estimatedBudget ? estimatedBudget.textContent.trim() : '',
                 scrapedAt: Date.now()
             };
         });
@@ -352,9 +338,6 @@ try {
                     chrome.alarms.clear("checkJobs");
                 }
                 handled = true;
-            } else if (message.type === 'checkForNewVersion') {
-                checkForNewVersion().then(() => sendResponse({ success: true })).catch(error => sendResponse({ success: false, error: error.message }));
-                return true; // Will respond asynchronously
             }
 
             if (handled) {
@@ -471,40 +454,6 @@ try {
 
     // Expose the function to the global scope so it can be called from the console
     globalThis.sendTestError = sendTestError;
-
-    // Add this function to fetch the manifest from GitHub and compare versions
-    async function checkForNewVersion() {
-        try {
-            const response = await fetch('https://raw.githubusercontent.com/warezit/Upwork-Job-Scraper/main/upwork-job-scraper/manifest.json');
-            if (!response.ok) {
-                throw new Error('Failed to fetch manifest from GitHub');
-            }
-            const githubManifest = await response.json();
-            const githubVersion = githubManifest.version;
-
-            // Fetch the current version from the local manifest
-            const currentVersion = chrome.runtime.getManifest().version;
-
-            if (githubVersion !== currentVersion) {
-                chrome.storage.local.set({ newVersionAvailable: true });
-                addToActivityLog('New version available. Visit GitHub to download the latest version.');
-            } else {
-                chrome.storage.local.set({ newVersionAvailable: false });
-            }
-        } catch (error) {
-            console.error('Error checking for new version:', error);
-            logAndReportError('Error checking for new version', error);
-        }
-    }
-
-    // Add this message listener to handle version check requests
-    chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-        if (message.type === 'checkForNewVersion') {
-            checkForNewVersion().then(() => sendResponse({ success: true })).catch(error => sendResponse({ success: false, error: error.message }));
-            return true; // Will respond asynchronously
-        }
-        // ... existing message handlers ...
-    });
 
 } catch (error) {
     console.error('Uncaught error in background script:', error);
