@@ -146,6 +146,7 @@ try {
     });
 
     let newJobsCount = 0;
+    let lastViewedTimestamp = 0;
 
     function addToActivityLog(message) {
         const logEntry = `${new Date().toLocaleString()}: ${message}`;
@@ -227,6 +228,9 @@ try {
                 let updatedJobs = [];
                 let addedJobsCount = 0;
 
+                // Update lastViewedTimestamp from storage
+                lastViewedTimestamp = data.lastViewedTimestamp || 0;
+
                 // Sort new jobs by posted time, newest first
                 newJobs.sort((a, b) => new Date(b.posted) - new Date(a.posted));
 
@@ -236,7 +240,7 @@ try {
                         addedJobsCount++;
                         
                         // Increment newJobsCount if the job was scraped after the last viewed timestamp
-                        if (!data.lastViewedTimestamp || newJob.scrapedAt > data.lastViewedTimestamp) {
+                        if (newJob.scrapedAt > lastViewedTimestamp) {
                             newJobsCount++;
                         }
 
@@ -295,11 +299,14 @@ try {
 
         try {
             if (message.type === 'settingsPageOpened') {
+                // Update the last viewed timestamp
+                lastViewedTimestamp = Date.now();
+                chrome.storage.local.set({ lastViewedTimestamp: lastViewedTimestamp });
+                
+                // Reset the newJobsCount and update the badge
                 newJobsCount = 0;
                 updateBadge();
                 
-                // Update the last viewed timestamp
-                chrome.storage.local.set({ lastViewedTimestamp: Date.now() });
                 handled = true;
             } else if (message.type === 'updateCheckFrequency') {
                 checkFrequency = message.frequency;
@@ -430,6 +437,18 @@ try {
             });
         });
     }
+
+    // Add this function to initialize lastViewedTimestamp when the extension starts
+    function initializeLastViewedTimestamp() {
+        chrome.storage.local.get('lastViewedTimestamp', (data) => {
+            lastViewedTimestamp = data.lastViewedTimestamp || Date.now();
+            chrome.storage.local.set({ lastViewedTimestamp: lastViewedTimestamp });
+        });
+    }
+
+    // Call this function when the extension starts
+    chrome.runtime.onStartup.addListener(initializeLastViewedTimestamp);
+    chrome.runtime.onInstalled.addListener(initializeLastViewedTimestamp);
 
     // Call this function when the extension starts
     chrome.runtime.onStartup.addListener(loadFeedSourceSettings);
