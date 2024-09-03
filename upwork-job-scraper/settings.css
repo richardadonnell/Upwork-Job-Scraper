@@ -16,18 +16,16 @@ body {
 
 .nav-content {
     display: flex;
-    align-items: center;
-    justify-content: flex-start;
-    flex-wrap: wrap;
+    align-items: center; /* This ensures vertical alignment */
     justify-content: center;
-    text-align: center;
+    flex-wrap: nowrap; /* Prevent wrapping */
 }
 
 .nav-content img {
     width: 3em;
     height: 3em;
-    margin-right: 0;
-    margin-bottom: 0.5em;
+    margin-right: 20px;
+    margin-bottom: 0; /* Remove bottom margin */
 }
 
 .nav-content h1 {
@@ -37,8 +35,18 @@ body {
 }
 
 @media (max-width: 768px) {
+    .nav-content {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .nav-content img {
+        margin-right: 0;
+        margin-bottom: 0.5em;
+    }
+
     .nav-content h1 {
-        width: 100%;
+        text-align: center;
     }
 }
 
