@@ -96,15 +96,29 @@ function initializeSettings() {
         });
     });
 
+    // Add this function near the top of the file
+    function showWebhookTestResult(message, isSuccess) {
+        let resultElement = document.getElementById('webhook-test-result');
+        if (!resultElement) {
+            resultElement = document.createElement('p');
+            resultElement.id = 'webhook-test-result';
+            document.getElementById('webhook-url').insertAdjacentElement('afterend', resultElement);
+        }
+        resultElement.textContent = message;
+        resultElement.style.color = isSuccess ? '#61eb38' : 'red';
+        resultElement.style.marginTop = '5px';
+    }
+
+    // Modify the test-webhook event listener
     document.getElementById('test-webhook').addEventListener('click', () => {
         const webhookUrl = document.getElementById('webhook-url').value;
         const webhookEnabled = document.getElementById('webhook-toggle').checked;
         if (!webhookEnabled) {
-            alert('Please enable the webhook before testing.');
+            showWebhookTestResult('Please enable the webhook before testing.', false);
             return;
         }
         if (!webhookUrl) {
-            alert('Please enter a webhook URL before testing.');
+            showWebhookTestResult('Please enter a webhook URL before testing.', false);
             return;
         }
 
@@ -126,6 +140,8 @@ function initializeSettings() {
             scrapedAt: Date.now()
         };
 
+        showWebhookTestResult('Sending test webhook...', true);
+
         fetch(webhookUrl, {
             method: 'POST',
             headers: {
@@ -137,13 +153,13 @@ function initializeSettings() {
         .then(result => {
             console.log('Test webhook response:', result);
             addLogEntry('Test webhook sent successfully');
-            alert('Test webhook sent successfully. Check your webhook endpoint for the received data.');
+            showWebhookTestResult('Test webhook sent successfully. Check your webhook endpoint for the received data.', true);
             trackEvent('test_webhook_sent', { success: true });
         })
         .catch(error => {
             console.error('Error:', error);
             addLogEntry('Error sending test webhook');
-            alert('Error sending test webhook. Check the console for details.');
+            showWebhookTestResult('Error sending test webhook. Check the console for details.', false);
             trackEvent('test_webhook_sent', { success: false, error: error.message });
         });
     });

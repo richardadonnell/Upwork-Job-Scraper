@@ -462,3 +462,11 @@ p, span, label, input, textarea, select, option {
     font-size: 0.8em;
     color: #919191;
 }
+
+#webhook-test-result {
+    font-size: 0.9em;
+    margin-top: 0.5em;
+    padding: 0.5em;
+    border-radius: 0.25em;
+    /* background-color: #2a2a2a; */
+}
