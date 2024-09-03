@@ -58,22 +58,25 @@ try {
                 url = "https://www.upwork.com/nx/find-work/most-recent";
             }
 
-            chrome.tabs.create({ url: url, active: false }, (tab) => {
-                chrome.scripting.executeScript({
-                    target: { tabId: tab.id },
-                    function: scrapeJobs,
-                }, (results) => {
-                    if (chrome.runtime.lastError) {
-                        addToActivityLog('Error: ' + chrome.runtime.lastError.message);
-                    } else if (results && results[0]) {
-                        const jobs = results[0].result;
-                        addToActivityLog(`Scraped ${jobs.length} jobs from ${url}`);
-                        processJobs(jobs);
-                    } else {
-                        addToActivityLog('No jobs scraped or unexpected result');
-                    }
-                    chrome.tabs.remove(tab.id);
-                    addToActivityLog('Job check completed for ' + url);
+            await new Promise((resolve, reject) => {
+                chrome.tabs.create({ url: url, active: false }, (tab) => {
+                    chrome.scripting.executeScript({
+                        target: { tabId: tab.id },
+                        function: scrapeJobs,
+                    }, (results) => {
+                        if (chrome.runtime.lastError) {
+                            addToActivityLog('Error: ' + chrome.runtime.lastError.message);
+                        } else if (results && results[0]) {
+                            const jobs = results[0].result;
+                            addToActivityLog(`Scraped ${jobs.length} jobs from ${url}`);
+                            processJobs(jobs);
+                        } else {
+                            addToActivityLog('No jobs scraped or unexpected result');
+                        }
+                        chrome.tabs.remove(tab.id);
+                        addToActivityLog('Job check completed for ' + url);
+                        resolve();
+                    });
                 });
             });
         } catch (error) {
@@ -366,6 +369,15 @@ try {
         return handled; // Only keep the message channel open if we handled the message
     });
 
+    function isValidUrl(string) {
+        try {
+            new URL(string);
+            return true;
+        } catch (_) {
+            return false;  
+        }
+    }
+
     function sendToWebhook(webhookUrl, jobs) {
         try {
             if (!masterEnabled) {
@@ -378,6 +390,11 @@ try {
                 return;
             }
             
+            if (!isValidUrl(webhookUrl)) {
+                addToActivityLog('Invalid webhook URL. Skipping send.');
+                return;
+            }
+
             addToActivityLog(`Sending job to webhook...`);
             const payload = jobs.map(job => ({
                 title: job.title,
