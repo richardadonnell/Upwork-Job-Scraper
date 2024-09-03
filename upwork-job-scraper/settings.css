@@ -84,6 +84,7 @@ a:hover {
 
 /* Form elements */
 input[type="text"], input[type="number"] {
+    font-size: 1em;
     font-family: 'DM Sans', sans-serif;
     width: 100%;
     box-sizing: border-box;
@@ -122,7 +123,7 @@ button:hover {
 
 /* Containers */
 #jobs-container {
-    font-size: 0.9em;
+    font-size: 0.75em;
     margin-top: 1.25em;
     border: 0.0625em solid #555;
     padding: 0.9375em;
@@ -309,7 +310,6 @@ input:checked + .slider:before {
 }
 
 .frequency-input input {
-    width: calc(100% - 0.9375em);
     padding: 0.5em;
     background-color: #333;
     border: 0.0625em solid #555;
