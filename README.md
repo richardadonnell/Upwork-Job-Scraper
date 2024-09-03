@@ -13,7 +13,11 @@
 	<img src="https://img.shields.io/github/languages/top/warezit/Upwork-Job-Scraper?style=default&color=0080ff" alt="repo-top-language">
 	<img src="https://img.shields.io/github/languages/count/warezit/Upwork-Job-Scraper?style=default&color=0080ff" alt="repo-language-count">
 </p>
+<a href="https://chromewebstore.google.com/detail/upwork-job-scraper-+-webh/mojpfejnpifdgjjknalhghclnaifnjkg?authuser=0&hl=en" target="_blank">
+  <img src="https://storage.googleapis.com/web-dev-uploads/image/WlD8wC6g8khYWPJUsQceQkhXSlv1/iNEddTyWiMfLSwFD6qGq.png" alt="Available in the Chrome Web Store" width="248" height="75">
+</a>
 
+Simply click the button above to visit the Chrome Web Store and click "Add to Chrome" to install the extension.
 <br>
 
 # Upwork Job Scraper + Webhook Chrome Extension
@@ -42,10 +46,13 @@ This Chrome extension automatically scrapes job listings from Upwork and sends t
 
 ## Installation
 
-1. Download or clone this repository.
-2. Open Chrome and navigate to `chrome://extensions`.
-3. Enable "Developer mode" in the top right corner.
-4. Click "Load unpacked" and select the `upwork-job-scraper` folder from the downloaded repository.
+Install the Upwork Job Scraper + Webhook extension directly from the Chrome Web Store:
+
+<a href="https://chromewebstore.google.com/detail/upwork-job-scraper-+-webh/mojpfejnpifdgjjknalhghclnaifnjkg?authuser=0&hl=en" target="_blank">
+  <img src="https://storage.googleapis.com/web-dev-uploads/image/WlD8wC6g8khYWPJUsQceQkhXSlv1/iNEddTyWiMfLSwFD6qGq.png" alt="Available in the Chrome Web Store" width="248" height="75">
+</a>
+
+Simply click the button above to visit the Chrome Web Store and click "Add to Chrome" to install the extension.
 
 ## Usage
 
