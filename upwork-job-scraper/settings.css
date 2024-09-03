@@ -178,12 +178,12 @@ button:hover {
     overflow-wrap: break-word;
     hyphens: auto;
     padding-right: 1em;
-    color: #61eb38; /* Change the title color to match the headings */
+    color: #d4fdc8; /* Change the title color to match the headings */
     cursor: pointer;
 }
 
 .job-title span {
-    color: #4ebc2d; /* Darker green for the "time scraped" text */
+    color: #5f7757; /* Darker green for the "time scraped" text */
     font-weight: normal;
 }
 
