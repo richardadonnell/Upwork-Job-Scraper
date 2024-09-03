@@ -82,8 +82,8 @@ function initializeSettings() {
     chrome.runtime.sendMessage({ type: 'settingsPageOpened' });
     trackEvent('settings_page_opened', {});
 
-    // Add this line to scroll to the jobs list when the page is opened
-    scrollToJobsList();
+    // Remove this line to prevent auto-scrolling
+    // scrollToJobsList();
 
     document.getElementById('save').addEventListener('click', () => {
         const webhookUrl = document.getElementById('webhook-url').value;
