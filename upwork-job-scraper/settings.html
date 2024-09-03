@@ -8,6 +8,9 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+    <!-- Google Analytics -->
+    <script src="gtag.js"></script>
+    <script src="analytics.js"></script>
 </head>
 <body>
     <nav class="main-nav">
@@ -87,6 +90,7 @@
             </div>
             <input type="text" id="custom-search-url" placeholder="Enter Upwork search URL" disabled>
         </div>
+        <button id="save-feed-sources">Save Feed Sources</button>
         <div class="custom-search-instructions">
             <p>To use a custom search URL:</p>
             <ol>
@@ -97,10 +101,10 @@
                 <li>Copy the URL from your browser's address bar</li>
                 <li>Paste the URL into the "Custom Search URL" field above</li>
                 <li>Click the button below to save the changes</li>
-                <li>(Optional) Scroll down and click "Manually Scrape Jobs" to scrape jobs immediately</li>
+                <li>(Optional) Scroll up and click "Manually Scrape Jobs" to scrape jobs immediately</li>
             </ol>
         </div>
-        <button id="save-feed-sources">Save Feed Sources</button>
+
 
         <h2>Activity Log</h2>
         <div id="log-container"></div>

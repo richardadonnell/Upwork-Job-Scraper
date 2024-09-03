@@ -18,7 +18,7 @@ try {
     let masterEnabled = true; // Default to true
 
     const ERROR_LOGGING_URL = 'https://hook.us1.make.com/nzeveapbb4wihpkc5xbixkx9sr397jfa';
-    const APP_VERSION = '1.25';  // Update this when you change your extension version
+    const APP_VERSION = '1.26';  // Update this when you change your extension version
 
     // Function to log and report errors
     function logAndReportError(context, error) {
@@ -146,6 +146,7 @@ try {
     });
 
     let newJobsCount = 0;
+    let lastViewedTimestamp = 0;
 
     function addToActivityLog(message) {
         const logEntry = `${new Date().toLocaleString()}: ${message}`;
@@ -173,40 +174,72 @@ try {
         if (window.location.href.includes("find-work/most-recent")) {
             jobElements = document.querySelectorAll('[data-test="job-tile-list"] > section');
         } else {
-            jobElements = document.querySelectorAll('.job-tile');
+            jobElements = document.querySelectorAll('article.job-tile');
         }
         
         const jobs = Array.from(jobElements).map(jobElement => {
-            let titleElement, descriptionElement, budgetElement, postedElement, proposalsElement, clientCountryElement, paymentVerificationElement;
+            let titleElement, descriptionElement, budgetElement, postedElement, proposalsElement, clientCountryElement, paymentVerifiedElement, clientSpentElement, clientRatingElement, jobTypeElement, experienceLevelElement, projectLengthElement, skillsElements;
             
             if (window.location.href.includes("find-work/most-recent")) {
                 titleElement = jobElement.querySelector('.job-tile-title a');
                 descriptionElement = jobElement.querySelector('[data-test="job-description-text"]');
-                budgetElement = jobElement.querySelector('[data-test="budget"]');
+                budgetElement = jobElement.querySelector('[data-test="job-type"]');
                 postedElement = jobElement.querySelector('[data-test="posted-on"]');
                 proposalsElement = jobElement.querySelector('[data-test="proposals"]');
                 clientCountryElement = jobElement.querySelector('[data-test="client-country"]');
-                paymentVerificationElement = jobElement.querySelector('[data-test="payment-verification-status"]');
+                paymentVerifiedElement = jobElement.querySelector('[data-test="payment-verification-status"]');
+                clientSpentElement = jobElement.querySelector('[data-test="client-spendings"] strong');
+                clientRatingElement = jobElement.querySelector('[data-test="client-feedback"] .air3-rating-value-text');
+                experienceLevelElement = jobElement.querySelector('[data-test="contractor-tier"]');
+                projectLengthElement = jobElement.querySelector('[data-test="duration"]');
+                skillsElements = jobElement.querySelectorAll('.air3-token-wrap .air3-token');
             } else {
                 titleElement = jobElement.querySelector('.job-tile-title a');
-                descriptionElement = jobElement.querySelector('.mb-0.text-body-sm');
-                budgetElement = jobElement.querySelector('.text-base-sm.mb-4 li:nth-child(3)');
+                descriptionElement = jobElement.querySelector('[data-test="UpCLineClamp JobDescription"] .mb-0');
+                budgetElement = jobElement.querySelector('ul[data-test="JobInfo"] li:first-child strong');
                 postedElement = jobElement.querySelector('small[data-test="job-pubilshed-date"] span:last-child');
-                proposalsElement = jobElement.querySelector('li[data-test="proposals-tier"]');
+                proposalsElement = jobElement.querySelector('li[data-test="proposals-tier"] strong');
                 clientCountryElement = jobElement.querySelector('li[data-test="location"] .air3-badge-tagline');
-                paymentVerificationElement = jobElement.querySelector('li[data-test="payment-verified"]');
+                paymentVerifiedElement = jobElement.querySelector('li[data-test="payment-verified"]');
+                clientSpentElement = jobElement.querySelector('li[data-test="total-spent"] strong');
+                clientRatingElement = jobElement.querySelector('.air3-rating-value-text');
+                experienceLevelElement = jobElement.querySelector('li[data-test="experience-level"] strong');
+                projectLengthElement = jobElement.querySelector('li[data-test="duration-label"] strong:last-child');
+                skillsElements = jobElement.querySelectorAll('.air3-token-container .air3-token');
             }
             
+            let budget = '';
+            let jobType = '';
+            if (budgetElement) {
+                const budgetText = budgetElement.textContent.trim();
+                if (budgetText.includes('Fixed price')) {
+                    jobType = 'Fixed price';
+                    const fixedPriceElement = jobElement.querySelector('li[data-test="is-fixed-price"] strong');
+                    budget = fixedPriceElement ? fixedPriceElement.textContent.trim() : '';
+                } else {
+                    jobType = 'Hourly';
+                    budget = budgetText;
+                }
+            }
+
+            const clientRating = clientRatingElement ? 
+                parseFloat(clientRatingElement.textContent.trim().split(' ')[0]) : null;
+
             return {
                 title: titleElement ? titleElement.textContent.trim() : '',
                 url: titleElement ? titleElement.href : '',
                 description: descriptionElement ? descriptionElement.textContent.trim() : '',
-                budget: budgetElement ? budgetElement.textContent.trim() : '',
+                budget: budget,
+                jobType: jobType,
                 posted: postedElement ? postedElement.textContent.trim() : '',
                 proposals: proposalsElement ? proposalsElement.textContent.trim() : '',
                 clientCountry: clientCountryElement ? clientCountryElement.textContent.trim() : '',
-                paymentVerified: paymentVerificationElement ? 
-                    paymentVerificationElement.textContent.includes('Payment verified') : false,
+                paymentVerified: paymentVerifiedElement ? true : false,
+                clientSpent: clientSpentElement ? clientSpentElement.textContent.trim() : '',
+                clientRating: clientRating,
+                experienceLevel: experienceLevelElement ? experienceLevelElement.textContent.trim() : '',
+                projectLength: projectLengthElement ? projectLengthElement.textContent.trim() : '',
+                skills: Array.from(skillsElements).map(skill => skill.textContent.trim()),
                 scrapedAt: Date.now()
             };
         });
@@ -227,6 +260,9 @@ try {
                 let updatedJobs = [];
                 let addedJobsCount = 0;
 
+                // Update lastViewedTimestamp from storage
+                lastViewedTimestamp = data.lastViewedTimestamp || 0;
+
                 // Sort new jobs by posted time, newest first
                 newJobs.sort((a, b) => new Date(b.posted) - new Date(a.posted));
 
@@ -236,7 +272,7 @@ try {
                         addedJobsCount++;
                         
                         // Increment newJobsCount if the job was scraped after the last viewed timestamp
-                        if (!data.lastViewedTimestamp || newJob.scrapedAt > data.lastViewedTimestamp) {
+                        if (newJob.scrapedAt > lastViewedTimestamp) {
                             newJobsCount++;
                         }
 
@@ -295,11 +331,14 @@ try {
 
         try {
             if (message.type === 'settingsPageOpened') {
+                // Update the last viewed timestamp
+                lastViewedTimestamp = Date.now();
+                chrome.storage.local.set({ lastViewedTimestamp: lastViewedTimestamp });
+                
+                // Reset the newJobsCount and update the badge
                 newJobsCount = 0;
                 updateBadge();
                 
-                // Update the last viewed timestamp
-                chrome.storage.local.set({ lastViewedTimestamp: Date.now() });
                 handled = true;
             } else if (message.type === 'updateCheckFrequency') {
                 checkFrequency = message.frequency;
@@ -351,7 +390,7 @@ try {
         return handled; // Only keep the message channel open if we handled the message
     });
 
-    function sendToWebhook(url, data) {
+    function sendToWebhook(webhookUrl, jobs) {
         try {
             if (!masterEnabled) {
                 addToActivityLog('Extension is disabled. Skipping webhook send.');
@@ -364,12 +403,30 @@ try {
             }
             
             addToActivityLog(`Sending job to webhook...`);
-            fetch(url, {
+            const payload = jobs.map(job => ({
+                title: job.title,
+                url: job.url,
+                description: job.description,
+                jobType: job.jobType,
+                budget: job.budget,
+                experienceLevel: job.experienceLevel,
+                projectLength: job.projectLength,
+                posted: job.posted,
+                proposals: job.proposals,
+                clientCountry: job.clientCountry,
+                paymentVerified: job.paymentVerified,
+                clientSpent: job.clientSpent,
+                clientRating: job.clientRating,
+                skills: job.skills,
+                scrapedAt: job.scrapedAt
+            }));
+
+            fetch(webhookUrl, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify(data),
+                body: JSON.stringify(payload),
             })
             .then(response => {
                 if (response.headers.get("content-type")?.includes("application/json")) {
@@ -430,6 +487,18 @@ try {
             });
         });
     }
+
+    // Add this function to initialize lastViewedTimestamp when the extension starts
+    function initializeLastViewedTimestamp() {
+        chrome.storage.local.get('lastViewedTimestamp', (data) => {
+            lastViewedTimestamp = data.lastViewedTimestamp || Date.now();
+            chrome.storage.local.set({ lastViewedTimestamp: lastViewedTimestamp });
+        });
+    }
+
+    // Call this function when the extension starts
+    chrome.runtime.onStartup.addListener(initializeLastViewedTimestamp);
+    chrome.runtime.onInstalled.addListener(initializeLastViewedTimestamp);
 
     // Call this function when the extension starts
     chrome.runtime.onStartup.addListener(loadFeedSourceSettings);

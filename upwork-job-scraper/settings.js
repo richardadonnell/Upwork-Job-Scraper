@@ -63,10 +63,18 @@ function startCountdown() {
     countdownInterval = setInterval(updateCountdown, 1000); // Update every second
 }
 
+// Add this near the top of the file, after other function declarations
+function trackEvent(eventName, eventParams) {
+    if (typeof sendEvent === 'function') {
+        sendEvent(eventName, eventParams);
+    }
+}
+
 // Modify the existing initializeSettings function
 function initializeSettings() {
     console.log('Initializing settings...');
     chrome.runtime.sendMessage({ type: 'settingsPageOpened' });
+    trackEvent('settings_page_opened', {});
 
     document.getElementById('save').addEventListener('click', () => {
         const webhookUrl = document.getElementById('webhook-url').value;
@@ -75,6 +83,7 @@ function initializeSettings() {
             console.log('Webhook settings saved');
             addLogEntry('Webhook settings saved');
             chrome.runtime.sendMessage({ type: 'updateWebhookSettings' });
+            trackEvent('webhook_settings_saved', { enabled: webhookEnabled });
         });
     });
 
@@ -94,11 +103,17 @@ function initializeSettings() {
             title: "Test Job",
             url: "https://www.upwork.com/test-job",
             description: "This is a test job posting to verify webhook functionality.",
-            budget: "$100-$500",
+            jobType: "Fixed price",
+            budget: "$500",
+            experienceLevel: "Intermediate",
+            projectLength: "1 to 3 months",
             posted: "Just now",
             proposals: "Less than 5",
             clientCountry: "Test Country",
             paymentVerified: true,
+            clientSpent: "$10k+",
+            clientRating: 4.9,
+            skills: ["Test Skill 1", "Test Skill 2", "Test Skill 3"],
             scrapedAt: Date.now()
         };
 
@@ -107,18 +122,20 @@ function initializeSettings() {
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify(testPayload),
+            body: JSON.stringify([testPayload]),
         })
         .then(response => response.text())
         .then(result => {
             console.log('Test webhook response:', result);
             addLogEntry('Test webhook sent successfully');
             alert('Test webhook sent successfully. Check your webhook endpoint for the received data.');
+            trackEvent('test_webhook_sent', { success: true });
         })
         .catch(error => {
             console.error('Error:', error);
             addLogEntry('Error sending test webhook');
             alert('Error sending test webhook. Check the console for details.');
+            trackEvent('test_webhook_sent', { success: false, error: error.message });
         });
     });
 
@@ -156,6 +173,7 @@ function initializeSettings() {
         chrome.storage.sync.set({ notificationsEnabled: isEnabled }, () => {
             console.log('Notification setting saved:', isEnabled);
             addLogEntry(`Notifications ${isEnabled ? 'enabled' : 'disabled'}`);
+            trackEvent('notification_setting_changed', { enabled: isEnabled });
         });
     });
 
@@ -167,6 +185,7 @@ function initializeSettings() {
             addLogEntry(`Webhook ${webhookEnabled ? 'enabled' : 'disabled'}`);
             updateWebhookInputState();
             chrome.runtime.sendMessage({ type: 'updateWebhookSettings' });
+            trackEvent('webhook_setting_changed', { enabled: webhookEnabled });
         });
     });
 
@@ -189,6 +208,7 @@ function initializeSettings() {
             addLogEntry(`Check frequency saved: ${days}d ${hours}h ${minutes}m`);
             chrome.runtime.sendMessage({ type: 'updateCheckFrequency', frequency: totalMinutes });
             startCountdown(); // Restart the countdown with the new frequency
+            trackEvent('check_frequency_changed', { days, hours, minutes });
         });
     });
 
@@ -245,7 +265,7 @@ function initializeSettings() {
             openButton.className = 'open-job-button button-secondary';
             openButton.textContent = 'Open';
             openButton.onclick = (e) => {
-                e.stopPropagation(); // Prevent triggering the jobTitle click event
+                e.stopPropagation();
                 window.open(job.url, '_blank');
             };
 
@@ -258,10 +278,17 @@ function initializeSettings() {
             jobDetails.innerHTML = `
                 <p><strong>URL:</strong> <a href="${job.url}" target="_blank">${job.url}</a></p>
                 <p><strong>Description:</strong> ${job.description}</p>
+                <p><strong>Job Type:</strong> ${job.jobType}</p>
                 <p><strong>Budget:</strong> ${job.budget}</p>
+                <p><strong>Experience Level:</strong> ${job.experienceLevel}</p>
+                <p><strong>Project Length:</strong> ${job.projectLength}</p>
+                <p><strong>Posted:</strong> ${job.posted}</p>
                 <p><strong>Proposals:</strong> ${job.proposals}</p>
                 <p><strong>Client Country:</strong> ${job.clientCountry}</p>
                 <p><strong>Payment Verified:</strong> ${job.paymentVerified ? 'Yes' : 'No'}</p>
+                <p><strong>Client Spent:</strong> ${job.clientSpent}</p>
+                <p><strong>Client Rating:</strong> ${job.clientRating ? job.clientRating.toFixed(1) : 'N/A'}</p>
+                <p><strong>Skills:</strong> ${job.skills.join(', ')}</p>
             `;
 
             jobItem.appendChild(jobHeader);
@@ -379,6 +406,7 @@ function initializeSettings() {
             console.log('Feed sources saved');
             addLogEntry('Feed sources saved');
             chrome.runtime.sendMessage({ type: 'updateFeedSources' });
+            trackEvent('feed_sources_changed', { selectedFeedSource, customSearchUrl });
         });
     });
 
@@ -423,13 +451,16 @@ function initializeSettings() {
             .then((response) => {
                 if (response && response.success) {
                     addLogEntry('Manual scrape initiated');
+                    trackEvent('manual_scrape_initiated', {});
                 } else {
                     addLogEntry('Failed to initiate manual scrape');
+                    trackEvent('manual_scrape_failed', {});
                 }
             })
             .catch((error) => {
                 console.error('Error sending message:', error);
                 addLogEntry('Error initiating manual scrape');
+                trackEvent('manual_scrape_error', { error: error.message });
             });
     });
 
@@ -449,6 +480,7 @@ function initializeSettings() {
             addLogEntry(`Extension ${isEnabled ? 'enabled' : 'disabled'} (all features)`);
             // Remove the call to updateUIState
             chrome.runtime.sendMessage({ type: 'updateMasterToggle', enabled: isEnabled });
+            trackEvent('master_toggle_changed', { enabled: isEnabled });
         });
     });
 }
