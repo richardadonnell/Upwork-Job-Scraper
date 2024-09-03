@@ -326,7 +326,7 @@ input:checked + .slider:before {
 #next-check-countdown {
     margin-bottom: 0.9375em;
     font-weight: bold;
-    color: #61eb38;
+    color: #c5ffb2;
 }
 
 .buy-me-coffee {
@@ -448,4 +448,13 @@ p, span, label, input, textarea, select, option {
 .hire-me a:hover {
     color: #4ebc2d;
     text-decoration: underline;
+}
+
+.custom-search-instructions {
+    font-size: 0.8em;
+    color: #919191;
+}
+
+#save-feed-sources {
+    margin-top: 0.75em;
 }
