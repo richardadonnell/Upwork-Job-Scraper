@@ -344,23 +344,33 @@ function initializeSettings() {
         testWebhookButton.disabled = !isEnabled;
     }
 
-    // Add these event listeners after the existing ones
+    // Add this new function to create and manage the error message element
+    function showCustomUrlError(message) {
+        let errorElement = document.getElementById('custom-url-error');
+        if (!errorElement) {
+            errorElement = document.createElement('p');
+            errorElement.id = 'custom-url-error';
+            errorElement.style.color = 'red';
+            errorElement.style.marginTop = '5px';
+            document.getElementById('custom-search-url').insertAdjacentElement('afterend', errorElement);
+        }
+        errorElement.textContent = message;
+    }
 
-    document.querySelectorAll('input[name="feed-source"]').forEach((radio) => {
-        radio.addEventListener('change', (event) => {
-            const customSearchUrl = document.getElementById('custom-search-url');
-            if (event.target.value === 'custom-search') {
-                customSearchUrl.disabled = false;
-            } else {
-                customSearchUrl.disabled = true;
-                customSearchUrl.value = ''; // Clear the custom URL when switching to Most Recent
-            }
-        });
-    });
-
+    // Modify the save-feed-sources event listener
     document.getElementById('save-feed-sources').addEventListener('click', () => {
         const selectedFeedSource = document.querySelector('input[name="feed-source"]:checked').value;
         const customSearchUrl = document.getElementById('custom-search-url').value;
+
+        if (selectedFeedSource === 'custom-search') {
+            if (!customSearchUrl.startsWith('https://www.upwork.com/nx/search/jobs/')) {
+                showCustomUrlError('Custom Search URL must start with https://www.upwork.com/nx/search/jobs/');
+                return;
+            }
+        }
+
+        // Clear any existing error message
+        showCustomUrlError('');
 
         chrome.storage.sync.set({
             selectedFeedSource: selectedFeedSource,
@@ -369,6 +379,27 @@ function initializeSettings() {
             console.log('Feed sources saved');
             addLogEntry('Feed sources saved');
             chrome.runtime.sendMessage({ type: 'updateFeedSources' });
+        });
+    });
+
+    // Modify the updateFeedSourceUI function
+    function updateFeedSourceUI(selectedFeedSource) {
+        const customSearchUrl = document.getElementById('custom-search-url');
+        if (selectedFeedSource === 'custom-search') {
+            customSearchUrl.disabled = false;
+            customSearchUrl.placeholder = 'https://www.upwork.com/nx/search/jobs/...';
+        } else {
+            customSearchUrl.disabled = true;
+            customSearchUrl.placeholder = '';
+            // Clear any existing error message when switching to 'most-recent'
+            showCustomUrlError('');
+        }
+    }
+
+    // Add event listeners to radio buttons
+    document.querySelectorAll('input[name="feed-source"]').forEach((radio) => {
+        radio.addEventListener('change', (event) => {
+            updateFeedSourceUI(event.target.value);
         });
     });
 
@@ -386,23 +417,6 @@ function initializeSettings() {
         // Update the UI based on the selected feed source
         updateFeedSourceUI(selectedFeedSource);
     });
-
-    // Add event listeners to radio buttons
-    document.querySelectorAll('input[name="feed-source"]').forEach((radio) => {
-        radio.addEventListener('change', (event) => {
-            updateFeedSourceUI(event.target.value);
-        });
-    });
-
-    // Add this new function to update the UI based on the selected feed source
-    function updateFeedSourceUI(selectedFeedSource) {
-        const customSearchUrl = document.getElementById('custom-search-url');
-        if (selectedFeedSource === 'custom-search') {
-            customSearchUrl.disabled = false;
-        } else {
-            customSearchUrl.disabled = true;
-        }
-    }
 
     document.getElementById('manual-scrape').addEventListener('click', () => {
         sendMessageToBackground({ type: 'manualScrape' })
