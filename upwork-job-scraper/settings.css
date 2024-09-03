@@ -167,38 +167,46 @@ button:hover {
 .job-header {
     display: flex;
     justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap;
+    align-items: flex-start;
+    flex-wrap: nowrap;
 }
 
 .job-title {
     flex-grow: 1;
-    margin-right: 0.625em;
+    margin-right: 1em;
+    word-break: break-word;
+    overflow-wrap: break-word;
+    hyphens: auto;
+    padding-right: 1em;
+    color: #61eb38; /* Change the title color to match the headings */
     cursor: pointer;
-    font-weight: bold;
-    color: #c4ffb3;
 }
 
 .job-title span {
-    color: #4f965a;
+    color: #4ebc2d; /* Darker green for the "time scraped" text */
     font-weight: normal;
 }
 
+.open-job-button {
+    flex-shrink: 0;
+    align-self: flex-start;
+    white-space: nowrap;
+}
+
 @media (max-width: 480px) {
+    .job-header {
+        flex-direction: column;
+    }
+
     .job-title {
         width: 100%;
+        margin-right: 0;
         margin-bottom: 0.5em;
     }
     
     .open-job-button {
-        width: 100%;
+        align-self: flex-end;
     }
-}
-
-.open-job-button {
-    padding: 0.3125em 0.625em;
-    font-size: 0.875em;
-    min-width: 3.75em;
 }
 
 .job-details {

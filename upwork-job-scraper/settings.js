@@ -265,7 +265,8 @@ function initializeSettings() {
             timeSpan.id = `job-time-${index}`;
             updateTimeDifference(job.scrapedAt, timeSpan);
 
-            jobTitle.textContent = `${job.title} `;
+            jobTitle.textContent = job.title;
+            jobTitle.appendChild(document.createElement('br')); // Add a line break
             jobTitle.appendChild(timeSpan);
             
             jobTitle.onclick = () => toggleJobDetails(index);
