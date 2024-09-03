@@ -286,7 +286,7 @@ function initializeSettings() {
                 <p><strong>Payment Verified:</strong> ${job.paymentVerified ? 'Yes' : 'No'}</p>
                 <p><strong>Client Spent:</strong> ${job.clientSpent}</p>
                 <p><strong>Client Rating:</strong> ${job.clientRating ? job.clientRating.toFixed(1) : 'N/A'}</p>
-                <p><strong>Skills:</strong> ${job.skills.join(', ')}</p>
+                <p><strong>Skills:</strong> ${Array.isArray(job.skills) ? job.skills.join(', ') : 'N/A'}</p>
             `;
 
             jobItem.appendChild(jobHeader);
