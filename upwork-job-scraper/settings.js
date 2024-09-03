@@ -94,11 +94,17 @@ function initializeSettings() {
             title: "Test Job",
             url: "https://www.upwork.com/test-job",
             description: "This is a test job posting to verify webhook functionality.",
-            budget: "$100-$500",
+            jobType: "Fixed price",
+            budget: "$500",
+            experienceLevel: "Intermediate",
+            projectLength: "1 to 3 months",
             posted: "Just now",
             proposals: "Less than 5",
             clientCountry: "Test Country",
             paymentVerified: true,
+            clientSpent: "$10k+",
+            clientRating: 4.9,
+            skills: ["Test Skill 1", "Test Skill 2", "Test Skill 3"],
             scrapedAt: Date.now()
         };
 
@@ -107,7 +113,7 @@ function initializeSettings() {
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify(testPayload),
+            body: JSON.stringify([testPayload]),
         })
         .then(response => response.text())
         .then(result => {
@@ -245,7 +251,7 @@ function initializeSettings() {
             openButton.className = 'open-job-button button-secondary';
             openButton.textContent = 'Open';
             openButton.onclick = (e) => {
-                e.stopPropagation(); // Prevent triggering the jobTitle click event
+                e.stopPropagation();
                 window.open(job.url, '_blank');
             };
 
@@ -258,10 +264,17 @@ function initializeSettings() {
             jobDetails.innerHTML = `
                 <p><strong>URL:</strong> <a href="${job.url}" target="_blank">${job.url}</a></p>
                 <p><strong>Description:</strong> ${job.description}</p>
+                <p><strong>Job Type:</strong> ${job.jobType}</p>
                 <p><strong>Budget:</strong> ${job.budget}</p>
+                <p><strong>Experience Level:</strong> ${job.experienceLevel}</p>
+                <p><strong>Project Length:</strong> ${job.projectLength}</p>
+                <p><strong>Posted:</strong> ${job.posted}</p>
                 <p><strong>Proposals:</strong> ${job.proposals}</p>
                 <p><strong>Client Country:</strong> ${job.clientCountry}</p>
                 <p><strong>Payment Verified:</strong> ${job.paymentVerified ? 'Yes' : 'No'}</p>
+                <p><strong>Client Spent:</strong> ${job.clientSpent}</p>
+                <p><strong>Client Rating:</strong> ${job.clientRating ? job.clientRating.toFixed(1) : 'N/A'}</p>
+                <p><strong>Skills:</strong> ${job.skills.join(', ')}</p>
             `;
 
             jobItem.appendChild(jobHeader);
