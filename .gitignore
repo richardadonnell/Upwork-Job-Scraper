@@ -1,38 +1,40 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
-
-# dependencies
-upwork-job-scraper/node_modules
-upwork-job-scraper/.idea
-upwork-job-scraper/.pnp
-upwork-job-scraper/.pnp.js
-
-# testing
-/coverage
-
-# production
-upwork-job-scraper/build
-
-# misc
-upwork-job-scraper/.DS_Store
-upwork-job-scraper/.env.local
-upwork-job-scraper/.env.development.local
-upwork-job-scraper/.env.test.local
-upwork-job-scraper/.env.production.local
-
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-upwork-job-scraper/*.attrs
-upwork-job-scraper/*.Identifier
-
-upwork-job-scraper/public
-upwork-job-scraper/package.json
-upwork-job-scraper/package-lock.json
-
-*.zip
-social_media.md
-upwork-job-scraper/icon-full-size.jpg
-upwork-job-scraper/icon-full-size.png
-upwork-job-scraper/icon-full-size.svg
-upwork-job-scraper/icon-full-size.webp
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+upwork-job-scraper/node_modules
+upwork-job-scraper/.idea
+upwork-job-scraper/.pnp
+upwork-job-scraper/.pnp.js
+
+# testing
+/coverage
+
+# production
+upwork-job-scraper/build
+
+# misc
+upwork-job-scraper/.DS_Store
+upwork-job-scraper/.env.local
+upwork-job-scraper/.env.development.local
+upwork-job-scraper/.env.test.local
+upwork-job-scraper/.env.production.local
+
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+upwork-job-scraper/*.attrs
+upwork-job-scraper/*.Identifier
+
+upwork-job-scraper/public
+upwork-job-scraper/package.json
+upwork-job-scraper/package-lock.json
+
+*.zip
+social_media.md
+upwork-job-scraper/icon-full-size.jpg
+upwork-job-scraper/icon-full-size.png
+upwork-job-scraper/icon-full-size.svg
+upwork-job-scraper/icon-full-size.webp
+example_custom_url_search_element_structure.html
+example_most_recent_element_structure.html

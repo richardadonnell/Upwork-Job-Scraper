@@ -1,29 +1,29 @@
-{
-    "manifest_version": 3,
-    "name": "Upwork Job Scraper + Webhook",
-    "version": "1.20",
-    "description": "Scrapes Upwork jobs and sends them to a webhook",
-    "permissions": [
-        "storage",
-        "alarms",
-        "notifications",
-        "scripting"
-    ],
-    "host_permissions": [
-        "https://www.upwork.com/*"
-    ],
-    "background": {
-        "service_worker": "background.js"
-    },
-    "action": {
-        "default_icon": {
-            "48": "icon48.png",
-            "128": "icon128.png"
-        }
-    },
-    "options_page": "settings.html",
-    "icons": {
-        "48": "icon48.png",
-        "128": "icon128.png"
-    }
-}
+{
+    "manifest_version": 3,
+    "name": "Upwork Job Scraper + Webhook",
+    "version": "1.20",
+    "description": "Scrapes Upwork jobs and sends them to a webhook",
+    "permissions": [
+        "storage",
+        "alarms",
+        "notifications",
+        "scripting"
+    ],
+    "host_permissions": [
+        "https://www.upwork.com/*"
+    ],
+    "background": {
+        "service_worker": "background.js"
+    },
+    "action": {
+        "default_icon": {
+            "48": "icon48.png",
+            "128": "icon128.png"
+        }
+    },
+    "options_page": "settings.html",
+    "icons": {
+        "48": "icon48.png",
+        "128": "icon128.png"
+    }
+}
