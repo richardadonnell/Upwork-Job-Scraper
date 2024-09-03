@@ -84,6 +84,7 @@ a:hover {
 
 /* Form elements */
 input[type="text"], input[type="number"] {
+    font-size: 1em;
     font-family: 'DM Sans', sans-serif;
     width: 100%;
     box-sizing: border-box;
