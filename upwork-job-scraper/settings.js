@@ -65,9 +65,7 @@ function startCountdown() {
 
 // Add this near the top of the file, after other function declarations
 function trackEvent(eventName, eventParams) {
-    if (typeof sendEvent === 'function') {
-        sendEvent(eventName, eventParams);
-    }
+    console.log(`Event tracked: ${eventName}`, eventParams);
 }
 
 // Modify the existing initializeSettings function

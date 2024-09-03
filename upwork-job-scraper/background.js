@@ -32,30 +32,6 @@ try {
         };
 
         console.error('Error logged:', errorInfo);
-
-        // Send error report to your server
-        fetch(ERROR_LOGGING_URL, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ error: errorInfo }),
-        })
-        .then(response => {
-            if (response.headers.get("content-type")?.includes("application/json")) {
-                return response.json();
-            } else {
-                return response.text();
-            }
-        })
-        .then(result => {
-            if (typeof result === 'string') {
-                console.log('Error report sent. Response:', result);
-            } else {
-                console.log('Error report sent:', result);
-            }
-        })
-        .catch(error => console.error('Failed to send error report:', error));
     }
 
     function updateAlarm() {
