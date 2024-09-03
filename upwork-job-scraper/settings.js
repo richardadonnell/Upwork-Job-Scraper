@@ -68,11 +68,22 @@ function trackEvent(eventName, eventParams) {
     console.log(`Event tracked: ${eventName}`, eventParams);
 }
 
-// Modify the existing initializeSettings function
+// Add this function at the top of your settings.js file
+function scrollToJobsList() {
+    const jobsContainer = document.getElementById('jobs-container');
+    if (jobsContainer) {
+        jobsContainer.scrollIntoView({ behavior: 'smooth' });
+    }
+}
+
+// Modify the initializeSettings function
 function initializeSettings() {
     console.log('Initializing settings...');
     chrome.runtime.sendMessage({ type: 'settingsPageOpened' });
     trackEvent('settings_page_opened', {});
+
+    // Add this line to scroll to the jobs list when the page is opened
+    scrollToJobsList();
 
     document.getElementById('save').addEventListener('click', () => {
         const webhookUrl = document.getElementById('webhook-url').value;
@@ -254,7 +265,8 @@ function initializeSettings() {
             timeSpan.id = `job-time-${index}`;
             updateTimeDifference(job.scrapedAt, timeSpan);
 
-            jobTitle.textContent = `${job.title} `;
+            jobTitle.textContent = job.title;
+            jobTitle.appendChild(document.createElement('br')); // Add a line break
             jobTitle.appendChild(timeSpan);
             
             jobTitle.onclick = () => toggleJobDetails(index);
@@ -286,7 +298,7 @@ function initializeSettings() {
                 <p><strong>Payment Verified:</strong> ${job.paymentVerified ? 'Yes' : 'No'}</p>
                 <p><strong>Client Spent:</strong> ${job.clientSpent}</p>
                 <p><strong>Client Rating:</strong> ${job.clientRating ? job.clientRating.toFixed(1) : 'N/A'}</p>
-                <p><strong>Skills:</strong> ${job.skills.join(', ')}</p>
+                <p><strong>Skills:</strong> ${Array.isArray(job.skills) ? job.skills.join(', ') : 'N/A'}</p>
             `;
 
             jobItem.appendChild(jobHeader);
@@ -320,6 +332,7 @@ function initializeSettings() {
             addLogEntry(message.content);
         } else if (message.type === 'jobsUpdate') {
             addJobEntries(message.jobs);
+            scrollToJobsList();  // Scroll to jobs list when new jobs are added
         }
     });
 

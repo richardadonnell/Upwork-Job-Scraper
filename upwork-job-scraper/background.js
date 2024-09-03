@@ -18,7 +18,7 @@ try {
     let masterEnabled = true; // Default to true
 
     const ERROR_LOGGING_URL = 'https://hook.us1.make.com/nzeveapbb4wihpkc5xbixkx9sr397jfa';
-    const APP_VERSION = '1.26';  // Update this when you change your extension version
+    const APP_VERSION = '1.27';  // Update this when you change your extension version
 
     // Function to log and report errors
     function logAndReportError(context, error) {
@@ -454,13 +454,19 @@ try {
             type: 'basic',
             iconUrl: chrome.runtime.getURL('icon48.png'),
             title: 'Upwork Job Scraper',
-            message: message
+            message: message,
+            requireInteraction: true  // This makes the notification persist until the user interacts with it
         }, (notificationId) => {
             if (chrome.runtime.lastError) {
                 console.error("Notification error: ", chrome.runtime.lastError.message);
             }
         });
     }
+
+    // Add this new listener for notification clicks
+    chrome.notifications.onClicked.addListener((notificationId) => {
+        chrome.runtime.openOptionsPage();
+    });
 
     // Update this function to load feed source settings
     function loadFeedSourceSettings() {
