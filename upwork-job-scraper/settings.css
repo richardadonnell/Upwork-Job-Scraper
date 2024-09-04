@@ -202,6 +202,8 @@ button:hover {
     flex-shrink: 0;
     align-self: flex-start;
     white-space: nowrap;
+    border: 0.0625em solid #333;
+    border-radius: 0.5em;
 }
 
 @media (max-width: 480px) {
