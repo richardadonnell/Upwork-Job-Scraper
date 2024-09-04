@@ -99,7 +99,7 @@ input[type="text"], input[type="number"] {
 
 button {
     background-color: #108a00;
-    color: #1e1e1e;
+    color: #fff;
     border: none;
     padding: 0.625em 1.25em;
     cursor: pointer;
