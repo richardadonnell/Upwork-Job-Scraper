@@ -390,8 +390,8 @@ function initializeSettings() {
         const customSearchUrl = document.getElementById('custom-search-url').value;
 
         if (selectedFeedSource === 'custom-search') {
-            if (!customSearchUrl.startsWith('https://www.upwork.com/nx/search/jobs/')) {
-                showCustomUrlError('Custom Search URL must start with https://www.upwork.com/nx/search/jobs/');
+            if (!customSearchUrl.startsWith('https://www.upwork.com/nx/search/jobs/?')) {
+                showCustomUrlError('Custom Search URL must start with https://www.upwork.com/nx/search/jobs/?');
                 return;
             }
         }
