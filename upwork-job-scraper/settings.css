@@ -23,8 +23,8 @@ body {
 }
 
 .nav-content img {
-    width: 3em;
-    height: 3em;
+    width: 48px;
+    height: 48px;
     margin-right: 20px;
     margin-bottom: 0; /* Remove bottom margin */
 }
