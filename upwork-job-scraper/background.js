@@ -28,7 +28,7 @@ try {
     let masterEnabled = true; // Default to true
 
     const ERROR_LOGGING_URL = 'https://hook.us1.make.com/nzeveapbb4wihpkc5xbixkx9sr397jfa';
-    const APP_VERSION = '1.29';  // Update this when you change your extension version
+    const APP_VERSION = '1.30';  // Update this when you change your extension version
 
     // Function to log and report errors
     function logAndReportError(context, error) {
