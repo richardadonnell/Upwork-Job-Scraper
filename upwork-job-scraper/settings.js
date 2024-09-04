@@ -47,7 +47,7 @@ function updateCountdown() {
                 const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
 
                 document.getElementById('next-check-countdown').textContent = 
-                    `Next check in: ${hours}h ${minutes}m ${seconds}s`;
+                    `⏰ Next check in: ${hours}h ${minutes}m ${seconds}s`;
             } else {
                 document.getElementById('next-check-countdown').textContent = 'Check imminent...';
             }
