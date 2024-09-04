@@ -9,9 +9,10 @@ body {
 }
 
 .main-nav {
-    background-color: #61eb38;
+    /* background-color: #108a00; */
     padding: 0.625em 0;
     margin-bottom: 1.25em;
+    /* box-shadow: 0 0 30px rgba(16, 138, 0, 0.5); */
 }
 
 .nav-content {
@@ -29,7 +30,7 @@ body {
 }
 
 .nav-content h1 {
-    color: #1e1e1e;
+    color: #108a00;
     margin: 0;
     font-size: 1.5em;
 }
@@ -110,6 +111,7 @@ button {
 
 button:hover {
     background-color: #4ebc2d;
+    box-shadow: 0 0 30px rgba(16, 138, 0, 0.5);
 }
 
 /* Add this new style for secondary buttons */
@@ -119,6 +121,15 @@ button:hover {
     border: 0.0625em solid #333;
     font-family: 'DM Serif Display', serif;
     font-size: 1em;
+}
+
+.button-secondary:hover {
+    /* background-color: transparent; */
+    color: #1e1e1e;
+    /* border: 0.0625em solid #333; */
+    /* font-family: 'DM Serif Display', serif; */
+    /* font-size: 1em; */
+    box-shadow: 0 0 30px rgba(16, 138, 0, 0.5);
 }
 
 /* Containers */
@@ -334,7 +345,7 @@ input:checked + .slider:before {
 #next-check-countdown {
     margin-bottom: 0.9375em;
     font-weight: bold;
-    color: #ffdc15;
+    color: #1f57c3;
 }
 
 .buy-me-coffee {
@@ -459,6 +470,11 @@ p, span, label, input, textarea, select, option {
 }
 
 .custom-search-instructions {
+    font-size: 0.8em;
+    color: #8D8C8C;
+}
+
+.buy-me-coffee-text {
     font-size: 0.8em;
     color: #8D8C8C;
 }
