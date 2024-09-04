@@ -81,7 +81,8 @@ try {
                     }, (results) => {
                         if (chrome.runtime.lastError) {
                             addToActivityLog('Error: ' + chrome.runtime.lastError.message);
-                        } else if (results && results[0]) {
+                            reject(chrome.runtime.lastError);
+                        } else if (results && results[0] && results[0].result) {
                             const jobs = results[0].result;
                             addToActivityLog(`Scraped ${jobs.length} jobs from ${url}`);
                             processJobs(jobs);
