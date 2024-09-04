@@ -1,12 +1,22 @@
 // Wrap the main logic in a try-catch block
 try {
+    // Initialize Sentry
+    if (typeof Sentry !== 'undefined') {
+        Sentry.init({
+            dsn: "https://5394268fe023ea7d082781a6ea85f4ce@o4507890797379584.ingest.us.sentry.io/4507891889471488",
+            tracesSampleRate: 1.0,
+            release: "upwork-job-scraper@" + chrome.runtime.getManifest().version,
+            environment: "production"
+        });
+    }
+
     // Open settings page when extension icon is clicked
     chrome.action.onClicked.addListener(() => {
         try {
             chrome.runtime.openOptionsPage();
         } catch (error) {
             console.error('Error opening options page:', error);
-            logAndReportError('Error opening options page', error);
+            window.logAndReportError('Error opening options page', error);
         }
     });
 
@@ -32,6 +42,11 @@ try {
         };
 
         console.error('Error logged:', errorInfo);
+        
+        // Send error to Sentry
+        Sentry.captureException(error, {
+            extra: errorInfo
+        });
     }
 
     function updateAlarm() {
@@ -80,7 +95,7 @@ try {
                 });
             });
         } catch (error) {
-            logAndReportError('Error in checkForNewJobs', error);
+            window.logAndReportError('Error in checkForNewJobs', error);
         }
     }
 
@@ -102,7 +117,7 @@ try {
                 checkForNewJobs();
             }
         } catch (error) {
-            logAndReportError('Error in onAlarm listener', error);
+            window.logAndReportError('Error in onAlarm listener', error);
         }
     });
 
@@ -112,7 +127,7 @@ try {
             checkForNewJobs();
             loadFeedSourceSettings();
         } catch (error) {
-            logAndReportError('Error in onStartup listener', error);
+            window.logAndReportError('Error in onStartup listener', error);
         }
     });
     chrome.runtime.onInstalled.addListener(() => {
@@ -120,7 +135,7 @@ try {
             checkForNewJobs();
             loadFeedSourceSettings();
         } catch (error) {
-            logAndReportError('Error in onInstalled listener', error);
+            window.logAndReportError('Error in onInstalled listener', error);
         }
     });
 
@@ -291,7 +306,7 @@ try {
                 });
             });
         } catch (error) {
-            logAndReportError('Error in processJobs', error);
+            window.logAndReportError('Error in processJobs', error);
         }
     }
 
@@ -362,7 +377,7 @@ try {
                 sendResponse({ success: true });
             }
         } catch (error) {
-            logAndReportError('Error in message listener', error);
+            window.logAndReportError('Error in message listener', error);
             sendResponse({ error: 'An error occurred' });
         }
 
@@ -440,7 +455,7 @@ try {
                 console.error('Error:', error);
             });
         } catch (error) {
-            logAndReportError('Error in sendToWebhook', error);
+            window.logAndReportError('Error in sendToWebhook', error);
         }
     }
 
@@ -516,7 +531,7 @@ try {
     // Function to send a test error
     function sendTestError(customMessage = "This is a test error") {
         const testError = new Error(customMessage);
-        logAndReportError('Test Error', testError);
+        window.logAndReportError('Test Error', testError);
         console.log('Test error sent. Check the webhook for the report.');
     }
 
@@ -525,5 +540,5 @@ try {
 
 } catch (error) {
     console.error('Uncaught error in background script:', error);
-    logAndReportError('Uncaught error in background script', error);
+    window.logAndReportError('Uncaught error in background script', error);
 }
