@@ -9,9 +9,10 @@ body {
 }
 
 .main-nav {
-    background-color: #61eb38;
+    /* background-color: #108a00; */
     padding: 0.625em 0;
     margin-bottom: 1.25em;
+    /* box-shadow: 0 0 30px rgba(16, 138, 0, 0.5); */
 }
 
 .nav-content {
@@ -29,7 +30,7 @@ body {
 }
 
 .nav-content h1 {
-    color: #1e1e1e;
+    color: #108a00;
     margin: 0;
     font-size: 1.5em;
 }
@@ -60,7 +61,7 @@ body {
 /* Typography */
 h1, h2, h3, button {
     font-family: 'DM Serif Display', serif;
-    color: #61eb38;
+    color: #fff;
 }
 
 h1 {
@@ -68,13 +69,13 @@ h1 {
 }
 
 h2 {
-    color: #61eb38;
+    color: #fff;
     font-size: 1.5em;
     margin-top: 1.875em;
 }
 
 a {
-    color: #61eb38;
+    color: #108a00;
     text-decoration: none;
 }
 
@@ -90,14 +91,14 @@ input[type="text"], input[type="number"] {
     box-sizing: border-box;
     padding: 0.625em;
     margin: 0.625em 0;
-    background-color: #333;
-    border: 0.0625em solid #555;
+    background-color: #181818;
+    border: 0.0625em solid #333;
     color: #e0e0e0;
     border-radius: 0.25em;
 }
 
 button {
-    background-color: #61eb38;
+    background-color: #108a00;
     color: #1e1e1e;
     border: none;
     padding: 0.625em 1.25em;
@@ -110,45 +111,55 @@ button {
 
 button:hover {
     background-color: #4ebc2d;
+    box-shadow: 0 0 30px rgba(16, 138, 0, 0.5);
 }
 
 /* Add this new style for secondary buttons */
 .button-secondary {
     background-color: transparent;
-    color: #61eb38;
-    border: 0.0625em solid #61eb38;
+    color: #108a00;
+    border: 0.0625em solid #333;
     font-family: 'DM Serif Display', serif;
     font-size: 1em;
 }
 
+.button-secondary:hover {
+    /* background-color: transparent; */
+    color: #1e1e1e;
+    /* border: 0.0625em solid #333; */
+    /* font-family: 'DM Serif Display', serif; */
+    /* font-size: 1em; */
+    box-shadow: 0 0 30px rgba(16, 138, 0, 0.5);
+}
+
 /* Containers */
 #jobs-container {
-    font-size: 0.75em;
+    font-size: 1em;
     margin-top: 1.25em;
-    border: 0.0625em solid #555;
+    border: 0.0625em solid #313131;
     padding: 0.9375em;
     height: auto;
     max-height: 18.75em;
     overflow-y: auto;
-    background-color: #2a2a2a;
+    background-color: #181818;
     border-radius: 0.25em;
     scrollbar-width: thin;
-    scrollbar-color: #61eb38 #2a2a2a;
+    scrollbar-color: #108a00 #2a2a2a;
 }
 
 #log-container {
     font-size: 0.7em;
     color:#868686;
     margin-top: 1.25em;
-    border: 0.0625em solid #555;
+    border: 0.0625em solid #333;
     padding: 0.9375em;
     height: auto;
     max-height: 18.75em;
     overflow-y: auto;
-    background-color: #2a2a2a;
+    background-color: #181818;
     border-radius: 0.25em;
     scrollbar-width: thin;
-    scrollbar-color: #61eb38 #2a2a2a;
+    scrollbar-color: #108a00 #2a2a2a;
 }
 
 /* Add spacing above the manual scrape button */
@@ -159,7 +170,7 @@ button:hover {
 /* Job items */
 .job-item {
     margin-bottom: 0.9375em;
-    background-color: #333;
+    background-color: #1d1d1d;
     padding: 0.625em;
     border-radius: 0.25em;
 }
@@ -178,12 +189,12 @@ button:hover {
     overflow-wrap: break-word;
     hyphens: auto;
     padding-right: 1em;
-    color: #d4fdc8; /* Change the title color to match the headings */
+    color: #ffffff; /* Change the title color to match the headings */
     cursor: pointer;
 }
 
 .job-title span {
-    color: #5f7757; /* Darker green for the "time scraped" text */
+    color: #8D8C8C; /* Darker green for the "time scraped" text */
     font-weight: normal;
 }
 
@@ -191,6 +202,8 @@ button:hover {
     flex-shrink: 0;
     align-self: flex-start;
     white-space: nowrap;
+    border: 0.0625em solid #333;
+    border-radius: 0.5em;
 }
 
 @media (max-width: 480px) {
@@ -253,7 +266,7 @@ button:hover {
 }
 
 input:checked + .slider {
-    background-color: #61eb38;
+    background-color: #108a00;
 }
 
 input:checked + .slider:before {
@@ -302,7 +315,7 @@ input:checked + .slider:before {
     flex-direction: column;
     gap: 0.9375em;
     margin-bottom: 1.25em;
-    background-color: #2a2a2a;
+    background-color: #181818;
     padding: 0.9375em;
     border-radius: 0.25em;
 }
@@ -319,8 +332,8 @@ input:checked + .slider:before {
 
 .frequency-input input {
     padding: 0.5em;
-    background-color: #333;
-    border: 0.0625em solid #555;
+    background-color: #181818;
+    border: 0.0625em solid #333;
     color: #e0e0e0;
     border-radius: 0.25em;
 }
@@ -334,7 +347,7 @@ input:checked + .slider:before {
 #next-check-countdown {
     margin-bottom: 0.9375em;
     font-weight: bold;
-    color: #c5ffb2;
+    color: #1f57c3;
 }
 
 .buy-me-coffee {
@@ -391,7 +404,7 @@ p, span, label, input, textarea, select, option {
     align-items: center;
     margin: 1.25em 0;
     padding: 0.9375em;
-    background-color: #2a2a2a;
+    background-color: #181818;
     border-radius: 0.25em;
 }
 
@@ -425,7 +438,7 @@ p, span, label, input, textarea, select, option {
 }
 
 ::-webkit-scrollbar-thumb {
-    background: #61eb38;
+    background: #108a00;
     border-radius: 0.375em;
     border: 0.1875em solid #2a2a2a;
 }
@@ -437,7 +450,7 @@ p, span, label, input, textarea, select, option {
 /* For Firefox */
 * {
     scrollbar-width: thin;
-    scrollbar-color: #61eb38 #2a2a2a;
+    scrollbar-color: #108a00 #2a2a2a;
 }
 
 /* Hire me link */
@@ -447,7 +460,7 @@ p, span, label, input, textarea, select, option {
 }
 
 .hire-me a {
-    color: #61eb38;
+    color: #108a00;
     text-decoration: none;
     font-weight: bold;
     transition: color 0.3s ease;
@@ -460,5 +473,10 @@ p, span, label, input, textarea, select, option {
 
 .custom-search-instructions {
     font-size: 0.8em;
-    color: #919191;
+    color: #8D8C8C;
+}
+
+.buy-me-coffee-text {
+    font-size: 0.8em;
+    color: #8D8C8C;
 }

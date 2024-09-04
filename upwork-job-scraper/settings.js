@@ -47,7 +47,7 @@ function updateCountdown() {
                 const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
 
                 document.getElementById('next-check-countdown').textContent = 
-                    `Next check in: ${hours}h ${minutes}m ${seconds}s`;
+                    `⏲️ Next check in: ${hours}h ${minutes}m ${seconds}s`;
             } else {
                 document.getElementById('next-check-countdown').textContent = 'Check imminent...';
             }
@@ -390,8 +390,8 @@ function initializeSettings() {
         const customSearchUrl = document.getElementById('custom-search-url').value;
 
         if (selectedFeedSource === 'custom-search') {
-            if (!customSearchUrl.startsWith('https://www.upwork.com/nx/search/jobs/')) {
-                showCustomUrlError('Custom Search URL must start with https://www.upwork.com/nx/search/jobs/');
+            if (!customSearchUrl.startsWith('https://www.upwork.com/nx/search/jobs/?')) {
+                showCustomUrlError('Custom Search URL must start with https://www.upwork.com/nx/search/jobs/?');
                 return;
             }
         }
