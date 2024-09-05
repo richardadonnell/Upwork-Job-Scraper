@@ -25,7 +25,7 @@ try {
     let customSearchUrl = '';
     let checkFrequency = 5; // Default to 5 minutes
     let webhookEnabled = false;
-    let jobScrapingEnabled = true;
+    let jobScrapingEnabled = true; // Default to true, but we'll load the actual state
     let notificationsEnabled = true;
 
     const ERROR_LOGGING_URL = 'https://hook.us1.make.com/nzeveapbb4wihpkc5xbixkx9sr397jfa';
@@ -50,9 +50,40 @@ try {
         });
     }
 
+    // Modify the existing chrome.runtime.onStartup and chrome.runtime.onInstalled listeners
+    chrome.runtime.onStartup.addListener(initializeExtension);
+    chrome.runtime.onInstalled.addListener(initializeExtension);
+
+    // Add this new function to initialize the extension state
+    function initializeExtension() {
+        chrome.storage.sync.get(['jobScrapingEnabled', 'webhookEnabled', 'notificationsEnabled', 'checkFrequency'], (data) => {
+            jobScrapingEnabled = data.jobScrapingEnabled !== false; // Default to true if not set
+            webhookEnabled = data.webhookEnabled !== false;
+            notificationsEnabled = data.notificationsEnabled !== false;
+            checkFrequency = data.checkFrequency || 5; // Default to 5 minutes if not set
+
+            console.log('Extension initialized. Job scraping enabled:', jobScrapingEnabled);
+
+            if (jobScrapingEnabled) {
+                updateAlarm();
+            } else {
+                chrome.alarms.clear("checkJobs");
+            }
+
+            loadFeedSourceSettings();
+            initializeLastViewedTimestamp();
+        });
+    }
+
     function updateAlarm() {
-        chrome.alarms.clear("checkJobs");
-        chrome.alarms.create("checkJobs", { periodInMinutes: checkFrequency });
+        if (jobScrapingEnabled) {
+            chrome.alarms.clear("checkJobs");
+            chrome.alarms.create("checkJobs", { periodInMinutes: checkFrequency });
+            console.log('Alarm updated. Check frequency:', checkFrequency, 'minutes');
+        } else {
+            chrome.alarms.clear("checkJobs");
+            console.log('Alarm cleared because job scraping is disabled');
+        }
     }
 
     // Wrap your main functions with try-catch blocks
@@ -101,43 +132,14 @@ try {
         }
     }
 
-    // Load saved check frequency when the extension starts
-    chrome.storage.sync.get('checkFrequency', (data) => {
-        if (data.checkFrequency) {
-            checkFrequency = data.checkFrequency;
-        } else {
-            // If no saved frequency, use the default and save it
-            chrome.storage.sync.set({ checkFrequency: checkFrequency });
-        }
-        updateAlarm();
-    });
-
-    // Listen for alarm
+    // Modify the chrome.alarms.onAlarm listener
     chrome.alarms.onAlarm.addListener((alarm) => {
         try {
-            if (alarm.name === "checkJobs") {
+            if (alarm.name === "checkJobs" && jobScrapingEnabled) {
                 checkForNewJobs();
             }
         } catch (error) {
             window.logAndReportError('Error in onAlarm listener', error);
-        }
-    });
-
-    // Run initial job check when extension is activated
-    chrome.runtime.onStartup.addListener(() => {
-        try {
-            checkForNewJobs();
-            loadFeedSourceSettings();
-        } catch (error) {
-            window.logAndReportError('Error in onStartup listener', error);
-        }
-    });
-    chrome.runtime.onInstalled.addListener(() => {
-        try {
-            checkForNewJobs();
-            loadFeedSourceSettings();
-        } catch (error) {
-            window.logAndReportError('Error in onInstalled listener', error);
         }
     });
 
@@ -364,13 +366,16 @@ try {
                 return true; // Will respond asynchronously
             } else if (message.type === 'updateJobScraping') {
                 jobScrapingEnabled = message.enabled;
-                addToActivityLog(`Job scraping ${jobScrapingEnabled ? 'enabled' : 'disabled'}`);
-                if (jobScrapingEnabled) {
-                    updateAlarm();
-                } else {
-                    chrome.alarms.clear("checkJobs");
-                }
-                handled = true;
+                chrome.storage.sync.set({ jobScrapingEnabled: jobScrapingEnabled }, () => {
+                    addToActivityLog(`Job scraping ${jobScrapingEnabled ? 'enabled' : 'disabled'}`);
+                    if (jobScrapingEnabled) {
+                        updateAlarm();
+                    } else {
+                        chrome.alarms.clear("checkJobs");
+                    }
+                    sendResponse({ success: true });
+                });
+                return true; // Will respond asynchronously
             }
 
             if (handled) {
@@ -505,24 +510,6 @@ try {
         });
     }
 
-    // Call this function when the extension starts
-    chrome.runtime.onStartup.addListener(initializeLastViewedTimestamp);
-    chrome.runtime.onInstalled.addListener(initializeLastViewedTimestamp);
-
-    // Call this function when the extension starts
-    chrome.runtime.onStartup.addListener(loadFeedSourceSettings);
-    chrome.runtime.onInstalled.addListener(loadFeedSourceSettings);
-
-    // Add this message listener to handle feed source updates
-    chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-        if (message.type === 'updateFeedSources') {
-            loadFeedSourceSettings();
-        } else if (message.type === 'updateWebhookSettings') {
-            loadFeedSourceSettings();
-        }
-        // ... existing message handlers ...
-    });
-
     // Function to send a test error
     function sendTestError(customMessage = "This is a test error") {
         const testError = new Error(customMessage);
@@ -532,13 +519,6 @@ try {
 
     // Expose the function to the global scope so it can be called from the console
     globalThis.sendTestError = sendTestError;
-
-    // Load settings when the extension starts
-    chrome.storage.sync.get(['jobScrapingEnabled', 'webhookEnabled', 'notificationsEnabled'], (data) => {
-        jobScrapingEnabled = data.jobScrapingEnabled !== false;
-        webhookEnabled = data.webhookEnabled !== false;
-        notificationsEnabled = data.notificationsEnabled !== false;
-    });
 
 } catch (error) {
     console.error('Uncaught error in background script:', error);
