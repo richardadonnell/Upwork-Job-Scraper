@@ -186,146 +186,69 @@ try {
   }
 
   function scrapeJobs() {
-    let jobElements;
-    if (window.location.href.includes("find-work/most-recent")) {
-      jobElements = document.querySelectorAll(
-        '[data-test="job-tile-list"] > section'
-      );
-    } else {
-      jobElements = document.querySelectorAll("article.job-tile");
-    }
-
+    const jobElements = document.querySelectorAll('article.job-tile, [data-test="JobTile"]');
     const jobs = Array.from(jobElements).map((jobElement) => {
-      let titleElement,
-        descriptionElement,
-        budgetElement,
-        postedElement,
-        proposalsElement,
-        clientCountryElement,
-        paymentVerifiedElement,
-        clientSpentElement,
-        clientRatingElement,
-        jobTypeElement,
-        experienceLevelElement,
-        projectLengthElement,
-        skillsElements;
+      const titleElement = jobElement.querySelector('.job-tile-title a, [data-test="job-tile-title-link"]');
+      const descriptionElement = jobElement.querySelector('[data-test="job-description-text"], [data-test="UpCLineClamp JobDescription"]');
+      const jobInfoList = jobElement.querySelector('ul[data-test="JobInfo"]');
+      const skillsElements = jobElement.querySelectorAll('.air3-token-container .air3-token, [data-test="TokenClamp JobAttrs"] .air3-token');
+      const paymentVerifiedElement = jobElement.querySelector('[data-test="payment-verification-status"]');
+      const clientRatingElement = jobElement.querySelector('.air3-rating-foreground, [data-test="client-feedback"] .air3-rating-foreground');
+      const clientSpendingElement = jobElement.querySelector('[data-test="client-spendings"] strong, [data-test="client-spend"]');
+      const clientCountryElement = jobElement.querySelector('[data-test="client-country"], [data-test="client-location"]');
+      const attachmentsElement = jobElement.querySelector('[data-test="attachments"]');
+      const requiredConnectsElement = jobElement.querySelector('[data-test="required-connects"]');
+      const questionsElement = jobElement.querySelector('[data-test="additional-questions"]');
 
-      if (window.location.href.includes("find-work/most-recent")) {
-        titleElement = jobElement.querySelector(".job-tile-title a");
-        descriptionElement = jobElement.querySelector(
-          '[data-test="job-description-text"]'
-        );
-        budgetElement = jobElement.querySelector('[data-test="job-type"]');
-        postedElement = jobElement.querySelector('[data-test="posted-on"]');
-        proposalsElement = jobElement.querySelector('[data-test="proposals"]');
-        clientCountryElement = jobElement.querySelector(
-          '[data-test="client-country"]'
-        );
-        paymentVerifiedElement = jobElement.querySelector(
-          '[data-test="payment-verification-status"]'
-        );
-        clientSpentElement = jobElement.querySelector(
-          '[data-test="client-spendings"] strong'
-        );
-        clientRatingElement = jobElement.querySelector(
-          '[data-test="client-feedback"] .air3-rating-value-text'
-        );
-        experienceLevelElement = jobElement.querySelector(
-          '[data-test="contractor-tier"]'
-        );
-        projectLengthElement = jobElement.querySelector(
-          '[data-test="duration"]'
-        );
-        skillsElements = jobElement.querySelectorAll(
-          ".air3-token-wrap .air3-token"
-        );
-      } else {
-        titleElement = jobElement.querySelector(".job-tile-title a");
-        descriptionElement = jobElement.querySelector(
-          '[data-test="UpCLineClamp JobDescription"] .mb-0'
-        );
-        budgetElement = jobElement.querySelector(
-          'ul[data-test="JobInfo"] li:first-child strong'
-        );
-        postedElement = jobElement.querySelector(
-          'small[data-test="job-pubilshed-date"] span:last-child'
-        );
-        proposalsElement = jobElement.querySelector(
-          'li[data-test="proposals-tier"] strong'
-        );
-        clientCountryElement = jobElement.querySelector(
-          'li[data-test="location"] .air3-badge-tagline'
-        );
-        paymentVerifiedElement = jobElement.querySelector(
-          'li[data-test="payment-verified"]'
-        );
-        clientSpentElement = jobElement.querySelector(
-          'li[data-test="total-spent"] strong'
-        );
-        clientRatingElement = jobElement.querySelector(
-          ".air3-rating-value-text"
-        );
-        experienceLevelElement = jobElement.querySelector(
-          'li[data-test="experience-level"] strong'
-        );
-        projectLengthElement = jobElement.querySelector(
-          'li[data-test="duration-label"] strong:last-child'
-        );
-        skillsElements = jobElement.querySelectorAll(
-          ".air3-token-container .air3-token"
-        );
+      let jobType, budget, hourlyRange, estimatedTime, skillLevel;
+
+      if (jobInfoList) {
+        const jobInfoItems = jobInfoList.querySelectorAll('li');
+        jobInfoItems.forEach(item => {
+          const text = item.textContent.trim();
+          if (text.includes('Fixed price')) {
+            jobType = 'Fixed price';
+            budget = item.querySelector('strong').textContent.trim();
+          } else if (text.includes('Hourly')) {
+            jobType = 'Hourly';
+            hourlyRange = item.querySelector('strong').textContent.trim();
+          } else if (text.includes('Est. Time')) {
+            estimatedTime = item.querySelector('strong').textContent.trim();
+          } else if (text.includes('Entry') || text.includes('Intermediate') || text.includes('Expert')) {
+            skillLevel = text;
+          }
+        });
       }
 
-      let budget = "";
-      let jobType = "";
-      if (budgetElement) {
-        const budgetText = budgetElement.textContent.trim();
-        if (budgetText.includes("Fixed price")) {
-          jobType = "Fixed price";
-          const fixedPriceElement = jobElement.querySelector(
-            'li[data-test="is-fixed-price"] strong'
-          );
-          budget = fixedPriceElement
-            ? fixedPriceElement.textContent.trim()
-            : "";
-        } else {
-          jobType = "Hourly";
-          budget = budgetText;
-        }
-      }
+      const attachments = attachmentsElement ? Array.from(attachmentsElement.querySelectorAll('a')).map(a => ({
+        name: a.textContent.trim(),
+        url: a.href
+      })) : [];
 
-      const clientRating = clientRatingElement
-        ? parseFloat(clientRatingElement.textContent.trim().split(" ")[0])
-        : null;
+      const questions = questionsElement ? Array.from(questionsElement.querySelectorAll('li')).map(li => li.textContent.trim()) : [];
+
+      const scrapedAt = Date.now();
+      const humanReadableTime = new Date(scrapedAt).toLocaleString();
 
       return {
-        title: titleElement ? titleElement.textContent.trim() : "",
-        url: titleElement ? titleElement.href : "",
-        description: descriptionElement
-          ? descriptionElement.textContent.trim()
-          : "",
-        budget: budget,
-        jobType: jobType,
-        posted: postedElement ? postedElement.textContent.trim() : "",
-        proposals: proposalsElement ? proposalsElement.textContent.trim() : "",
-        clientCountry: clientCountryElement
-          ? clientCountryElement.textContent.trim()
-          : "",
-        paymentVerified: paymentVerifiedElement ? true : false,
-        clientSpent: clientSpentElement
-          ? clientSpentElement.textContent.trim()
-          : "",
-        clientRating: clientRating,
-        experienceLevel: experienceLevelElement
-          ? experienceLevelElement.textContent.trim()
-          : "",
-        projectLength: projectLengthElement
-          ? projectLengthElement.textContent.trim()
-          : "",
-        skills: Array.from(skillsElements).map((skill) =>
-          skill.textContent.trim()
-        ),
-        scrapedAt: Date.now(),
+        title: titleElement ? titleElement.textContent.trim() : 'N/A',
+        url: titleElement ? titleElement.href : 'N/A',
+        jobType: jobType || 'N/A',
+        skillLevel: skillLevel || 'N/A',
+        budget: budget || 'N/A',
+        hourlyRange: hourlyRange || 'N/A',
+        estimatedTime: estimatedTime || 'N/A',
+        description: descriptionElement ? descriptionElement.textContent.trim() : 'N/A',
+        skills: Array.from(skillsElements).map(skill => skill.textContent.trim()),
+        paymentVerified: !!paymentVerifiedElement,
+        clientRating: clientRatingElement ? parseFloat(clientRatingElement.style.width) / 20 : 'N/A',
+        clientSpent: clientSpendingElement ? clientSpendingElement.textContent.trim() : 'N/A',
+        clientCountry: clientCountryElement ? clientCountryElement.textContent.trim() : 'N/A',
+        attachments: attachments,
+        requiredConnects: requiredConnectsElement ? parseInt(requiredConnectsElement.textContent.trim()) : 'N/A',
+        questions: questions,
+        scrapedAt: scrapedAt,
+        scrapedAtHuman: humanReadableTime
       };
     });
 
@@ -519,52 +442,21 @@ try {
       }
 
       addToActivityLog(`Sending job to webhook...`);
-      const payload = jobs.map((job) => ({
-        title: job.title,
-        url: job.url,
-        description: job.description,
-        jobType: job.jobType,
-        budget: job.budget,
-        experienceLevel: job.experienceLevel,
-        projectLength: job.projectLength,
-        posted: job.posted,
-        proposals: job.proposals,
-        clientCountry: job.clientCountry,
-        paymentVerified: job.paymentVerified,
-        clientSpent: job.clientSpent,
-        clientRating: job.clientRating,
-        skills: job.skills,
-        scrapedAt: job.scrapedAt,
-      }));
-
       fetch(webhookUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(jobs),
       })
-        .then((response) => {
-          if (
-            response.headers.get("content-type")?.includes("application/json")
-          ) {
-            return response.json();
-          } else {
-            return response.text();
-          }
-        })
+        .then((response) => response.text())
         .then((result) => {
-          if (typeof result === "string") {
-            addToActivityLog(`Webhook response: ${result}`);
-          } else {
-            addToActivityLog("Job sent to webhook successfully!");
-          }
+          console.log("Webhook response:", result);
+          addToActivityLog("Webhook sent successfully");
         })
         .catch((error) => {
-          addToActivityLog(
-            "Error sending job to webhook. Check the console for details."
-          );
           console.error("Error:", error);
+          addToActivityLog("Error sending webhook");
         });
     } catch (error) {
       window.logAndReportError("Error in sendToWebhook", error);
