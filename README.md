@@ -25,7 +25,7 @@
 
 # Upwork Job Scraper + Webhook Chrome Extension
 
-![Upwork Job Scraper Screenshot](upwork-job-scraper/screenshot-1.28.png)
+![Upwork Job Scraper Screenshot](upwork-job-scraper/screenshot-1.30.png)
 
 ## Overview
 
@@ -77,6 +77,7 @@ Use the master toggle at the top of the settings page to enable or disable all e
 ### Job Check Frequency
 
 Set the frequency for job checks using the following fields:
+
 - Days
 - Hours
 - Minutes
@@ -86,10 +87,12 @@ Click "Save Frequency" to apply the changes.
 ### Feed Sources
 
 Choose between:
+
 1. Most Recent Jobs
 2. Custom Search URL
 
 For Custom Search URL:
+
 1. Select "Custom Search URL" option.
 2. Enter the Upwork search URL in the provided field.
 3. Click "Save Feed Sources" to apply the changes.
