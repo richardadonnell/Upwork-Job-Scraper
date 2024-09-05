@@ -476,23 +476,47 @@ function initializeSettings() {
                 });
         });
 
+        // Master toggle (Job Scraping)
         const masterToggle = document.getElementById('master-toggle');
-
-        // Load master toggle state
-        chrome.storage.sync.get('masterEnabled', (data) => {
-            masterToggle.checked = data.masterEnabled !== false; // Default to true if not set
-            // Remove the call to updateUIState
+        chrome.storage.sync.get('jobScrapingEnabled', (data) => {
+            masterToggle.checked = data.jobScrapingEnabled !== false; // Default to true if not set
         });
 
-        // Master toggle event listener
         masterToggle.addEventListener('change', (event) => {
             const isEnabled = event.target.checked;
-            chrome.storage.sync.set({ masterEnabled: isEnabled }, () => {
-                console.log('Extension ' + (isEnabled ? 'enabled' : 'disabled'));
-                addLogEntry(`Extension ${isEnabled ? 'enabled' : 'disabled'} (all features)`);
-                // Remove the call to updateUIState
-                chrome.runtime.sendMessage({ type: 'updateMasterToggle', enabled: isEnabled });
-                trackEvent('master_toggle_changed', { enabled: isEnabled });
+            chrome.storage.sync.set({ jobScrapingEnabled: isEnabled }, () => {
+                addLogEntry(`Job scraping ${isEnabled ? 'enabled' : 'disabled'}`);
+                chrome.runtime.sendMessage({ type: 'updateJobScraping', enabled: isEnabled });
+                trackEvent('job_scraping_toggle_changed', { enabled: isEnabled });
+            });
+        });
+
+        // Webhook toggle
+        const webhookToggle = document.getElementById('webhook-toggle');
+        chrome.storage.sync.get('webhookEnabled', (data) => {
+            webhookToggle.checked = data.webhookEnabled !== false; // Default to true if not set
+        });
+
+        webhookToggle.addEventListener('change', (event) => {
+            const isEnabled = event.target.checked;
+            chrome.storage.sync.set({ webhookEnabled: isEnabled }, () => {
+                addLogEntry(`Webhook ${isEnabled ? 'enabled' : 'disabled'}`);
+                chrome.runtime.sendMessage({ type: 'updateWebhookSettings' });
+                trackEvent('webhook_toggle_changed', { enabled: isEnabled });
+            });
+        });
+
+        // Notification toggle
+        const notificationToggle = document.getElementById('notification-toggle');
+        chrome.storage.sync.get('notificationsEnabled', (data) => {
+            notificationToggle.checked = data.notificationsEnabled !== false; // Default to true if not set
+        });
+
+        notificationToggle.addEventListener('change', (event) => {
+            const isEnabled = event.target.checked;
+            chrome.storage.sync.set({ notificationsEnabled: isEnabled }, () => {
+                addLogEntry(`Push notifications ${isEnabled ? 'enabled' : 'disabled'}`);
+                trackEvent('notification_toggle_changed', { enabled: isEnabled });
             });
         });
     } catch (error) {
