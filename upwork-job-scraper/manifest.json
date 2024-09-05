@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Upwork Job Scraper + Webhook",
-  "version": "1.32",
+  "version": "1.33",
   "description": "Scrapes Upwork jobs and sends them to a webhook",
   "permissions": ["storage", "alarms", "notifications", "scripting"],
   "host_permissions": [
