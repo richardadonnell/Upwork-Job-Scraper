@@ -134,7 +134,6 @@ function initializeSettings() {
         attachments: [
           { name: "Test Document", url: "https://www.upwork.com/test-document" }
         ],
-        requiredConnects: 4,
         questions: [
           "What is your experience with this type of project?",
           "How soon can you start?"
@@ -338,7 +337,6 @@ function initializeSettings() {
           <p><strong>Client Rating:</strong> ${job.clientRating || 'N/A'}</p>
           <p><strong>Client Spent:</strong> ${job.clientSpent || 'N/A'}</p>
           <p><strong>Client Country:</strong> ${job.clientCountry || 'N/A'}</p>
-          <p><strong>Required Connects:</strong> ${job.requiredConnects || 'N/A'}</p>
           ${Array.isArray(job.attachments) && job.attachments.length > 0 ? `<p><strong>Attachments:</strong> ${job.attachments.map(a => `<a href="${a.url}" target="_blank">${a.name}</a>`).join(", ")}</p>` : ''}
           ${Array.isArray(job.questions) && job.questions.length > 0 ? `<p><strong>Questions:</strong><ul>${job.questions.map(q => `<li>${q}</li>`).join("")}</ul></p>` : ''}
           <p><strong>Scraped At:</strong> ${job.scrapedAtHuman || 'N/A'}</p>

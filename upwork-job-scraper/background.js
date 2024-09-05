@@ -215,9 +215,6 @@ try {
       const attachmentsElement = jobElement.querySelector(
         '[data-test="attachments"]'
       );
-      const requiredConnectsElement = jobElement.querySelector(
-        '[data-test="required-connects"]'
-      );
       const questionsElement = jobElement.querySelector(
         '[data-test="additional-questions"]'
       );
@@ -287,9 +284,6 @@ try {
           ? clientCountryElement.textContent.trim()
           : "N/A",
         attachments: attachments,
-        requiredConnects: requiredConnectsElement
-          ? parseInt(requiredConnectsElement.textContent.trim())
-          : "N/A",
         questions: questions,
         scrapedAt: scrapedAt,
         scrapedAtHuman: humanReadableTime,
