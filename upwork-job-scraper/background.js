@@ -25,10 +25,11 @@ try {
     let customSearchUrl = '';
     let checkFrequency = 5; // Default to 5 minutes
     let webhookEnabled = false;
-    let masterEnabled = true; // Default to true
+    let jobScrapingEnabled = true;
+    let notificationsEnabled = true;
 
     const ERROR_LOGGING_URL = 'https://hook.us1.make.com/nzeveapbb4wihpkc5xbixkx9sr397jfa';
-    const APP_VERSION = '1.29';  // Update this when you change your extension version
+    const APP_VERSION = '1.30';  // Update this when you change your extension version
 
     // Function to log and report errors
     function logAndReportError(context, error) {
@@ -57,13 +58,13 @@ try {
     // Wrap your main functions with try-catch blocks
     async function checkForNewJobs() {
         try {
-            await loadFeedSourceSettings();
-            
-            if (!masterEnabled) {
-                addToActivityLog('Extension is disabled. Skipping job check.');
+            if (!jobScrapingEnabled) {
+                addToActivityLog('Job scraping is disabled. Skipping job check.');
                 return;
             }
 
+            await loadFeedSourceSettings();
+            
             addToActivityLog('Starting job check...');
             
             let url;
@@ -245,8 +246,8 @@ try {
     // Wrap other important functions similarly
     function processJobs(newJobs) {
         try {
-            if (!masterEnabled) {
-                addToActivityLog('Extension is disabled. Skipping job processing.');
+            if (!jobScrapingEnabled) {
+                addToActivityLog('Job scraping is disabled. Skipping job processing.');
                 return;
             }
 
@@ -299,11 +300,9 @@ try {
                         }
                     });
 
-                    chrome.storage.sync.get('notificationsEnabled', (data) => {
-                        if (data.notificationsEnabled && addedJobsCount > 0) {
-                            sendNotification(`Found ${addedJobsCount} new job${addedJobsCount > 1 ? 's' : ''}!`);
-                        }
-                    });
+                    if (notificationsEnabled && addedJobsCount > 0) {
+                        sendNotification(`Found ${addedJobsCount} new job${addedJobsCount > 1 ? 's' : ''}!`);
+                    }
                 });
             });
         } catch (error) {
@@ -346,13 +345,13 @@ try {
                 });
                 return true; // Will respond asynchronously
             } else if (message.type === 'manualScrape') {
-                if (masterEnabled) {
+                if (jobScrapingEnabled) {
                     checkForNewJobs().then(() => {
                         sendResponse({ success: true });
                     });
                 } else {
-                    addToActivityLog('Extension is disabled. Manual scrape not performed.');
-                    sendResponse({ success: false, reason: 'Extension is disabled' });
+                    addToActivityLog('Job scraping is disabled. Manual scrape not performed.');
+                    sendResponse({ success: false, reason: 'Job scraping is disabled' });
                 }
                 return true; // Will respond asynchronously
             } else if (message.type === 'ping') {
@@ -363,10 +362,10 @@ try {
                     sendResponse({ success: true });
                 });
                 return true; // Will respond asynchronously
-            } else if (message.type === 'updateMasterToggle') {
-                masterEnabled = message.enabled;
-                addToActivityLog(`Extension ${masterEnabled ? 'enabled' : 'disabled'} (all features)`);
-                if (masterEnabled) {
+            } else if (message.type === 'updateJobScraping') {
+                jobScrapingEnabled = message.enabled;
+                addToActivityLog(`Job scraping ${jobScrapingEnabled ? 'enabled' : 'disabled'}`);
+                if (jobScrapingEnabled) {
                     updateAlarm();
                 } else {
                     chrome.alarms.clear("checkJobs");
@@ -396,11 +395,6 @@ try {
 
     function sendToWebhook(webhookUrl, jobs) {
         try {
-            if (!masterEnabled) {
-                addToActivityLog('Extension is disabled. Skipping webhook send.');
-                return;
-            }
-
             if (!webhookEnabled) {
                 addToActivityLog('Webhook is disabled. Skipping send.');
                 return;
@@ -461,8 +455,8 @@ try {
     }
 
     function sendNotification(message) {
-        if (!masterEnabled) {
-            addToActivityLog('Extension is disabled. Skipping notification.');
+        if (!notificationsEnabled) {
+            addToActivityLog('Push notifications are disabled. Skipping notification.');
             return;
         }
 
@@ -538,6 +532,13 @@ try {
 
     // Expose the function to the global scope so it can be called from the console
     globalThis.sendTestError = sendTestError;
+
+    // Load settings when the extension starts
+    chrome.storage.sync.get(['jobScrapingEnabled', 'webhookEnabled', 'notificationsEnabled'], (data) => {
+        jobScrapingEnabled = data.jobScrapingEnabled !== false;
+        webhookEnabled = data.webhookEnabled !== false;
+        notificationsEnabled = data.notificationsEnabled !== false;
+    });
 
 } catch (error) {
     console.error('Uncaught error in background script:', error);
