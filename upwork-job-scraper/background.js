@@ -168,76 +168,73 @@ try {
     }
 
     function scrapeJobs() {
-        let jobElements;
-        if (window.location.href.includes("find-work/most-recent")) {
-            jobElements = document.querySelectorAll('[data-test="job-tile-list"] > section');
-        } else {
-            jobElements = document.querySelectorAll('article.job-tile');
-        }
+        let jobElements = document.querySelectorAll('[data-test="job-tile-list"] > section, article.job-tile');
         
         const jobs = Array.from(jobElements).map(jobElement => {
-            let titleElement, descriptionElement, budgetElement, postedElement, proposalsElement, clientCountryElement, paymentVerifiedElement, clientSpentElement, clientRatingElement, jobTypeElement, experienceLevelElement, projectLengthElement, skillsElements;
+            let titleElement, descriptionElement, budgetElement, postedElement, clientCountryElement, paymentVerifiedElement, clientSpentElement, clientRatingElement, jobTypeElement, experienceLevelElement, projectLengthElement, skillsElements, attachmentsElement, connectsElement, questionsElement;
             
-            if (window.location.href.includes("find-work/most-recent")) {
-                titleElement = jobElement.querySelector('.job-tile-title a');
-                descriptionElement = jobElement.querySelector('[data-test="job-description-text"]');
+            // Common selectors
+            titleElement = jobElement.querySelector('.job-tile-title a, h4.my-0 a');
+            descriptionElement = jobElement.querySelector('[data-test="job-description-text"], [data-test="UpCLineClamp JobDescription"] .mb-0');
+            clientCountryElement = jobElement.querySelector('[data-test="client-country"], li[data-test="location"] .air3-badge-tagline');
+            paymentVerifiedElement = jobElement.querySelector('[data-test="payment-verification-status"], li[data-test="payment-verified"]');
+            clientSpentElement = jobElement.querySelector('[data-test="client-spendings"] strong, li[data-test="total-spent"] strong');
+            clientRatingElement = jobElement.querySelector('[data-test="client-feedback"] .air3-rating-value-text, .air3-rating-value-text');
+            skillsElements = jobElement.querySelectorAll('.air3-token-wrap .air3-token, .air3-token-container .air3-token');
+            
+            // Specific selectors
+            if (jobElement.matches('[data-test="job-tile-list"] > section')) {
                 budgetElement = jobElement.querySelector('[data-test="job-type"]');
                 postedElement = jobElement.querySelector('[data-test="posted-on"]');
-                proposalsElement = jobElement.querySelector('[data-test="proposals"]');
-                clientCountryElement = jobElement.querySelector('[data-test="client-country"]');
-                paymentVerifiedElement = jobElement.querySelector('[data-test="payment-verification-status"]');
-                clientSpentElement = jobElement.querySelector('[data-test="client-spendings"] strong');
-                clientRatingElement = jobElement.querySelector('[data-test="client-feedback"] .air3-rating-value-text');
                 experienceLevelElement = jobElement.querySelector('[data-test="contractor-tier"]');
                 projectLengthElement = jobElement.querySelector('[data-test="duration"]');
-                skillsElements = jobElement.querySelectorAll('.air3-token-wrap .air3-token');
             } else {
-                titleElement = jobElement.querySelector('.job-tile-title a');
-                descriptionElement = jobElement.querySelector('[data-test="UpCLineClamp JobDescription"] .mb-0');
                 budgetElement = jobElement.querySelector('ul[data-test="JobInfo"] li:first-child strong');
                 postedElement = jobElement.querySelector('small[data-test="job-pubilshed-date"] span:last-child');
-                proposalsElement = jobElement.querySelector('li[data-test="proposals-tier"] strong');
-                clientCountryElement = jobElement.querySelector('li[data-test="location"] .air3-badge-tagline');
-                paymentVerifiedElement = jobElement.querySelector('li[data-test="payment-verified"]');
-                clientSpentElement = jobElement.querySelector('li[data-test="total-spent"] strong');
-                clientRatingElement = jobElement.querySelector('.air3-rating-value-text');
                 experienceLevelElement = jobElement.querySelector('li[data-test="experience-level"] strong');
                 projectLengthElement = jobElement.querySelector('li[data-test="duration-label"] strong:last-child');
-                skillsElements = jobElement.querySelectorAll('.air3-token-container .air3-token');
             }
             
-            let budget = '';
-            let jobType = '';
+            // New selectors
+            attachmentsElement = jobElement.querySelector('[data-test="attachments-list"]');
+            connectsElement = jobElement.querySelector('[data-test="connects-required"]');
+            questionsElement = jobElement.querySelector('[data-test="screening-questions"]');
+
+            let jobType = 'N/A';
+            let budget = 'N/A';
+            let hourlyRange = 'N/A';
             if (budgetElement) {
                 const budgetText = budgetElement.textContent.trim();
                 if (budgetText.includes('Fixed price')) {
                     jobType = 'Fixed price';
-                    const fixedPriceElement = jobElement.querySelector('li[data-test="is-fixed-price"] strong');
-                    budget = fixedPriceElement ? fixedPriceElement.textContent.trim() : '';
-                } else {
+                    const fixedPriceElement = jobElement.querySelector('li[data-test="is-fixed-price"] strong, [data-test="budget"]');
+                    budget = fixedPriceElement ? fixedPriceElement.textContent.trim() : 'N/A';
+                } else if (budgetText.includes('Hourly')) {
                     jobType = 'Hourly';
-                    budget = budgetText;
+                    hourlyRange = budgetText.replace('Hourly:', '').trim();
                 }
             }
 
             const clientRating = clientRatingElement ? 
-                parseFloat(clientRatingElement.textContent.trim().split(' ')[0]) : null;
+                parseFloat(clientRatingElement.textContent.trim().split(' ')[0]) : 'N/A';
 
             return {
-                title: titleElement ? titleElement.textContent.trim() : '',
-                url: titleElement ? titleElement.href : '',
-                description: descriptionElement ? descriptionElement.textContent.trim() : '',
-                budget: budget,
+                title: titleElement ? titleElement.textContent.trim() : 'N/A',
+                url: titleElement ? titleElement.href : 'N/A',
+                description: descriptionElement ? descriptionElement.textContent.trim() : 'N/A',
                 jobType: jobType,
-                posted: postedElement ? postedElement.textContent.trim() : '',
-                proposals: proposalsElement ? proposalsElement.textContent.trim() : '',
-                clientCountry: clientCountryElement ? clientCountryElement.textContent.trim() : '',
+                budget: budget,
+                hourlyRange: hourlyRange,
+                experienceLevel: experienceLevelElement ? experienceLevelElement.textContent.trim() : 'N/A',
+                projectLength: projectLengthElement ? projectLengthElement.textContent.trim() : 'N/A',
+                clientCountry: clientCountryElement ? clientCountryElement.textContent.trim() : 'N/A',
                 paymentVerified: paymentVerifiedElement ? true : false,
-                clientSpent: clientSpentElement ? clientSpentElement.textContent.trim() : '',
+                clientSpent: clientSpentElement ? clientSpentElement.textContent.trim() : 'N/A',
                 clientRating: clientRating,
-                experienceLevel: experienceLevelElement ? experienceLevelElement.textContent.trim() : '',
-                projectLength: projectLengthElement ? projectLengthElement.textContent.trim() : '',
                 skills: Array.from(skillsElements).map(skill => skill.textContent.trim()),
+                attachments: attachmentsElement ? Array.from(attachmentsElement.querySelectorAll('a')).map(a => ({ name: a.textContent.trim(), url: a.href })) : [],
+                requiredConnects: connectsElement ? parseInt(connectsElement.textContent.trim()) : 'N/A',
+                screeningQuestions: questionsElement ? Array.from(questionsElement.querySelectorAll('li')).map(q => q.textContent.trim()) : [],
                 scrapedAt: Date.now()
             };
         });
@@ -417,15 +414,17 @@ try {
                 description: job.description,
                 jobType: job.jobType,
                 budget: job.budget,
+                hourlyRange: job.hourlyRange,
                 experienceLevel: job.experienceLevel,
                 projectLength: job.projectLength,
-                posted: job.posted,
-                proposals: job.proposals,
                 clientCountry: job.clientCountry,
                 paymentVerified: job.paymentVerified,
                 clientSpent: job.clientSpent,
                 clientRating: job.clientRating,
                 skills: job.skills,
+                attachments: job.attachments,
+                requiredConnects: job.requiredConnects,
+                screeningQuestions: job.screeningQuestions,
                 scrapedAt: job.scrapedAt
             }));
 

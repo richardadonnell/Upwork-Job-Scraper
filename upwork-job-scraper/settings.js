@@ -115,15 +115,22 @@ function initializeSettings() {
                 description: "This is a test job posting to verify webhook functionality.",
                 jobType: "Fixed price",
                 budget: "$500",
+                hourlyRange: "N/A",
                 experienceLevel: "Intermediate",
                 projectLength: "1 to 3 months",
-                posted: "Just now",
-                proposals: "Less than 5",
                 clientCountry: "Test Country",
                 paymentVerified: true,
                 clientSpent: "$10k+",
                 clientRating: 4.9,
                 skills: ["Test Skill 1", "Test Skill 2", "Test Skill 3"],
+                attachments: [
+                    { name: "Test Document", url: "https://www.upwork.com/test-document" }
+                ],
+                requiredConnects: 4,
+                screeningQuestions: [
+                    "What is your experience with this technology?",
+                    "How soon can you start?"
+                ],
                 scrapedAt: Date.now()
             };
 
@@ -288,18 +295,21 @@ function initializeSettings() {
                 jobDetails.id = `job-details-${index}`;
                 jobDetails.innerHTML = `
                     <p><strong>URL:</strong> <a href="${job.url}" target="_blank">${job.url}</a></p>
-                    <p><strong>Description:</strong> ${job.description}</p>
                     <p><strong>Job Type:</strong> ${job.jobType}</p>
-                    <p><strong>Budget:</strong> ${job.budget}</p>
                     <p><strong>Experience Level:</strong> ${job.experienceLevel}</p>
-                    <p><strong>Project Length:</strong> ${job.projectLength}</p>
-                    <p><strong>Posted:</strong> ${job.posted}</p>
-                    <p><strong>Proposals:</strong> ${job.proposals}</p>
-                    <p><strong>Client Country:</strong> ${job.clientCountry}</p>
+                    ${job.jobType === 'Fixed price' ? `<p><strong>Budget:</strong> ${job.budget}</p>` : ''}
+                    ${job.jobType === 'Hourly' ? `<p><strong>Hourly Range:</strong> ${job.hourlyRange}</p>` : ''}
+                    ${job.jobType === 'Hourly' ? `<p><strong>Est. Time:</strong> ${job.projectLength}</p>` : ''}
+                    <p><strong>Description:</strong> ${job.description}</p>
+                    <p><strong>Skills:</strong> ${job.skills.join(', ') || 'N/A'}</p>
                     <p><strong>Payment Verified:</strong> ${job.paymentVerified ? 'Yes' : 'No'}</p>
+                    <p><strong>Client Rating:</strong> ${job.clientRating}</p>
                     <p><strong>Client Spent:</strong> ${job.clientSpent}</p>
-                    <p><strong>Client Rating:</strong> ${job.clientRating ? job.clientRating.toFixed(1) : 'N/A'}</p>
-                    <p><strong>Skills:</strong> ${Array.isArray(job.skills) ? job.skills.join(', ') : 'N/A'}</p>
+                    <p><strong>Client Country:</strong> ${job.clientCountry}</p>
+                    <p><strong>Required Connects:</strong> ${job.requiredConnects}</p>
+                    ${job.attachments.length > 0 ? `<p><strong>Attachments:</strong> ${job.attachments.map(a => `<a href="${a.url}" target="_blank">${a.name}</a>`).join(', ')}</p>` : ''}
+                    ${job.screeningQuestions.length > 0 ? `<p><strong>Screening Questions:</strong><br>${job.screeningQuestions.map(q => `- ${q}`).join('<br>')}</p>` : ''}
+                    <p><strong>Scraped At:</strong> ${new Date(job.scrapedAt).toLocaleString()}</p>
                 `;
 
                 jobItem.appendChild(jobHeader);
