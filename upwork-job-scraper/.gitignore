@@ -30,3 +30,5 @@ yarn-error.log*
 package.json
 package-lock.json
 /assets
+example_custom_url_search_element_structure.html
+example_most_recent_element_structure.html
