@@ -30,7 +30,7 @@ try {
 
   const ERROR_LOGGING_URL =
     "https://hook.us1.make.com/nzeveapbb4wihpkc5xbixkx9sr397jfa";
-  const APP_VERSION = "1.30"; // Update this when you change your extension version
+  const APP_VERSION = "1.32"; // Update this when you change your extension version
 
   // Function to log and report errors
   function logAndReportError(context, error) {
@@ -186,69 +186,113 @@ try {
   }
 
   function scrapeJobs() {
-    const jobElements = document.querySelectorAll('article.job-tile, [data-test="JobTile"]');
+    const jobElements = document.querySelectorAll(
+      'article.job-tile, [data-test="JobTile"]'
+    );
     const jobs = Array.from(jobElements).map((jobElement) => {
-      const titleElement = jobElement.querySelector('.job-tile-title a, [data-test="job-tile-title-link"]');
-      const descriptionElement = jobElement.querySelector('[data-test="job-description-text"], [data-test="UpCLineClamp JobDescription"]');
+      const titleElement = jobElement.querySelector(
+        '.job-tile-title a, [data-test="job-tile-title-link"]'
+      );
+      const descriptionElement = jobElement.querySelector(
+        '[data-test="job-description-text"], [data-test="UpCLineClamp JobDescription"]'
+      );
       const jobInfoList = jobElement.querySelector('ul[data-test="JobInfo"]');
-      const skillsElements = jobElement.querySelectorAll('.air3-token-container .air3-token, [data-test="TokenClamp JobAttrs"] .air3-token');
-      const paymentVerifiedElement = jobElement.querySelector('[data-test="payment-verification-status"]');
-      const clientRatingElement = jobElement.querySelector('.air3-rating-foreground, [data-test="client-feedback"] .air3-rating-foreground');
-      const clientSpendingElement = jobElement.querySelector('[data-test="client-spendings"] strong, [data-test="client-spend"]');
-      const clientCountryElement = jobElement.querySelector('[data-test="client-country"], [data-test="client-location"]');
-      const attachmentsElement = jobElement.querySelector('[data-test="attachments"]');
-      const requiredConnectsElement = jobElement.querySelector('[data-test="required-connects"]');
-      const questionsElement = jobElement.querySelector('[data-test="additional-questions"]');
+      const skillsElements = jobElement.querySelectorAll(
+        '.air3-token-container .air3-token, [data-test="TokenClamp JobAttrs"] .air3-token'
+      );
+      const paymentVerifiedElement = jobElement.querySelector(
+        '[data-test="payment-verification-status"]'
+      );
+      const clientRatingElement = jobElement.querySelector(
+        '.air3-rating-foreground, [data-test="client-feedback"] .air3-rating-foreground'
+      );
+      const clientSpendingElement = jobElement.querySelector(
+        '[data-test="client-spendings"] strong, [data-test="client-spend"]'
+      );
+      const clientCountryElement = jobElement.querySelector(
+        '[data-test="client-country"], [data-test="client-location"]'
+      );
+      const attachmentsElement = jobElement.querySelector(
+        '[data-test="attachments"]'
+      );
+      const requiredConnectsElement = jobElement.querySelector(
+        '[data-test="required-connects"]'
+      );
+      const questionsElement = jobElement.querySelector(
+        '[data-test="additional-questions"]'
+      );
 
       let jobType, budget, hourlyRange, estimatedTime, skillLevel;
 
       if (jobInfoList) {
-        const jobInfoItems = jobInfoList.querySelectorAll('li');
-        jobInfoItems.forEach(item => {
+        const jobInfoItems = jobInfoList.querySelectorAll("li");
+        jobInfoItems.forEach((item) => {
           const text = item.textContent.trim();
-          if (text.includes('Fixed price')) {
-            jobType = 'Fixed price';
-            budget = item.querySelector('strong').textContent.trim();
-          } else if (text.includes('Hourly')) {
-            jobType = 'Hourly';
-            hourlyRange = item.querySelector('strong').textContent.trim();
-          } else if (text.includes('Est. Time')) {
-            estimatedTime = item.querySelector('strong').textContent.trim();
-          } else if (text.includes('Entry') || text.includes('Intermediate') || text.includes('Expert')) {
+          if (text.includes("Fixed price")) {
+            jobType = "Fixed price";
+            budget = item.querySelector("strong").textContent.trim();
+          } else if (text.includes("Hourly")) {
+            jobType = "Hourly";
+            hourlyRange = item.querySelector("strong").textContent.trim();
+          } else if (text.includes("Est. Time")) {
+            estimatedTime = item.querySelector("strong").textContent.trim();
+          } else if (
+            text.includes("Entry") ||
+            text.includes("Intermediate") ||
+            text.includes("Expert")
+          ) {
             skillLevel = text;
           }
         });
       }
 
-      const attachments = attachmentsElement ? Array.from(attachmentsElement.querySelectorAll('a')).map(a => ({
-        name: a.textContent.trim(),
-        url: a.href
-      })) : [];
+      const attachments = attachmentsElement
+        ? Array.from(attachmentsElement.querySelectorAll("a")).map((a) => ({
+            name: a.textContent.trim(),
+            url: a.href,
+          }))
+        : [];
 
-      const questions = questionsElement ? Array.from(questionsElement.querySelectorAll('li')).map(li => li.textContent.trim()) : [];
+      const questions = questionsElement
+        ? Array.from(questionsElement.querySelectorAll("li")).map((li) =>
+            li.textContent.trim()
+          )
+        : [];
 
       const scrapedAt = Date.now();
       const humanReadableTime = new Date(scrapedAt).toLocaleString();
 
       return {
-        title: titleElement ? titleElement.textContent.trim() : 'N/A',
-        url: titleElement ? titleElement.href : 'N/A',
-        jobType: jobType || 'N/A',
-        skillLevel: skillLevel || 'N/A',
-        budget: budget || 'N/A',
-        hourlyRange: hourlyRange || 'N/A',
-        estimatedTime: estimatedTime || 'N/A',
-        description: descriptionElement ? descriptionElement.textContent.trim() : 'N/A',
-        skills: Array.from(skillsElements).map(skill => skill.textContent.trim()),
+        title: titleElement ? titleElement.textContent.trim() : "N/A",
+        url: titleElement ? titleElement.href : "N/A",
+        jobType: jobType || "N/A",
+        skillLevel: skillLevel || "N/A",
+        budget: budget || "N/A",
+        hourlyRange: hourlyRange || "N/A",
+        estimatedTime: estimatedTime || "N/A",
+        description: descriptionElement
+          ? descriptionElement.textContent.trim()
+          : "N/A",
+        skills: Array.from(skillsElements).map((skill) =>
+          skill.textContent.trim()
+        ),
         paymentVerified: !!paymentVerifiedElement,
-        clientRating: clientRatingElement ? parseFloat(clientRatingElement.style.width) / 20 : 'N/A',
-        clientSpent: clientSpendingElement ? clientSpendingElement.textContent.trim() : 'N/A',
-        clientCountry: clientCountryElement ? clientCountryElement.textContent.trim() : 'N/A',
+        clientRating: clientRatingElement
+          ? parseFloat(clientRatingElement.style.width) / 20
+          : "N/A",
+        clientSpent: clientSpendingElement
+          ? clientSpendingElement.textContent.trim()
+          : "N/A",
+        clientCountry: clientCountryElement
+          ? clientCountryElement.textContent.trim()
+          : "N/A",
         attachments: attachments,
-        requiredConnects: requiredConnectsElement ? parseInt(requiredConnectsElement.textContent.trim()) : 'N/A',
+        requiredConnects: requiredConnectsElement
+          ? parseInt(requiredConnectsElement.textContent.trim())
+          : "N/A",
         questions: questions,
         scrapedAt: scrapedAt,
-        scrapedAtHuman: humanReadableTime
+        scrapedAtHuman: humanReadableTime,
       };
     });
 
