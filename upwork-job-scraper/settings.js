@@ -283,7 +283,7 @@ function initializeSettings() {
       jobsContainer.innerHTML = ""; // Clear existing jobs
 
       if (!Array.isArray(jobs) || jobs.length === 0) {
-        jobsContainer.innerHTML = "<p>No jobs found.</p>";
+        jobsContainer.innerHTML = "<p>No jobs scraped yet.</p>";
         return;
       }
 
@@ -329,21 +329,15 @@ function initializeSettings() {
           <p><strong>URL:</strong> ${job.url ? `<a href="${job.url}" target="_blank">${job.url}</a>` : 'N/A'}</p>
           <p><strong>Job Type:</strong> ${job.jobType || 'N/A'}</p>
           <p><strong>Skill Level:</strong> ${job.skillLevel || 'N/A'}</p>
-          ${job.jobType === 'Fixed price' 
-            ? `<p><strong>Budget:</strong> ${job.budget || 'N/A'}</p>` 
-            : `<p><strong>Hourly Range:</strong> ${job.hourlyRange || 'N/A'}</p>`
-          }
+          <p><strong>Budget:</strong> ${job.budget || 'N/A'}</p>
+          <p><strong>Hourly Range:</strong> ${job.hourlyRange || 'N/A'}</p>
           <p><strong>Estimated Time:</strong> ${job.estimatedTime || 'N/A'}</p>
           <p><strong>Description:</strong> ${job.description || 'N/A'}</p>
           <p><strong>Skills:</strong> ${Array.isArray(job.skills) ? job.skills.join(", ") : 'N/A'}</p>
           <p><strong>Payment Verified:</strong> ${job.paymentVerified ? "Yes" : "No"}</p>
-          <p><strong>Client Rating:</strong> ${typeof job.clientRating === 'number' ? job.clientRating.toFixed(2) : 'N/A'}</p>
+          <p><strong>Client Rating:</strong> ${job.clientRating || 'N/A'}</p>
           <p><strong>Client Spent:</strong> ${job.clientSpent || 'N/A'}</p>
           <p><strong>Client Country:</strong> ${job.clientCountry || 'N/A'}</p>
-          ${Array.isArray(job.attachments) && job.attachments.length > 0 ? `<p><strong>Attachments:</strong> ${job.attachments.map(a => `<a href="${a.url}" target="_blank">${a.name}</a>`).join(", ")}</p>` : ''}
-          ${Array.isArray(job.questions) && job.questions.length > 0 ? `<p><strong>Questions:</strong><ul>${job.questions.map(q => `<li>${q}</li>`).join("")}</ul></p>` : ''}
-          <p><strong>Proposals:</strong> ${job.proposals || 'N/A'}</p>
-          <p><strong>Freelancers Needed:</strong> ${job.freelancersNeeded || 'N/A'}</p>
           <p><strong>Scraped At:</strong> ${job.scrapedAtHuman || 'N/A'}</p>
         `;
 
@@ -352,10 +346,13 @@ function initializeSettings() {
         jobsContainer.appendChild(jobItem);
       });
 
-      // Start updating time differences
-      if (!window.timeUpdateInterval) {
-        window.timeUpdateInterval = setInterval(updateAllTimeDifferences, 1000);
-      }
+      // Update time differences
+      setInterval(() => {
+        document.querySelectorAll('.job-time').forEach(timeSpan => {
+          const timestamp = parseInt(timeSpan.dataset.timestamp);
+          updateTimeDifference(timestamp, timeSpan);
+        });
+      }, 60000); // Update every minute
     }
 
     function toggleJobDetails(jobId) {
@@ -408,14 +405,6 @@ function initializeSettings() {
       }
 
       element.textContent = `(${timeString})`;
-    }
-
-    function updateAllTimeDifferences() {
-      const timeElements = document.querySelectorAll(".job-time");
-      timeElements.forEach((element) => {
-        const timestamp = parseInt(element.dataset.timestamp);
-        updateTimeDifference(timestamp, element);
-      });
     }
 
     // Function to update webhook input state
