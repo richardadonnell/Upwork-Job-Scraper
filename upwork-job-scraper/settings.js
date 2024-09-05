@@ -120,20 +120,27 @@ function initializeSettings() {
       const testPayload = {
         title: "Test Job",
         url: "https://www.upwork.com/test-job",
-        description:
-          "This is a test job posting to verify webhook functionality.",
         jobType: "Fixed price",
+        skillLevel: "Intermediate",
         budget: "$500",
-        experienceLevel: "Intermediate",
-        projectLength: "1 to 3 months",
-        posted: "Just now",
-        proposals: "Less than 5",
-        clientCountry: "Test Country",
-        paymentVerified: true,
-        clientSpent: "$10k+",
-        clientRating: 4.9,
+        hourlyRange: "N/A",
+        estimatedTime: "N/A",
+        description: "This is a test job posting to verify webhook functionality.",
         skills: ["Test Skill 1", "Test Skill 2", "Test Skill 3"],
+        paymentVerified: true,
+        clientRating: 4.9,
+        clientSpent: "$10k+",
+        clientCountry: "Test Country",
+        attachments: [
+          { name: "Test Document", url: "https://www.upwork.com/test-document" }
+        ],
+        requiredConnects: 4,
+        questions: [
+          "What is your experience with this type of project?",
+          "How soon can you start?"
+        ],
         scrapedAt: Date.now(),
+        scrapedAtHuman: new Date().toLocaleString()
       };
 
       fetch(webhookUrl, {
@@ -276,10 +283,17 @@ function initializeSettings() {
       const jobsContainer = document.getElementById("jobs-container");
       jobsContainer.innerHTML = ""; // Clear existing jobs
 
-      jobs.forEach((job, index) => {
+      if (!Array.isArray(jobs) || jobs.length === 0) {
+        jobsContainer.innerHTML = "<p>No jobs found.</p>";
+        return;
+      }
+
+      jobs.forEach((job) => {
+        if (!job) return; // Skip if job is undefined
+
         const jobItem = document.createElement("div");
         jobItem.className = "job-item";
-        jobItem.dataset.jobId = job.url; // Use job URL as a unique identifier
+        jobItem.dataset.jobId = job.url || '';
 
         const jobHeader = document.createElement("div");
         jobHeader.className = "job-header";
@@ -289,21 +303,21 @@ function initializeSettings() {
 
         const timeSpan = document.createElement("span");
         timeSpan.className = "job-time";
-        timeSpan.dataset.timestamp = job.scrapedAt; // Store the original timestamp
-        updateTimeDifference(job.scrapedAt, timeSpan);
+        timeSpan.dataset.timestamp = job.scrapedAt || Date.now();
+        updateTimeDifference(job.scrapedAt || Date.now(), timeSpan);
 
-        jobTitle.textContent = job.title;
-        jobTitle.appendChild(document.createElement("br")); // Add a line break
+        jobTitle.textContent = job.title || 'Untitled Job';
+        jobTitle.appendChild(document.createElement("br"));
         jobTitle.appendChild(timeSpan);
 
-        jobTitle.onclick = () => toggleJobDetails(job.url);
+        jobTitle.onclick = () => toggleJobDetails(job.url || '');
 
         const openButton = document.createElement("button");
         openButton.className = "open-job-button button-secondary";
         openButton.textContent = "Open";
         openButton.onclick = (e) => {
           e.stopPropagation();
-          window.open(job.url, "_blank");
+          if (job.url) window.open(job.url, "_blank");
         };
 
         jobHeader.appendChild(jobTitle);
@@ -311,32 +325,24 @@ function initializeSettings() {
 
         const jobDetails = document.createElement("div");
         jobDetails.className = "job-details";
-        jobDetails.id = `job-details-${job.url}`;
+        jobDetails.id = `job-details-${job.url || ''}`;
         jobDetails.innerHTML = `
-                    <p><strong>URL:</strong> <a href="${
-                      job.url
-                    }" target="_blank">${job.url}</a></p>
-                    <p><strong>Description:</strong> ${job.description}</p>
-                    <p><strong>Job Type:</strong> ${job.jobType}</p>
-                    <p><strong>Budget:</strong> ${job.budget}</p>
-                    <p><strong>Experience Level:</strong> ${
-                      job.experienceLevel
-                    }</p>
-                    <p><strong>Project Length:</strong> ${job.projectLength}</p>
-                    <p><strong>Posted:</strong> ${job.posted}</p>
-                    <p><strong>Proposals:</strong> ${job.proposals}</p>
-                    <p><strong>Client Country:</strong> ${job.clientCountry}</p>
-                    <p><strong>Payment Verified:</strong> ${
-                      job.paymentVerified ? "Yes" : "No"
-                    }</p>
-                    <p><strong>Client Spent:</strong> ${job.clientSpent}</p>
-                    <p><strong>Client Rating:</strong> ${
-                      job.clientRating ? job.clientRating.toFixed(1) : "N/A"
-                    }</p>
-                    <p><strong>Skills:</strong> ${
-                      Array.isArray(job.skills) ? job.skills.join(", ") : "N/A"
-                    }</p>
-                `;
+          <p><strong>URL:</strong> ${job.url ? `<a href="${job.url}" target="_blank">${job.url}</a>` : 'N/A'}</p>
+          <p><strong>Job Type:</strong> ${job.jobType || 'N/A'}</p>
+          <p><strong>Skill Level:</strong> ${job.skillLevel || 'N/A'}</p>
+          <p><strong>${job.jobType === 'Fixed price' ? 'Budget' : 'Hourly Range'}:</strong> ${job.jobType === 'Fixed price' ? (job.budget || 'N/A') : (job.hourlyRange || 'N/A')}</p>
+          ${job.jobType === 'Hourly' ? `<p><strong>Estimated Time:</strong> ${job.estimatedTime || 'N/A'}</p>` : ''}
+          <p><strong>Description:</strong> ${job.description || 'N/A'}</p>
+          <p><strong>Skills:</strong> ${Array.isArray(job.skills) ? job.skills.join(", ") : 'N/A'}</p>
+          <p><strong>Payment Verified:</strong> ${job.paymentVerified ? "Yes" : "No"}</p>
+          <p><strong>Client Rating:</strong> ${job.clientRating || 'N/A'}</p>
+          <p><strong>Client Spent:</strong> ${job.clientSpent || 'N/A'}</p>
+          <p><strong>Client Country:</strong> ${job.clientCountry || 'N/A'}</p>
+          <p><strong>Required Connects:</strong> ${job.requiredConnects || 'N/A'}</p>
+          ${Array.isArray(job.attachments) && job.attachments.length > 0 ? `<p><strong>Attachments:</strong> ${job.attachments.map(a => `<a href="${a.url}" target="_blank">${a.name}</a>`).join(", ")}</p>` : ''}
+          ${Array.isArray(job.questions) && job.questions.length > 0 ? `<p><strong>Questions:</strong><ul>${job.questions.map(q => `<li>${q}</li>`).join("")}</ul></p>` : ''}
+          <p><strong>Scraped At:</strong> ${job.scrapedAtHuman || 'N/A'}</p>
+        `;
 
         jobItem.appendChild(jobHeader);
         jobItem.appendChild(jobDetails);
