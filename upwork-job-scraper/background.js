@@ -201,7 +201,7 @@ try {
         '.air3-token-container .air3-token, [data-test="TokenClamp JobAttrs"] .air3-token'
       );
       const paymentVerifiedElement = jobElement.querySelector(
-        '[data-test="payment-verification-status"]'
+        '[data-test="payment-verified"], [data-test="payment-verification-status"]'
       );
       const clientRatingElement = jobElement.querySelector(
         '.air3-rating-foreground, [data-test="client-feedback"] .air3-rating-foreground, .air3-rating-value-text'
@@ -311,6 +311,19 @@ try {
         clientCountry = clone.textContent.trim().replace(/\s+/g, ' ');
       }
 
+      let paymentVerified = false;
+      if (paymentVerifiedElement) {
+        // Custom Search URL feed
+        if (paymentVerifiedElement.textContent.includes("Payment verified")) {
+          paymentVerified = true;
+        }
+        // Most Recent feed
+        else if (paymentVerifiedElement.textContent.includes("Payment unverified")) {
+          paymentVerified = false;
+        }
+        // If neither text is found, we keep the default false value
+      }
+
       return {
         title: titleElement ? titleElement.textContent.trim() : "N/A",
         url: titleElement ? titleElement.href : "N/A",
@@ -325,7 +338,7 @@ try {
         skills: Array.from(skillsElements).map((skill) =>
           skill.textContent.trim()
         ),
-        paymentVerified: !!paymentVerifiedElement,
+        paymentVerified: paymentVerified,
         clientRating: clientRating,
         clientSpent: clientSpendingElement
           ? clientSpendingElement.textContent.trim()
