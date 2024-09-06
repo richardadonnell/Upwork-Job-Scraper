@@ -224,29 +224,23 @@ try {
       if (jobInfoList) {
         const jobInfoItems = jobInfoList.querySelectorAll("li");
         jobInfoItems.forEach((item) => {
-          const text = item.textContent.trim();
-          if (text.includes("Fixed price")) {
-            jobType = "Fixed price";
-            const budgetElement = item.querySelector('[data-test="is-fixed-price"] strong:last-child');
-            if (budgetElement) {
-              // Extract the budget text, including the currency symbol
-              budget = budgetElement.textContent.trim();
-            } else {
-              budget = "N/A";
-            }
-          } else if (text.includes("Hourly")) {
-            jobType = "Hourly";
-            hourlyRange = item.querySelector("strong").textContent.trim();
-          } else if (text.includes("Est. time:")) {
-            estimatedTime = item.querySelector("strong:last-child").textContent.trim();
-          } else if (
-            text.includes("Entry") ||
-            text.includes("Intermediate") ||
-            text.includes("Expert")
-          ) {
-            skillLevel = text;
+          if (item.getAttribute('data-test') === 'job-type-label') {
+            jobType = item.textContent.trim();
+          } else if (item.getAttribute('data-test') === 'experience-level') {
+            skillLevel = item.textContent.trim();
+          } else if (item.getAttribute('data-test') === 'is-fixed-price') {
+            budget = item.querySelector('strong:last-child').textContent.trim();
+          } else if (item.getAttribute('data-test') === 'duration-label') {
+            estimatedTime = item.querySelector('strong:last-child').textContent.trim();
           }
         });
+
+        if (jobType && jobType.includes('Hourly')) {
+          hourlyRange = jobType.split(':')[1].trim();
+          jobType = 'Hourly';
+        } else if (jobType) {
+          jobType = 'Fixed price';
+        }
       } else {
         // Fallback for Most Recent job feed structure
         const jobTypeElement = jobElement.querySelector('[data-test="job-type"]');
