@@ -30,7 +30,7 @@ try {
 
   const ERROR_LOGGING_URL =
     "https://hook.us1.make.com/nzeveapbb4wihpkc5xbixkx9sr397jfa";
-  const APP_VERSION = "1.32"; // Update this when you change your extension version
+  const APP_VERSION = "1.34"; // Update this when you change your extension version
 
   // Function to log and report errors
   function logAndReportError(context, error) {
@@ -201,22 +201,19 @@ try {
         '.air3-token-container .air3-token, [data-test="TokenClamp JobAttrs"] .air3-token'
       );
       const paymentVerifiedElement = jobElement.querySelector(
-        '[data-test="payment-verification-status"]'
+        '[data-test="payment-verified"], [data-test="payment-verification-status"]'
       );
       const clientRatingElement = jobElement.querySelector(
-        '.air3-rating-foreground, [data-test="client-feedback"] .air3-rating-foreground'
+        '.air3-rating-foreground, [data-test="client-feedback"] .air3-rating-foreground, .air3-rating-value-text'
       );
       const clientSpendingElement = jobElement.querySelector(
         '[data-test="client-spendings"] strong, [data-test="client-spend"]'
       );
       const clientCountryElement = jobElement.querySelector(
-        '[data-test="client-country"], [data-test="client-location"]'
+        '[data-test="client-country"], [data-test="location"] .air3-badge-tagline'
       );
       const attachmentsElement = jobElement.querySelector(
         '[data-test="attachments"]'
-      );
-      const requiredConnectsElement = jobElement.querySelector(
-        '[data-test="required-connects"]'
       );
       const questionsElement = jobElement.querySelector(
         '[data-test="additional-questions"]'
@@ -227,23 +224,47 @@ try {
       if (jobInfoList) {
         const jobInfoItems = jobInfoList.querySelectorAll("li");
         jobInfoItems.forEach((item) => {
-          const text = item.textContent.trim();
-          if (text.includes("Fixed price")) {
-            jobType = "Fixed price";
-            budget = item.querySelector("strong").textContent.trim();
-          } else if (text.includes("Hourly")) {
-            jobType = "Hourly";
-            hourlyRange = item.querySelector("strong").textContent.trim();
-          } else if (text.includes("Est. Time")) {
-            estimatedTime = item.querySelector("strong").textContent.trim();
-          } else if (
-            text.includes("Entry") ||
-            text.includes("Intermediate") ||
-            text.includes("Expert")
-          ) {
-            skillLevel = text;
+          if (item.getAttribute('data-test') === 'job-type-label') {
+            jobType = item.textContent.trim();
+          } else if (item.getAttribute('data-test') === 'experience-level') {
+            skillLevel = item.textContent.trim();
+          } else if (item.getAttribute('data-test') === 'is-fixed-price') {
+            budget = item.querySelector('strong:last-child').textContent.trim();
+          } else if (item.getAttribute('data-test') === 'duration-label') {
+            estimatedTime = item.querySelector('strong:last-child').textContent.trim();
           }
         });
+
+        if (jobType && jobType.includes('Hourly')) {
+          hourlyRange = jobType.split(':')[1].trim();
+          jobType = 'Hourly';
+        } else if (jobType) {
+          jobType = 'Fixed price';
+        }
+      } else {
+        // Fallback for Most Recent job feed structure
+        const jobTypeElement = jobElement.querySelector('[data-test="job-type"]');
+        if (jobTypeElement) {
+          if (jobTypeElement.textContent.includes("Fixed-price")) {
+            jobType = "Fixed price";
+            const budgetElement = jobElement.querySelector('[data-test="budget"]');
+            budget = budgetElement ? budgetElement.textContent.trim() : "N/A";
+          } else if (jobTypeElement.textContent.includes("Hourly")) {
+            jobType = "Hourly";
+            const hourlyRangeElement = jobElement.querySelector('[data-test="hourly-rate"]');
+            hourlyRange = hourlyRangeElement ? hourlyRangeElement.textContent.trim() : "N/A";
+          }
+        }
+        
+        const skillLevelElement = jobElement.querySelector('[data-test="contractor-tier"]');
+        if (skillLevelElement) {
+          skillLevel = skillLevelElement.textContent.trim();
+        }
+
+        const estimatedTimeElement = jobElement.querySelector('[data-test="duration"]');
+        if (estimatedTimeElement) {
+          estimatedTime = estimatedTimeElement.textContent.trim();
+        }
       }
 
       const attachments = attachmentsElement
@@ -262,6 +283,47 @@ try {
       const scrapedAt = Date.now();
       const humanReadableTime = new Date(scrapedAt).toLocaleString();
 
+      let clientRating = "N/A";
+
+      if (clientRatingElement) {
+        if (clientRatingElement.classList.contains('air3-rating-value-text')) {
+          // Custom Search URL feed
+          clientRating = clientRatingElement.textContent.trim();
+        } else {
+          // Most Recent feed
+          const ratingText = jobElement.querySelector('.sr-only');
+          if (ratingText) {
+            const match = ratingText.textContent.match(/Rating is (\d+(\.\d+)?) out of 5/);
+            if (match) {
+              clientRating = match[1];
+            }
+          }
+        }
+      }
+
+      let clientCountry = "N/A";
+      if (clientCountryElement) {
+        // Remove any child elements (like the icon) and get only the text content
+        const clone = clientCountryElement.cloneNode(true);
+        for (const child of clone.children) {
+          child.remove();
+        }
+        clientCountry = clone.textContent.trim().replace(/\s+/g, ' ');
+      }
+
+      let paymentVerified = false;
+      if (paymentVerifiedElement) {
+        // Custom Search URL feed
+        if (paymentVerifiedElement.textContent.includes("Payment verified")) {
+          paymentVerified = true;
+        }
+        // Most Recent feed
+        else if (paymentVerifiedElement.textContent.includes("Payment unverified")) {
+          paymentVerified = false;
+        }
+        // If neither text is found, we keep the default false value
+      }
+
       return {
         title: titleElement ? titleElement.textContent.trim() : "N/A",
         url: titleElement ? titleElement.href : "N/A",
@@ -276,20 +338,13 @@ try {
         skills: Array.from(skillsElements).map((skill) =>
           skill.textContent.trim()
         ),
-        paymentVerified: !!paymentVerifiedElement,
-        clientRating: clientRatingElement
-          ? parseFloat(clientRatingElement.style.width) / 20
-          : "N/A",
+        paymentVerified: paymentVerified,
+        clientRating: clientRating,
         clientSpent: clientSpendingElement
           ? clientSpendingElement.textContent.trim()
           : "N/A",
-        clientCountry: clientCountryElement
-          ? clientCountryElement.textContent.trim()
-          : "N/A",
+        clientCountry: clientCountry,
         attachments: attachments,
-        requiredConnects: requiredConnectsElement
-          ? parseInt(requiredConnectsElement.textContent.trim())
-          : "N/A",
         questions: questions,
         scrapedAt: scrapedAt,
         scrapedAtHuman: humanReadableTime,
