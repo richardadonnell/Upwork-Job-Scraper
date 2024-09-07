@@ -442,23 +442,18 @@ function initializeSettings() {
     document
       .getElementById("save-feed-sources")
       .addEventListener("click", () => {
-        const selectedFeedSource = document.querySelector(
-          'input[name="feed-source"]:checked'
-        ).value;
         const customSearchUrl =
           document.getElementById("custom-search-url").value;
 
-        if (selectedFeedSource === "custom-search") {
-          if (
-            !customSearchUrl.startsWith(
-              "https://www.upwork.com/nx/search/jobs/?"
-            )
-          ) {
-            showCustomUrlError(
-              "Custom Search URL must start with https://www.upwork.com/nx/search/jobs/?"
-            );
-            return;
-          }
+        if (
+          !customSearchUrl.startsWith(
+            "https://www.upwork.com/nx/search/jobs/?"
+          )
+        ) {
+          showCustomUrlError(
+            "Custom Search URL must start with https://www.upwork.com/nx/search/jobs/?"
+          );
+          return;
         }
 
         // Clear any existing error message
@@ -466,65 +461,28 @@ function initializeSettings() {
 
         chrome.storage.sync.set(
           {
-            selectedFeedSource: selectedFeedSource,
+            selectedFeedSource: "custom-search",
             customSearchUrl: customSearchUrl,
           },
           () => {
             console.log("Feed sources saved");
-            addLogEntry("Feed sources saved");
+            addLogEntry(`Feed source saved: custom-search`);
             chrome.runtime.sendMessage({ type: "updateFeedSources" });
             trackEvent("feed_sources_changed", {
-              selectedFeedSource,
+              selectedFeedSource: "custom-search",
               customSearchUrl,
             });
           }
         );
       });
 
-    // Modify the updateFeedSourceUI function
-    function updateFeedSourceUI(selectedFeedSource) {
-      const customSearchUrl = document.getElementById("custom-search-url");
-      if (selectedFeedSource === "custom-search") {
-        customSearchUrl.disabled = false;
-        customSearchUrl.placeholder =
-          "https://www.upwork.com/nx/search/jobs/...";
-      } else {
-        customSearchUrl.disabled = true;
-        customSearchUrl.placeholder = "";
-        // Clear any existing error message when switching to 'most-recent'
-        showCustomUrlError("");
-      }
-    }
-
-    // Add event listeners to radio buttons
-    document.querySelectorAll('input[name="feed-source"]').forEach((radio) => {
-      radio.addEventListener("change", (event) => {
-        updateFeedSourceUI(event.target.value);
-      });
-    });
-
     // Load saved feed source settings when the page opens
-    chrome.storage.sync.get(
-      ["selectedFeedSource", "customSearchUrl"],
-      (data) => {
-        const customSearchUrl = data.customSearchUrl || "";
-        const selectedFeedSource = customSearchUrl
-          ? "custom-search"
-          : data.selectedFeedSource || "most-recent";
-
-        document.querySelector(
-          `input[name="feed-source"][value="${selectedFeedSource}"]`
-        ).checked = true;
-
-        const customSearchUrlInput =
-          document.getElementById("custom-search-url");
-        customSearchUrlInput.value = customSearchUrl;
-        customSearchUrlInput.disabled = selectedFeedSource !== "custom-search";
-
-        // Update the UI based on the selected feed source
-        updateFeedSourceUI(selectedFeedSource);
-      }
-    );
+    chrome.storage.sync.get(["customSearchUrl"], (data) => {
+      const customSearchUrl = data.customSearchUrl || "";
+      const customSearchUrlInput =
+        document.getElementById("custom-search-url");
+      customSearchUrlInput.value = customSearchUrl;
+    });
 
     document.getElementById("manual-scrape").addEventListener("click", () => {
       sendMessageToBackground({ type: "manualScrape" })

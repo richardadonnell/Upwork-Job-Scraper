@@ -95,6 +95,8 @@
 
       <h2>Feed Sources</h2>
       <div class="feed-sources">
+        <!-- Remove or comment out the most-recent-feed option -->
+        <!--
         <div class="feed-source">
           <input
             type="radio"
@@ -112,12 +114,14 @@
             Jobs
           </label>
         </div>
+        -->
         <div class="feed-source">
           <input
             type="radio"
             id="custom-search-feed"
             name="feed-source"
             value="custom-search"
+            checked
           />
           <label for="custom-search-feed">Custom Search URL</label>
         </div>
@@ -125,7 +129,6 @@
           type="text"
           id="custom-search-url"
           placeholder="Enter Upwork search URL"
-          disabled
         />
       </div>
       <button id="save-feed-sources">Save Feed Sources</button>
@@ -140,9 +143,7 @@
           </li>
           <li>Search for the jobs you're interested in</li>
           <li>Search for multiple terms like this (python OR javascript)</li>
-          <li>
-            Use the "Advanced search filters" to narrow down the search results
-          </li>
+          <li>Use the "Advanced search filters" to narrow down the search results</li>
           <li>Copy the URL from your browser's address bar</li>
           <li>Paste the URL into the "Custom Search URL" field above</li>
           <li>Click the button below to save the changes</li>
