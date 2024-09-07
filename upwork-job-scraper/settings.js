@@ -590,6 +590,35 @@ function initializeSettings() {
         trackEvent("notification_toggle_changed", { enabled: isEnabled });
       });
     });
+
+    // Add this function near the top of the file, after other function declarations
+    function clearAllJobs() {
+      chrome.storage.local.set({ scrapedJobs: [] }, () => {
+        addLogEntry("All scraped jobs cleared");
+        addJobEntries([]);
+        chrome.runtime.sendMessage({ type: "jobsCleared" });
+      });
+    }
+
+    // Add this inside the initializeSettings function
+    document.getElementById("clear-jobs").addEventListener("click", () => {
+      if (confirm("Are you sure you want to clear all scraped jobs?")) {
+        clearAllJobs();
+        trackEvent("clear_all_jobs", {});
+      }
+    });
+
+    // Modify the existing chrome.runtime.onMessage listener
+    chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+      if (message.type === "logUpdate") {
+        addLogEntry(message.content);
+      } else if (message.type === "jobsUpdate") {
+        addJobEntries(message.jobs);
+      } else if (message.type === "jobsCleared") {
+        // Update the UI to reflect that jobs have been cleared
+        addJobEntries([]);
+      }
+    });
   } catch (error) {
     console.error("Error initializing settings:", error);
     window.logAndReportError("Error initializing settings", error);
