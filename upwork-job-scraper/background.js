@@ -324,6 +324,16 @@ try {
         // If neither text is found, we keep the default false value
       }
 
+      let clientSpent = "N/A";
+      const clientSpendingElementMostRecent = jobElement.querySelector('[data-test="client-spendings"] strong');
+      const clientSpendingElementCustomSearch = jobElement.querySelector('[data-test="total-spent"] strong');
+
+      if (clientSpendingElementMostRecent) {
+        clientSpent = clientSpendingElementMostRecent.textContent.trim() + " spent";
+      } else if (clientSpendingElementCustomSearch) {
+        clientSpent = clientSpendingElementCustomSearch.textContent.trim() + " spent";
+      }
+
       return {
         title: titleElement ? titleElement.textContent.trim() : "N/A",
         url: titleElement ? titleElement.href : "N/A",
@@ -340,9 +350,7 @@ try {
         ),
         paymentVerified: paymentVerified,
         clientRating: clientRating,
-        clientSpent: clientSpendingElement
-          ? clientSpendingElement.textContent.trim()
-          : "N/A",
+        clientSpent: clientSpent,
         clientCountry: clientCountry,
         attachments: attachments,
         questions: questions,
