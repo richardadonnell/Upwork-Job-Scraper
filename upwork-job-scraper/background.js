@@ -30,7 +30,7 @@ try {
 
   const ERROR_LOGGING_URL =
     "https://hook.us1.make.com/nzeveapbb4wihpkc5xbixkx9sr397jfa";
-  const APP_VERSION = "1.34"; // Update this when you change your extension version
+  const APP_VERSION = "1.35"; // Update this when you change your extension version
 
   // Function to log and report errors
   function logAndReportError(context, error) {
@@ -224,44 +224,58 @@ try {
       if (jobInfoList) {
         const jobInfoItems = jobInfoList.querySelectorAll("li");
         jobInfoItems.forEach((item) => {
-          if (item.getAttribute('data-test') === 'job-type-label') {
+          if (item.getAttribute("data-test") === "job-type-label") {
             jobType = item.textContent.trim();
-          } else if (item.getAttribute('data-test') === 'experience-level') {
+          } else if (item.getAttribute("data-test") === "experience-level") {
             skillLevel = item.textContent.trim();
-          } else if (item.getAttribute('data-test') === 'is-fixed-price') {
-            budget = item.querySelector('strong:last-child').textContent.trim();
-          } else if (item.getAttribute('data-test') === 'duration-label') {
-            estimatedTime = item.querySelector('strong:last-child').textContent.trim();
+          } else if (item.getAttribute("data-test") === "is-fixed-price") {
+            budget = item.querySelector("strong:last-child").textContent.trim();
+          } else if (item.getAttribute("data-test") === "duration-label") {
+            estimatedTime = item
+              .querySelector("strong:last-child")
+              .textContent.trim();
           }
         });
 
-        if (jobType && jobType.includes('Hourly')) {
-          hourlyRange = jobType.split(':')[1].trim();
-          jobType = 'Hourly';
+        if (jobType && jobType.includes("Hourly")) {
+          hourlyRange = jobType.split(":")[1].trim();
+          jobType = "Hourly";
         } else if (jobType) {
-          jobType = 'Fixed price';
+          jobType = "Fixed price";
         }
       } else {
         // Fallback for Most Recent job feed structure
-        const jobTypeElement = jobElement.querySelector('[data-test="job-type"]');
+        const jobTypeElement = jobElement.querySelector(
+          '[data-test="job-type"]'
+        );
         if (jobTypeElement) {
           if (jobTypeElement.textContent.includes("Fixed-price")) {
             jobType = "Fixed price";
-            const budgetElement = jobElement.querySelector('[data-test="budget"]');
+            const budgetElement = jobElement.querySelector(
+              '[data-test="budget"]'
+            );
             budget = budgetElement ? budgetElement.textContent.trim() : "N/A";
           } else if (jobTypeElement.textContent.includes("Hourly")) {
             jobType = "Hourly";
-            const hourlyRangeElement = jobElement.querySelector('[data-test="hourly-rate"]');
-            hourlyRange = hourlyRangeElement ? hourlyRangeElement.textContent.trim() : "N/A";
+            const hourlyRangeElement = jobElement.querySelector(
+              '[data-test="hourly-rate"]'
+            );
+            hourlyRange = hourlyRangeElement
+              ? hourlyRangeElement.textContent.trim()
+              : "N/A";
           }
         }
-        
-        const skillLevelElement = jobElement.querySelector('[data-test="contractor-tier"]');
+
+        const skillLevelElement = jobElement.querySelector(
+          '[data-test="contractor-tier"]'
+        );
         if (skillLevelElement) {
           skillLevel = skillLevelElement.textContent.trim();
         }
 
-        const estimatedTimeElement = jobElement.querySelector('[data-test="duration"]');
+        const estimatedTimeElement = jobElement.querySelector(
+          '[data-test="duration"]'
+        );
         if (estimatedTimeElement) {
           estimatedTime = estimatedTimeElement.textContent.trim();
         }
@@ -286,14 +300,16 @@ try {
       let clientRating = "N/A";
 
       if (clientRatingElement) {
-        if (clientRatingElement.classList.contains('air3-rating-value-text')) {
+        if (clientRatingElement.classList.contains("air3-rating-value-text")) {
           // Custom Search URL feed
           clientRating = clientRatingElement.textContent.trim();
         } else {
           // Most Recent feed
-          const ratingText = jobElement.querySelector('.sr-only');
+          const ratingText = jobElement.querySelector(".sr-only");
           if (ratingText) {
-            const match = ratingText.textContent.match(/Rating is (\d+(\.\d+)?) out of 5/);
+            const match = ratingText.textContent.match(
+              /Rating is (\d+(\.\d+)?) out of 5/
+            );
             if (match) {
               clientRating = match[1];
             }
@@ -308,7 +324,7 @@ try {
         for (const child of clone.children) {
           child.remove();
         }
-        clientCountry = clone.textContent.trim().replace(/\s+/g, ' ');
+        clientCountry = clone.textContent.trim().replace(/\s+/g, " ");
       }
 
       let paymentVerified = false;
@@ -318,20 +334,28 @@ try {
           paymentVerified = true;
         }
         // Most Recent feed
-        else if (paymentVerifiedElement.textContent.includes("Payment unverified")) {
+        else if (
+          paymentVerifiedElement.textContent.includes("Payment unverified")
+        ) {
           paymentVerified = false;
         }
         // If neither text is found, we keep the default false value
       }
 
       let clientSpent = "N/A";
-      const clientSpendingElementMostRecent = jobElement.querySelector('[data-test="client-spendings"] strong');
-      const clientSpendingElementCustomSearch = jobElement.querySelector('[data-test="total-spent"] strong');
+      const clientSpendingElementMostRecent = jobElement.querySelector(
+        '[data-test="client-spendings"] strong'
+      );
+      const clientSpendingElementCustomSearch = jobElement.querySelector(
+        '[data-test="total-spent"] strong'
+      );
 
       if (clientSpendingElementMostRecent) {
-        clientSpent = clientSpendingElementMostRecent.textContent.trim() + " spent";
+        clientSpent =
+          clientSpendingElementMostRecent.textContent.trim() + " spent";
       } else if (clientSpendingElementCustomSearch) {
-        clientSpent = clientSpendingElementCustomSearch.textContent.trim() + " spent";
+        clientSpent =
+          clientSpendingElementCustomSearch.textContent.trim() + " spent";
       }
 
       return {
