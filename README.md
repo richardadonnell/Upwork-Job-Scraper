@@ -1,5 +1,5 @@
 <p align="center">
-    <h1 align="center">‼️ PLEASE NOTE: THIS EXTENSION IS UNDER DEVELOPMENT ‼️</h1>
+    <h1 align="center">‼️ NOTE: THIS EXTENSION IS UNDER DEVELOPMENT ‼️</h1>
     <h3 align="center">If you have any issues, questions,feedback or suggestions, please submit an issue [here](https://github.com/richardadonnell/Upwork-Job-Scraper/issues).</h3>
 </p>
 <br>
