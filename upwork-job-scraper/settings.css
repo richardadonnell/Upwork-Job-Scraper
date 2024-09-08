@@ -482,3 +482,27 @@ option {
   font-size: 0.8em;
   color: #8d8c8c;
 }
+
+/* New alert styles */
+.alert {
+  background-color: #2c2c2c;
+  border-left: 4px solid #108a00;
+  color: #e0e0e0;
+  padding: 1em;
+  margin-bottom: 1.25em;
+  border-radius: 0.25em;
+}
+
+.alert p {
+  margin: 0;
+  font-size: 0.9em;
+}
+
+.alert a {
+  color: #4ebc2d;
+  text-decoration: underline;
+}
+
+.alert a:hover {
+  color: #108a00;
+}
