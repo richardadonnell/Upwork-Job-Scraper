@@ -153,6 +153,9 @@ This extension requires the following permissions:
 
 If you found this project helpful, consider supporting the developer:
 
-<a href="https://buymeacoffee.com/warezitb" target="_blank">
-    <img src="https://img.buymeacoffee.com/button-api/?text=Buy%20me%20a%20coffee&emoji=&slug=warezitb&button_colour=FF5F5F&font_colour=ffffff&font_family=Cookie&outline_colour=000000&coffee_colour=ffffff" alt="Buy Me A Coffee">
-</a>
+<a href="https://buymeacoffee.com/richardadonnell" target="_blank">
+          <img
+            src="https://img.buymeacoffee.com/button-api/?text=Buy%20me%20a%20coffee&emoji=&slug=richardadonnell&button_colour=24292e&font_colour=ffffff&font_family=Cookie&outline_colour=000000&coffee_colour=ffffff"
+            alt="Buy Me A Coffee"
+          />
+        </a>
