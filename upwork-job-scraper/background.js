@@ -204,7 +204,7 @@ try {
         '[data-test="payment-verified"], [data-test="payment-verification-status"]'
       );
       const clientRatingElement = jobElement.querySelector(
-        "span.sr-only, .air3-rating-value-text"
+        ".air3-rating-value-text"
       );
       const clientSpendingElement = jobElement.querySelector(
         '[data-test="client-spendings"] strong, [data-test="client-spend"]'
