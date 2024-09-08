@@ -1,7 +1,7 @@
 <p align="center">
     <h1 align="center">‼️ NOTE: THIS IS UNDER DEVELOPMENT ‼️</h1>
-    <h3 align="center">If you have any issues, questions, feedback, or suggestions, please <a href="https://github.com/warezit/Upwork-Job-Scraper/issues">submit an issue here</a>.</h3>
-</p>
+    <h3 align="center">Got questions, feedback, or ideas? Run into any hiccups? Feel free to drop an <a href="https://github.com/warezit/Upwork-Job-Scraper/issues">issue here</a>.</h3>
+    <p align="center">Things might be a little buggy, but hang tight—I'm working hard to keep improving it!</p>
 <br>
 <br>
 <p align="center">
