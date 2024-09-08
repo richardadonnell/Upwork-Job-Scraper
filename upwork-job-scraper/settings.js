@@ -577,6 +577,17 @@ function initializeSettings() {
         addJobEntries([]);
       }
     });
+
+    // Add this new event listener for the "Open Custom URL" button
+    document.getElementById("open-custom-url").addEventListener("click", () => {
+      const customSearchUrl = document.getElementById("custom-search-url").value;
+      if (customSearchUrl) {
+        window.open(customSearchUrl, "_blank");
+        trackEvent("open_custom_url", { url: customSearchUrl });
+      } else {
+        alert("Please enter a custom search URL first.");
+      }
+    });
   } catch (error) {
     console.error("Error initializing settings:", error);
     window.logAndReportError("Error initializing settings", error);
