@@ -1,6 +1,6 @@
 <p align="center">
     <h1 align="center">‼️ NOTE: THIS IS UNDER DEVELOPMENT ‼️</h1>
-    <h3 align="center">If you have any issues, questions,feedback or suggestions, please submit an issue [here](https://github.com/richardadonnell/Upwork-Job-Scraper/issues).</h3>
+    <h3 align="center">If you have any issues, questions,feedback or suggestions, please <a href="https://github.com/warezit/Upwork-Job-Scraper/issues">submit an issue here</a>.</h3>
 </p>
 <br>
 <br>
