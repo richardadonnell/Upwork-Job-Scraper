@@ -88,7 +88,7 @@
         </div>
         <div class="frequency-input">
           <label for="minutes">Minutes:</label>
-          <input type="number" id="minutes" min="1" max="59" placeholder="1" />
+          <input type="number" id="minutes" min="1" max="59" placeholder="5" />
         </div>
         <button id="save-frequency">Save Frequency</button>
       </div>
@@ -131,7 +131,10 @@
           placeholder="Enter Upwork search URL"
         />
       </div>
-      <button id="save-feed-sources">Save Feed Sources</button>
+      <div class="button-group">
+        <button id="save-feed-sources">Save Feed Sources</button>
+        <button id="open-custom-url" class="button-secondary">Open Custom URL</button>
+      </div>
       <div class="custom-search-instructions">
         <p>To use a custom search URL:</p>
         <ol>
