@@ -28,9 +28,7 @@ try {
   let jobScrapingEnabled = true; // Default to true, but we'll load the actual state
   let notificationsEnabled = true;
 
-  const ERROR_LOGGING_URL =
-    "https://hook.us1.make.com/nzeveapbb4wihpkc5xbixkx9sr397jfa";
-  const APP_VERSION = "1.36"; // Update this when you change your extension version
+  const APP_VERSION = "1.38"; // Update this when you change your extension version
 
   // Function to log and report errors
   function logAndReportError(context, error) {
