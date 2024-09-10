@@ -155,6 +155,10 @@ This extension requires the following permissions:
 - Frequent scraping may be detected by Upwork and could lead to IP blocking.
 - The extension relies on Upwork's current HTML structure; changes to their website may break the scraping functionality.
 
+## Star History
+
+<iframe style="width:100%;height:auto;min-width:600px;min-height:400px;" src="https://star-history.com/embed?secret=#richardadonnell/Upwork-Job-Scraper&Date" frameBorder="0"></iframe>
+
 ## Support
 
 If you found this project helpful, consider supporting the developer:
