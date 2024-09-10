@@ -157,7 +157,13 @@ This extension requires the following permissions:
 
 ## Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=richardadonnell/Upwork-Job-Scraper&type=Date)](https://star-history.com/#richardadonnell/Upwork-Job-Scraper&Date)
+<a href="https://star-history.com/#richardadonnell/Upwork-Job-Scraper&Date">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=richardadonnell/Upwork-Job-Scraper&type=Date&theme=dark" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=richardadonnell/Upwork-Job-Scraper&type=Date" />
+   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=richardadonnell/Upwork-Job-Scraper&type=Date" />
+ </picture>
+</a>
 
 ## Support
 
