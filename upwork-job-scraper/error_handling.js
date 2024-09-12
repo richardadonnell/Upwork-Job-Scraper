@@ -1,9 +1,9 @@
 import { APP_VERSION } from './config.js';
 import * as Sentry from './sentry.js';
 
-export function logAndReportError(context, error) {
+export function logAndReportError(message, error) {
   const errorInfo = {
-    context: context,
+    context: message,
     message: error.message,
     stack: error.stack,
     timestamp: new Date().toISOString(),

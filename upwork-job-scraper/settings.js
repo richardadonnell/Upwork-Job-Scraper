@@ -1,8 +1,18 @@
-import { logAndReportError } from './error_handling.js';
+import { logAndReportError } from "./sentry-init.js";
 
 // Initialize Sentry only if running in the extension context
-if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.getManifest) {
-  initializeSentry();
+// if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.getManifest) {
+//   initializeSentry();
+// }
+
+// Initialize Sentry
+if (typeof Sentry !== "undefined") {
+  Sentry.init({
+    dsn: "https://5394268fe023ea7d082781a6ea85f4ce@o4507890797379584.ingest.us.sentry.io/4507891889471488",
+    tracesSampleRate: 1.0,
+    release: "upwork-job-scraper@" + chrome.runtime.getManifest().version,
+    environment: "production",
+  });
 }
 
 async function waitForBackgroundScript() {
@@ -51,7 +61,9 @@ function updateCountdown() {
       const nextAlarm = alarm.scheduledTime;
       const timeUntilNextCheck = nextAlarm - now;
       const countdownElement = document.getElementById("countdown");
-      countdownElement.textContent = `Next job check in: ${formatTime(timeUntilNextCheck)}`;
+      countdownElement.textContent = `Next job check in: ${formatTime(
+        timeUntilNextCheck
+      )}`;
     }
   });
 }
@@ -85,66 +97,83 @@ async function initializeSettings() {
       }),
     ]);
 
-    const { logAndReportError } = await import('./error_handling.js');
+    const { logAndReportError } = await import("./error_handling.js");
 
     const settings = await new Promise((resolve) => {
       chrome.runtime.sendMessage({ type: "getSettings" }, resolve);
     });
 
     document.getElementById("feed-source").value = settings.selectedFeedSource;
-    document.getElementById("custom-search-url").value = settings.customSearchUrl;
+    document.getElementById("custom-search-url").value =
+      settings.customSearchUrl;
     document.getElementById("check-frequency").value = settings.checkFrequency;
-    document.getElementById("webhook-enabled").checked = settings.webhookEnabled;
-    document.getElementById("job-scraping-enabled").checked = settings.jobScrapingEnabled;
-    document.getElementById("notifications-enabled").checked = settings.notificationsEnabled;
+    document.getElementById("webhook-enabled").checked =
+      settings.webhookEnabled;
+    document.getElementById("job-scraping-enabled").checked =
+      settings.jobScrapingEnabled;
+    document.getElementById("notifications-enabled").checked =
+      settings.notificationsEnabled;
 
     startCountdownUpdates();
 
-    document.getElementById("save-settings").addEventListener("click", async () => {
-      const selectedFeedSource = document.getElementById("feed-source").value;
-      const customSearchUrl = document.getElementById("custom-search-url").value;
-      const checkFrequency = document.getElementById("check-frequency").value;
-      const webhookEnabled = document.getElementById("webhook-enabled").checked;
-      const jobScrapingEnabled = document.getElementById("job-scraping-enabled").checked;
-      const notificationsEnabled = document.getElementById("notifications-enabled").checked;
+    document
+      .getElementById("save-settings")
+      .addEventListener("click", async () => {
+        const selectedFeedSource = document.getElementById("feed-source").value;
+        const customSearchUrl =
+          document.getElementById("custom-search-url").value;
+        const checkFrequency = document.getElementById("check-frequency").value;
+        const webhookEnabled =
+          document.getElementById("webhook-enabled").checked;
+        const jobScrapingEnabled = document.getElementById(
+          "job-scraping-enabled"
+        ).checked;
+        const notificationsEnabled = document.getElementById(
+          "notifications-enabled"
+        ).checked;
 
-      await new Promise((resolve) => {
-        chrome.runtime.sendMessage(
-          {
-            type: "saveSettings",
-            selectedFeedSource: selectedFeedSource,
-            customSearchUrl: customSearchUrl,
-            checkFrequency: checkFrequency,
-            webhookEnabled: webhookEnabled,
-            jobScrapingEnabled: jobScrapingEnabled,
-            notificationsEnabled: notificationsEnabled,
-          },
-          resolve
-        );
-      });
-
-      addLogEntry("Settings saved");
-    });
-
-    document.getElementById("manual-scrape").addEventListener("click", async () => {
-      await new Promise((resolve) => {
-        chrome.runtime.sendMessage({ type: "manualScrape" }, resolve);
-      });
-      addLogEntry("Manual scrape triggered");
-    });
-
-    document.getElementById("clear-jobs").addEventListener("click", async () => {
-      if (confirm("Are you sure you want to clear all scraped jobs?")) {
         await new Promise((resolve) => {
-          chrome.runtime.sendMessage({ type: "clearJobs" }, resolve);
+          chrome.runtime.sendMessage(
+            {
+              type: "saveSettings",
+              selectedFeedSource: selectedFeedSource,
+              customSearchUrl: customSearchUrl,
+              checkFrequency: checkFrequency,
+              webhookEnabled: webhookEnabled,
+              jobScrapingEnabled: jobScrapingEnabled,
+              notificationsEnabled: notificationsEnabled,
+            },
+            resolve
+          );
         });
-        addLogEntry("All scraped jobs cleared");
-        addJobEntries([]); // Add this line
-      }
-    });
+
+        addLogEntry("Settings saved");
+      });
+
+    document
+      .getElementById("manual-scrape")
+      .addEventListener("click", async () => {
+        await new Promise((resolve) => {
+          chrome.runtime.sendMessage({ type: "manualScrape" }, resolve);
+        });
+        addLogEntry("Manual scrape triggered");
+      });
+
+    document
+      .getElementById("clear-jobs")
+      .addEventListener("click", async () => {
+        if (confirm("Are you sure you want to clear all scraped jobs?")) {
+          await new Promise((resolve) => {
+            chrome.runtime.sendMessage({ type: "clearJobs" }, resolve);
+          });
+          addLogEntry("All scraped jobs cleared");
+          addJobEntries([]); // Add this line
+        }
+      });
 
     document.getElementById("open-custom-url").addEventListener("click", () => {
-      const customSearchUrl = document.getElementById("custom-search-url").value;
+      const customSearchUrl =
+        document.getElementById("custom-search-url").value;
       if (customSearchUrl) {
         window.open(customSearchUrl, "_blank");
       } else {
@@ -152,13 +181,20 @@ async function initializeSettings() {
       }
     });
 
-    document.getElementById("send-test-error").addEventListener("click", async () => {
-      const customMessage = prompt("Enter a custom error message (optional):");
-      await new Promise((resolve) => {
-        chrome.runtime.sendMessage({ type: "sendTestError", customMessage: customMessage }, resolve);
+    document
+      .getElementById("send-test-error")
+      .addEventListener("click", async () => {
+        const customMessage = prompt(
+          "Enter a custom error message (optional):"
+        );
+        await new Promise((resolve) => {
+          chrome.runtime.sendMessage(
+            { type: "sendTestError", customMessage: customMessage },
+            resolve
+          );
+        });
+        addLogEntry("Test error sent");
       });
-      addLogEntry("Test error sent");
-    });
 
     chrome.runtime.sendMessage({ type: "getJobs" }, (response) => {
       addJobEntries(response.jobs);
@@ -228,19 +264,21 @@ async function initializeSettings() {
       logList.appendChild(listItem);
     }
 
-    document.getElementById("notifications-enabled").addEventListener("change", async (event) => {
-      const isEnabled = event.target.checked;
-      await new Promise((resolve) => {
-        chrome.runtime.sendMessage(
-          {
-            type: "saveSettings",
-            notificationsEnabled: isEnabled,
-          },
-          resolve
-        );
+    document
+      .getElementById("notifications-enabled")
+      .addEventListener("change", async (event) => {
+        const isEnabled = event.target.checked;
+        await new Promise((resolve) => {
+          chrome.runtime.sendMessage(
+            {
+              type: "saveSettings",
+              notificationsEnabled: isEnabled,
+            },
+            resolve
+          );
+        });
+        addLogEntry(`Push notifications ${isEnabled ? "enabled" : "disabled"}`);
       });
-      addLogEntry(`Push notifications ${isEnabled ? "enabled" : "disabled"}`);
-    });
 
     // Add this function near the top of the file, after other function declarations
     function clearAllJobs() {
@@ -260,7 +298,8 @@ async function initializeSettings() {
 
     // Add this new event listener for the "Open Custom URL" button
     document.getElementById("open-custom-url").addEventListener("click", () => {
-      const customSearchUrl = document.getElementById("custom-search-url").value;
+      const customSearchUrl =
+        document.getElementById("custom-search-url").value;
       if (customSearchUrl) {
         window.open(customSearchUrl, "_blank");
       } else {
@@ -268,7 +307,9 @@ async function initializeSettings() {
       }
     });
 
-    const activityLog = await sendMessageToBackground({ type: "getActivityLog" });
+    const activityLog = await sendMessageToBackground({
+      type: "getActivityLog",
+    });
     activityLog.forEach((entry) => {
       addLogEntry(entry);
     });
@@ -281,29 +322,40 @@ async function initializeSettings() {
       }
     });
 
-    await sendMessageToBackground({ type: "updateLastViewedTimestamp", timestamp: Date.now() });
+    await sendMessageToBackground({
+      type: "updateLastViewedTimestamp",
+      timestamp: Date.now(),
+    });
 
     // Add this function to handle saving the custom search URL
     async function saveCustomSearchURL() {
-      const customSearchURL = document.getElementById('custom-search-url').value;
-      await sendMessageToBackground({ type: 'setCustomSearchURL', url: customSearchURL });
-      alert('Custom search URL saved successfully!');
+      const customSearchURL =
+        document.getElementById("custom-search-url").value;
+      await sendMessageToBackground({
+        type: "setCustomSearchURL",
+        url: customSearchURL,
+      });
+      alert("Custom search URL saved successfully!");
     }
 
     // Add an event listener to the save button
-    document.getElementById('save-custom-search-url').addEventListener('click', saveCustomSearchURL);
+    document
+      .getElementById("save-custom-search-url")
+      .addEventListener("click", saveCustomSearchURL);
 
     // Add this function to handle manual job scraping
     async function manuallyCheckForNewJobs() {
-      await sendMessageToBackground({ type: 'checkJobs' });
-      alert('Job scraping triggered manually!');
+      await sendMessageToBackground({ type: "checkJobs" });
+      alert("Job scraping triggered manually!");
     }
 
     // Add an event listener to the manual scrape button
-    document.getElementById('manual-scrape-button').addEventListener('click', manuallyCheckForNewJobs);
+    document
+      .getElementById("manual-scrape-button")
+      .addEventListener("click", manuallyCheckForNewJobs);
 
-    initializeSentry();
-
+    // Remove this line
+    // initializeSentry();
   } catch (error) {
     console.error("Error initializing settings:", error);
     logAndReportError("Error initializing settings", error);
@@ -311,10 +363,11 @@ async function initializeSettings() {
 }
 
 // Use this to initialize the settings page:
-Promise.all([waitForBackgroundScript(), initializeSettings()])
-  .catch((error) => {
+Promise.all([waitForBackgroundScript(), initializeSettings()]).catch(
+  (error) => {
     console.error("Error during initialization:", error);
-  });
+  }
+);
 
 // Add this to your initialization function or at the end of the file
 window.addEventListener("beforeunload", () => {

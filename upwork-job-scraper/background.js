@@ -5,6 +5,14 @@ import { checkForNewJobs } from './job_scraping.js';
 import { jobScrapingEnabled, customSearchUrl } from './extension_state.js';
 import { sendTestError } from './test_error.js';
 
+// Initialize the extension
+try {
+  initializeExtension();
+  console.log('Extension initialized successfully');
+} catch (error) {
+  logAndReportError("Error initializing extension", error);
+}
+
 // Open settings page when extension icon is clicked
 chrome.action.onClicked.addListener(async () => {
   try {
@@ -13,10 +21,6 @@ chrome.action.onClicked.addListener(async () => {
     logAndReportError("Error opening settings page", error);
   }
 });
-
-// Handle both onStartup and onInstalled events
-chrome.runtime.onStartup.addListener(initializeExtension);
-chrome.runtime.onInstalled.addListener(initializeExtension);
 
 // Handle alarms
 chrome.alarms.onAlarm.addListener(async (alarm) => {
@@ -30,30 +34,39 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
 });
 
 // Handle messages
-chrome.runtime.onMessage.addListener(handleMessage);
-
-// Expose sendTestError for debugging
-globalThis.sendTestError = sendTestError;
-
-// Handle setting the custom search URL
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.type === 'setCustomSearchURL') {
     customSearchUrl = request.url;
     sendResponse({ success: true });
+  } else {
+    handleMessage(request, sender, sendResponse);
   }
 });
 
+// Expose sendTestError for debugging
+self.sendTestError = sendTestError;
+
 // Initialize Sentry only if running in the background context
 if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.getManifest) {
-  window.initializeSentry();
+  try {
+    // Check if window is defined before initializing Sentry
+    if (typeof window !== 'undefined') {
+      // Check if initializeSentry is defined before calling it
+      if (typeof self.initializeSentry === 'function') {
+        self.initializeSentry();
+        console.log('Sentry initialized successfully');
+      } else {
+        console.warn('initializeSentry is not defined');
+      }
+    } else {
+      console.warn('window is not defined, skipping Sentry initialization');
+    }
+  } catch (error) {
+    console.error('Error initializing Sentry:', error);
+    logAndReportError("Error initializing Sentry", error);
+  }
 }
 
-// Basic fetch event listener
-chrome.runtime.onInstalled.addListener(() => {
-  console.log('Extension installed');
-});
-
-self.addEventListener('fetch', (event) => {
-  console.log('Fetch event:', event.request.url);
-  event.respondWith(fetch(event.request));
-});
+function scrapeJobs() {
+  // ... scrapeJobs function code ...
+}

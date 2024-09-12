@@ -7,21 +7,11 @@
     "48": "icon48.png",
     "128": "icon128.png"
   },
-  "permissions": [
-    "alarms",
-    "notifications",
-    "storage",
-    "tabs"
-  ],
-  "host_permissions": [
-    "https://www.upwork.com/*"
-  ],
+  "permissions": ["alarms", "notifications", "storage", "tabs"],
+  "host_permissions": ["https://www.upwork.com/*"],
   "background": {
     "service_worker": "background.js",
     "type": "module"
-  },
-  "action": {
-    "default_title": "Upwork Job Scraper Settings"
   },
   "options_page": "settings.html",
   "web_accessible_resources": [
