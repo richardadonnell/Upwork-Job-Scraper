@@ -1,3 +1,9 @@
+let notificationsEnabled = true; // Default value
+
+function updateNotificationsEnabled(value) {
+  notificationsEnabled = value;
+}
+
 function sendNotification(message, duration = 30000) {
   // Default duration: 30 seconds
   if (!notificationsEnabled) {
@@ -11,13 +17,13 @@ function sendNotification(message, duration = 30000) {
       iconUrl: chrome.runtime.getURL("icon48.png"),
       title: "Upwork Job Scraper",
       message: message,
-      requireInteraction: false,
+      requireInteraction: true, // Set this to true to add a close button
     },
     (notificationId) => {
       if (chrome.runtime.lastError) {
         console.error("Notification error: ", chrome.runtime.lastError.message);
       } else {
-        // Set a timeout to clear the notification after the specified duration
+        // Optionally, you can still set a timeout to clear the notification after the specified duration
         setTimeout(() => {
           chrome.notifications.clear(notificationId);
         }, duration);

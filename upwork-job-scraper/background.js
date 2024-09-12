@@ -37,7 +37,7 @@ try {
       (data) => {
         jobScrapingEnabled = data.jobScrapingEnabled !== false; // Default to true if not set
         webhookEnabled = data.webhookEnabled !== false;
-        notificationsEnabled = data.notificationsEnabled !== false;
+        notificationsEnabled = data.notificationsEnabled !== false; // Default to true if not set
         checkFrequency = data.checkFrequency || 5; // Default to 5 minutes if not set
         lastViewedTimestamp = data.lastViewedTimestamp || Date.now(); // Initialize lastViewedTimestamp
 
@@ -233,7 +233,9 @@ try {
 
           if (notificationsEnabled && addedJobsCount > 0) {
             sendNotification(
-              `Found ${addedJobsCount} new job${addedJobsCount > 1 ? "s" : ""}!`
+              `Found ${addedJobsCount} new job${addedJobsCount > 1 ? "s" : ""}!`,
+              30000,
+              notificationsEnabled
             );
           }
         });
@@ -251,6 +253,12 @@ try {
       chrome.action.setBadgeText({ text: "" });
     }
   }
+
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area === "sync" && changes.notificationsEnabled) {
+      updateNotificationsEnabled(changes.notificationsEnabled.newValue);
+    }
+  });
 } catch (error) {
   console.error("Uncaught error in background script:", error);
   logAndReportError("Uncaught error in background script", error);
