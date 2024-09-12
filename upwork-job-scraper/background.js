@@ -2,7 +2,7 @@ import { logAndReportError } from './error_handling.js';
 import { initializeExtension } from './initialization.js';
 import { handleMessage } from './message_handlers.js';
 import { checkForNewJobs } from './job_scraping.js';
-import { jobScrapingEnabled, customSearchURL } from './extension_state.js';
+import { jobScrapingEnabled, customSearchUrl } from './extension_state.js';
 import { sendTestError } from './test_error.js';
 
 // Open settings page when extension icon is clicked
@@ -38,7 +38,7 @@ globalThis.sendTestError = sendTestError;
 // Handle setting the custom search URL
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.type === 'setCustomSearchURL') {
-    customSearchURL = request.url;
+    customSearchUrl = request.url;
     sendResponse({ success: true });
   }
 });
@@ -47,3 +47,13 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.getManifest) {
   window.initializeSentry();
 }
+
+// Basic fetch event listener
+chrome.runtime.onInstalled.addListener(() => {
+  console.log('Extension installed');
+});
+
+self.addEventListener('fetch', (event) => {
+  console.log('Fetch event:', event.request.url);
+  event.respondWith(fetch(event.request));
+});
