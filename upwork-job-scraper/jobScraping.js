@@ -1,5 +1,7 @@
 // Wrap your main functions with try-catch blocks
-async function checkForNewJobs() {
+let jobScrapingEnabled = true; // or load the value from storage
+
+async function checkForNewJobs(jobScrapingEnabled) {
   try {
     if (!jobScrapingEnabled) {
       addToActivityLog("Job scraping is disabled. Skipping job check.");
@@ -269,11 +271,6 @@ function processJobs(newJobs) {
           updatedJobs.push(newJob);
           addedJobsCount++;
 
-          // Increment newJobsCount if the job was scraped after the last viewed timestamp
-          if (newJob.scrapedAt > lastViewedTimestamp) {
-            newJobsCount++;
-          }
-
           // Only send to webhook if it's enabled
           if (webhookEnabled && webhookUrl) {
             sendToWebhook(webhookUrl, [newJob]);
@@ -316,15 +313,6 @@ function processJobs(newJobs) {
     });
   } catch (error) {
     logAndReportError("Error in processJobs", error);
-  }
-}
-
-function updateBadge() {
-  if (newJobsCount > 0) {
-    chrome.action.setBadgeText({ text: newJobsCount.toString() });
-    chrome.action.setBadgeBackgroundColor({ color: "#4688F1" });
-  } else {
-    chrome.action.setBadgeText({ text: "" });
   }
 }
 

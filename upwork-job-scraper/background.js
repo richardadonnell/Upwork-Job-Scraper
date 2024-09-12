@@ -17,6 +17,8 @@ try {
   let webhookEnabled = false;
   let jobScrapingEnabled = true; // Default to true, but we'll load the actual state
   let notificationsEnabled = true;
+  let newJobsCount = 0;
+  let lastViewedTimestamp = 0;
 
   // Modify the existing chrome.runtime.onStartup and chrome.runtime.onInstalled listeners
   chrome.runtime.onStartup.addListener(initializeExtension);
@@ -67,14 +69,11 @@ try {
     }
   }
 
-  let newJobsCount = 0;
-  let lastViewedTimestamp = 0;
-
   // Modify the chrome.alarms.onAlarm listener
   chrome.alarms.onAlarm.addListener((alarm) => {
     try {
       if (alarm.name === "checkJobs" && jobScrapingEnabled) {
-        checkForNewJobs();
+        checkForNewJobs(jobScrapingEnabled);
       }
     } catch (error) {
       logAndReportError("Error in onAlarm listener", error);
@@ -110,7 +109,7 @@ try {
         return true; // Will respond asynchronously
       } else if (message.type === "manualScrape") {
         if (jobScrapingEnabled) {
-          checkForNewJobs().then(() => {
+          checkForNewJobs(jobScrapingEnabled).then(() => {
             sendResponse({ success: true });
           });
         } else {
@@ -178,6 +177,80 @@ try {
   importScripts("webhook.js");
   importScripts("notifications.js");
   importScripts("utils.js");
+
+  function processJobs(newJobs) {
+    try {
+      chrome.storage.local.get(["scrapedJobs"], (data) => {
+        let existingJobs = data.scrapedJobs || [];
+        let updatedJobs = [];
+        let addedJobsCount = 0;
+
+        // Sort new jobs by scraped time, newest first
+        newJobs.sort((a, b) => b.scrapedAt - a.scrapedAt);
+
+        newJobs.forEach((newJob) => {
+          if (!existingJobs.some((job) => job.url === newJob.url)) {
+            updatedJobs.push(newJob);
+            addedJobsCount++;
+
+            // Increment newJobsCount if the job was scraped after the last viewed timestamp
+            if (newJob.scrapedAt > lastViewedTimestamp) {
+              newJobsCount++;
+            }
+
+            // Only send to webhook if it's enabled
+            if (webhookEnabled && webhookUrl) {
+              sendToWebhook(webhookUrl, [newJob]);
+            }
+          }
+        });
+
+        // Combine new jobs with existing jobs, keeping the most recent ones
+        let allJobs = [...updatedJobs, ...existingJobs];
+
+        // Limit to a maximum of 100 jobs (or any other number you prefer)
+        allJobs = allJobs.slice(0, 100);
+
+        // Store the updated scraped jobs
+        chrome.storage.local.set({ scrapedJobs: allJobs }, () => {
+          addToActivityLog(
+            `Added ${addedJobsCount} new jobs. Total jobs: ${allJobs.length}`
+          );
+
+          // Update the badge
+          updateBadge();
+
+          // Send message to update the settings page if it's open
+          chrome.runtime.sendMessage(
+            { type: "jobsUpdate", jobs: allJobs },
+            (response) => {
+              if (chrome.runtime.lastError) {
+                // This will happen if the settings page is not open, which is fine
+                console.log("Settings page not available for job update");
+              }
+            }
+          );
+
+          if (notificationsEnabled && addedJobsCount > 0) {
+            sendNotification(
+              `Found ${addedJobsCount} new job${addedJobsCount > 1 ? "s" : ""}!`
+            );
+          }
+        });
+      });
+    } catch (error) {
+      logAndReportError("Error in processJobs", error);
+    }
+  }
+
+  function updateBadge() {
+    if (newJobsCount > 0) {
+      chrome.action.setBadgeText({ text: newJobsCount.toString() });
+      chrome.action.setBadgeBackgroundColor({ color: "#4688F1" });
+    } else {
+      chrome.action.setBadgeText({ text: "" });
+    }
+  }
 } catch (error) {
   console.error("Uncaught error in background script:", error);
   logAndReportError("Uncaught error in background script", error);

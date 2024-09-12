@@ -24,9 +24,11 @@ function logAndReportError(context, error) {
   console.error("Error logged:", errorInfo);
 
   // Send error to Sentry
-  Sentry.captureException(error, {
-    extra: errorInfo,
-  });
+  if (typeof Sentry !== "undefined") {
+    Sentry.captureException(error, {
+      extra: errorInfo,
+    });
+  }
 }
 
 // Function to send a test error
