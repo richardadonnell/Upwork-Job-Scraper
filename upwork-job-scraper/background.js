@@ -602,6 +602,7 @@ try {
         title: "Upwork Job Scraper",
         message: message,
         requireInteraction: false, // Change this to false
+        buttons: [{ title: "Close" }], // Add this line
       },
       (notificationId) => {
         if (chrome.runtime.lastError) {
@@ -619,10 +620,15 @@ try {
     );
   }
 
-  // Add this new listener for notification clicks
-  chrome.notifications.onClicked.addListener((notificationId) => {
-    chrome.runtime.openOptionsPage();
-  });
+  // Add this new listener for notification button clicks
+  chrome.notifications.onButtonClicked.addListener(
+    (notificationId, buttonIndex) => {
+      if (buttonIndex === 0) {
+        // "Close" button
+        chrome.notifications.clear(notificationId);
+      }
+    }
+  );
 
   // Update this function to load feed source settings
   function loadFeedSourceSettings() {
