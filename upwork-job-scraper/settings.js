@@ -1,23 +1,26 @@
-import { logAndReportError } from './error_handling.js' assert { type: 'javascript' };
+import { logAndReportError } from './error_handling.js';
 
 // Initialize Sentry only if running in the extension context
 if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.getManifest) {
   initializeSentry();
 }
 
-function waitForBackgroundScript() {
+async function waitForBackgroundScript() {
   console.log("Waiting for background script...");
   return new Promise((resolve) => {
-    const checkBackgroundScript = () => {
-      chrome.runtime.sendMessage({ type: "ping" }, (response) => {
-        if (chrome.runtime.lastError) {
+    const checkBackgroundScript = async () => {
+      try {
+        await chrome.runtime.sendMessage({ type: "ping" });
+        resolve();
+      } catch (error) {
+        if (error.message.includes("Receiving end does not exist")) {
           console.log("Background script not ready, retrying...");
           setTimeout(checkBackgroundScript, 100);
         } else {
-          console.log("Background script is ready");
-          resolve();
+          logAndReportError("Error waiting for background script", error);
+          resolve(); // Resolve to avoid hanging
         }
-      });
+      }
     };
     checkBackgroundScript();
   });
@@ -53,11 +56,11 @@ function updateCountdown() {
   });
 }
 
-function formatTime(timeInMilliseconds) {
-  const totalSeconds = Math.floor(timeInMilliseconds / 1000);
-  const hours = Math.floor(totalSeconds / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  const seconds = totalSeconds % 60;
+function formatTime(timestamp) {
+  const date = new Date(timestamp);
+  const hours = date.getHours();
+  const minutes = date.getMinutes();
+  const seconds = date.getSeconds();
 
   return `${hours.toString().padStart(2, "0")}:${minutes
     .toString()

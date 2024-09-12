@@ -4,21 +4,25 @@ import { sendNotification } from './notifications.js';
 import { updateBadge } from './badge.js';
 import { jobScrapingEnabled, webhookEnabled, notificationsEnabled, newJobsCount, lastViewedTimestamp, scrapedJobs } from './extension_state.js';
 
-export function processJobs(newJobs) {
-  if (newJobs.length > 0) {
-    newJobsCount += newJobs.length;
-    scrapedJobs = [...scrapedJobs, ...newJobs];
-    chrome.storage.local.set({ scrapedJobs: scrapedJobs, newJobsCount: newJobsCount });
-    updateBadge();
+export async function processJobs(newJobs) {
+  try {
+    if (newJobs.length > 0) {
+      newJobsCount += newJobs.length;
+      scrapedJobs = [...scrapedJobs, ...newJobs];
+      await chrome.storage.local.set({ scrapedJobs, newJobsCount });
+      updateBadge();
 
-    if (webhookEnabled) {
-      sendToWebhook(newJobs);
+      if (webhookEnabled) {
+        await sendToWebhook(newJobs);
+      }
+
+      if (notificationsEnabled) {
+        await sendNotification(newJobs);
+      }
+
+      addToActivityLog(`Found ${newJobs.length} new job(s)`);
     }
-
-    if (notificationsEnabled) {
-      sendNotification(newJobs);
-    }
-
-    addToActivityLog(`Found ${newJobs.length} new job(s)`);
+  } catch (error) {
+    logAndReportError('Error processing jobs', error);
   }
 }

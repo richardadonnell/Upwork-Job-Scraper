@@ -8,29 +8,31 @@ import { scrapedJobs, newJobsCount } from './extension_state.js';
 import { initializeStorageListeners } from './storage_listeners.js';
 
 export async function initializeExtension() {
-  addToActivityLog("Extension initialized");
-  loadFeedSourceSettings();
-  initializeLastViewedTimestamp();
-  updateBadge();
+  try {
+    addToActivityLog("Extension initialized");
+    await loadFeedSourceSettings();
+    initializeLastViewedTimestamp();
+    updateBadge();
 
-  chrome.storage.local.get(['scrapedJobs', 'newJobsCount'], (data) => {
-    if (data.scrapedJobs) {
-      scrapedJobs = data.scrapedJobs;
+    const { scrapedJobs: storedJobs, newJobsCount: storedCount } = await chrome.storage.local.get(['scrapedJobs', 'newJobsCount']);
+    if (storedJobs) {
+      scrapedJobs = storedJobs;
     }
-    if (data.newJobsCount) {
-      newJobsCount = data.newJobsCount;
+    if (storedCount) {
+      newJobsCount = storedCount;
     }
-  });
 
-  if (jobScrapingEnabled) {
-    updateAlarm();
+    if (jobScrapingEnabled) {
+      await updateAlarm();
+    }
+
+    const { checkFrequency } = await chrome.storage.sync.get('checkFrequency');
+    if (!checkFrequency) {
+      await chrome.storage.sync.set({ checkFrequency: 5 });
+    }
+
+    initializeStorageListeners();
+  } catch (error) {
+    logAndReportError('Error initializing extension', error);
   }
-
-  chrome.storage.sync.get('checkFrequency', (data) => {
-    if (!data.checkFrequency) {
-      chrome.storage.sync.set({ checkFrequency: 5 });
-    }
-  });
-
-  initializeStorageListeners();
 }

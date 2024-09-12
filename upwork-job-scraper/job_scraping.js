@@ -2,6 +2,7 @@ import { addToActivityLog } from './activity_log.js';
 import { processJobs } from './job_processing.js';
 import { loadFeedSourceSettings } from './feed_sources.js';
 import { selectedFeedSource, customSearchUrl, jobScrapingEnabled } from './extension_state.js';
+import { logAndReportError } from './error_handling.js';
 
 export async function checkForNewJobs() {
   if (!jobScrapingEnabled) {
@@ -13,38 +14,24 @@ export async function checkForNewJobs() {
 
   addToActivityLog("Starting job check...");
 
-  let url;
-  if (selectedFeedSource === "custom-search" && customSearchUrl) {
-    url = customSearchUrl;
-  } else {
-    url = "https://www.upwork.com/nx/find-work/most-recent";
-  }
+  const url = selectedFeedSource === "custom-search" && customSearchUrl
+    ? customSearchUrl
+    : "https://www.upwork.com/nx/find-work/most-recent";
 
-  await new Promise((resolve, reject) => {
-    chrome.tabs.create({ url: url, active: false }, (tab) => {
-      chrome.scripting.executeScript(
-        {
-          target: { tabId: tab.id },
-          function: scrapeJobs,
-        },
-        (results) => {
-          if (chrome.runtime.lastError) {
-            addToActivityLog("Error: " + chrome.runtime.lastError.message);
-            reject(chrome.runtime.lastError);
-          } else if (results && results[0] && results[0].result) {
-            const jobs = results[0].result;
-            addToActivityLog(`Scraped ${jobs.length} jobs from ${url}`);
-            processJobs(jobs);
-          } else {
-            addToActivityLog("No jobs scraped or unexpected result");
-          }
-          chrome.tabs.remove(tab.id);
-          addToActivityLog("Job check completed for " + url);
-          resolve();
-        }
-      );
+  try {
+    const tab = await chrome.tabs.create({ url, active: false });
+    const [{ result: jobs }] = await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      function: scrapeJobs,
     });
-  });
+
+    addToActivityLog(`Scraped ${jobs.length} jobs from ${url}`);
+    await processJobs(jobs);
+    await chrome.tabs.remove(tab.id);
+    addToActivityLog("Job check completed for " + url);
+  } catch (error) {
+    logAndReportError('Error checking for new jobs', error);
+  }
 }
 
 export function scrapeJobs() {

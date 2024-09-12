@@ -4,68 +4,50 @@ import { updateBadge } from './badge.js';
 import { sendTestError } from './test_error.js';
 import { logAndReportError } from './error_handling.js';
 
-export function handleMessage(message, sender, sendResponse) {
+export async function handleMessage(request, sender, sendResponse) {
   try {
-    if (message.type === "getJobs") {
-      chrome.storage.local.get("scrapedJobs", (data) => {
-        sendResponse({ jobs: data.scrapedJobs || [] });
-      });
-      return true;
-    } else if (message.type === "manualScrape") {
-      checkForNewJobs();
-      sendResponse({ success: true });
-    } else if (message.type === "clearJobs") {
-      chrome.storage.local.set({ scrapedJobs: [] }, () => {
+    // Handle different message types
+    switch (request.type) {
+      case 'getSettings':
+        sendResponse({
+          selectedFeedSource,
+          customSearchUrl,
+          checkFrequency,
+          webhookEnabled,
+          jobScrapingEnabled,
+          notificationsEnabled,
+          newJobsCount,
+          lastViewedTimestamp
+        });
+        break;
+      case 'updateSettings':
+        // Update settings based on the received data
+        Object.assign(selectedFeedSource, request.settings.selectedFeedSource);
+        Object.assign(customSearchUrl, request.settings.customSearchUrl);
+        Object.assign(checkFrequency, request.settings.checkFrequency);
+        Object.assign(webhookEnabled, request.settings.webhookEnabled);
+        Object.assign(jobScrapingEnabled, request.settings.jobScrapingEnabled);
+        Object.assign(notificationsEnabled, request.settings.notificationsEnabled);
+        
+        // Update alarm based on the new settings
+        await updateAlarm();
+        
+        // Update badge
+        updateBadge();
+        
         sendResponse({ success: true });
-      });
-      return true;
-    } else if (message.type === "getSettings") {
-      sendResponse({
-        selectedFeedSource: selectedFeedSource,
-        customSearchUrl: customSearchUrl,
-        checkFrequency: checkFrequency,
-        webhookEnabled: webhookEnabled,
-        jobScrapingEnabled: jobScrapingEnabled,
-        notificationsEnabled: notificationsEnabled,
-      });
-    } else if (message.type === "saveSettings") {
-      Object.assign(selectedFeedSource, message.selectedFeedSource);
-      customSearchUrl = message.customSearchUrl;
-      checkFrequency = message.checkFrequency;
-      webhookEnabled = message.webhookEnabled;
-      jobScrapingEnabled = message.jobScrapingEnabled;
-      notificationsEnabled = message.notificationsEnabled;
-
-      chrome.storage.local.set({
-        selectedFeedSource: selectedFeedSource,
-        customSearchUrl: customSearchUrl,
-        checkFrequency: checkFrequency,
-        webhookEnabled: webhookEnabled,
-        jobScrapingEnabled: jobScrapingEnabled,
-        notificationsEnabled: notificationsEnabled,
-      }, () => {
-        updateAlarm();
+        break;
+      case 'sendTestError':
+        await sendTestError();
         sendResponse({ success: true });
-      });
-      return true;
-    } else if (message.type === "getLastViewedTimestamp") {
-      sendResponse({ lastViewedTimestamp: lastViewedTimestamp });
-    } else if (message.type === "updateLastViewedTimestamp") {
-      lastViewedTimestamp = message.timestamp;
-      chrome.storage.local.set({ lastViewedTimestamp: lastViewedTimestamp });
-      sendResponse({ success: true });
-    } else if (message.type === "getNewJobsCount") {
-      sendResponse({ newJobsCount: newJobsCount });
-    } else if (message.type === "resetNewJobsCount") {
-      newJobsCount = 0;
-      chrome.storage.local.set({ newJobsCount: newJobsCount });
-      updateBadge();
-      sendResponse({ success: true });
-    } else if (message.type === "sendTestError") {
-      sendTestError(message.customMessage);
-      sendResponse({ success: true });
+        break;
+      default:
+        sendResponse({ success: false, error: 'Unknown message type' });
     }
   } catch (error) {
-    logAndReportError("Error in onMessage listener", error);
+    logAndReportError('Error handling message', error);
+    sendResponse({ success: false, error: error.message });
   }
+  
+  return true; // Required to use sendResponse asynchronously
 }
