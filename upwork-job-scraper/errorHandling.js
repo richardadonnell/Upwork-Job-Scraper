@@ -8,7 +8,7 @@ if (typeof Sentry !== "undefined") {
   });
 }
 
-const APP_VERSION = "1.38"; // Update this when you change your extension version
+const APP_VERSION = "1.40"; // Update this when you change your extension version
 
 // Function to log and report errors
 function logAndReportError(context, error) {
