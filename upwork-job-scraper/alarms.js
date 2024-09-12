@@ -1,11 +1,10 @@
-import { checkFrequency, jobScrapingEnabled } from './extension_state.js';
-import { checkForNewJobs } from './job_scraping.js';
+var checkFrequency = 5; // ... (inline the variable from extension_state.js)
+var jobScrapingEnabled = true; // ... (inline the variable from extension_state.js)
 
-export function updateAlarm() {
-  chrome.alarms.clear("checkJobs");
+var checkForNewJobs = async function() {
+  // ... (inline the function from job_scraping.js)
+};
 
-  if (jobScrapingEnabled) {
-    chrome.alarms.create("checkJobs", { periodInMinutes: checkFrequency });
-    checkForNewJobs();
-  }
-}
+var updateAlarm = function() {
+  // ... (no changes needed)
+};

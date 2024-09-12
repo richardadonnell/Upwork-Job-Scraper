@@ -1,8 +1,7 @@
-import { selectedFeedSource, customSearchUrl, webhookEnabled } from './extension_state.js';
+var selectedFeedSource = "most-recent"; // ... (inline the variable from extension_state.js)
+var customSearchUrl = ""; // ... (inline the variable from extension_state.js)
+var webhookEnabled = false; // ... (inline the variable from extension_state.js)
 
-export function loadFeedSourceSettings() {
-  chrome.storage.sync.get(['selectedFeedSource', 'customSearchUrl'], (result) => {
-    selectedFeedSource = result.selectedFeedSource || 'default';
-    customSearchUrl = result.customSearchUrl || '';
-  });
-}
+var loadFeedSourceSettings = function() {
+  // ... (no changes needed)
+};

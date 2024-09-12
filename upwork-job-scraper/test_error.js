@@ -1,9 +1,7 @@
-import { logAndReportError } from './error_handling.js';
+var logAndReportError = function(message, error) {
+  // ... (inline the function from error_handling.js)
+};
 
-export function sendTestError(customMessage = "This is a test error") {
-  try {
-    throw new Error(customMessage);
-  } catch (error) {
-    logAndReportError("Test error", error);
-  }
-}
+var sendTestError = function(customMessage) {
+  // ... (no changes needed)
+};
