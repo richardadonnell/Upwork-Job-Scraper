@@ -1,8 +1,8 @@
 Sentry.init({
   dsn: "https://5394268fe023ea7d082781a6ea85f4ce@o4507890797379584.ingest.us.sentry.io/4507891889471488",
   tracesSampleRate: 1.0,
-  release: "upwork-job-scraper@1.29", // Add your extension version here
-  environment: "production", // You can change this to "development" for testing
+  release: "upwork-job-scraper@" + chrome.runtime.getManifest().version,
+  environment: "production",
 });
 
 // Wrap the existing error logging function

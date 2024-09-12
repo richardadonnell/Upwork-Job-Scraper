@@ -6,7 +6,7 @@ try {
       chrome.runtime.openOptionsPage();
     } catch (error) {
       console.error("Error opening options page:", error);
-      window.logAndReportError("Error opening options page", error);
+      logAndReportError("Error opening options page", error);
     }
   });
 
@@ -77,7 +77,7 @@ try {
         checkForNewJobs();
       }
     } catch (error) {
-      window.logAndReportError("Error in onAlarm listener", error);
+      logAndReportError("Error in onAlarm listener", error);
     }
   });
 
@@ -151,7 +151,7 @@ try {
         sendResponse({ success: true });
       }
     } catch (error) {
-      window.logAndReportError("Error in message listener", error);
+      logAndReportError("Error in message listener", error);
       sendResponse({ error: "An error occurred" });
     }
 
@@ -180,5 +180,5 @@ try {
   importScripts("utils.js");
 } catch (error) {
   console.error("Uncaught error in background script:", error);
-  window.logAndReportError("Uncaught error in background script", error);
+  logAndReportError("Uncaught error in background script", error);
 }

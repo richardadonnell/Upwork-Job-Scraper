@@ -74,7 +74,7 @@ function trackEvent(eventName, eventParams) {
 }
 
 // Add this function at the top of your settings.js file
-function initializeSettings() {
+async function initializeSettings() {
   console.log("Initializing settings...");
 
   // Initialize Sentry

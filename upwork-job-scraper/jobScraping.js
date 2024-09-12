@@ -43,7 +43,7 @@ async function checkForNewJobs() {
       });
     });
   } catch (error) {
-    window.logAndReportError("Error in checkForNewJobs", error);
+    logAndReportError("Error in checkForNewJobs", error);
   }
 }
 
@@ -315,7 +315,7 @@ function processJobs(newJobs) {
       });
     });
   } catch (error) {
-    window.logAndReportError("Error in processJobs", error);
+    logAndReportError("Error in processJobs", error);
   }
 }
 
@@ -342,7 +342,7 @@ function loadFeedSourceSettings() {
         selectedFeedSource = data.selectedFeedSource || "most-recent";
         customSearchUrl = data.customSearchUrl || "";
         webhookUrl = data.webhookUrl || "";
-        webhookEnabled = data.webhookEnabled || false;
+        webhookEnabled = data.webhookEnabled !== false; // Default to true if not set
 
         // If a custom URL is saved, use it regardless of the selectedFeedSource
         if (customSearchUrl) {

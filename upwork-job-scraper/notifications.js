@@ -11,7 +11,7 @@ function sendNotification(message, duration = 30000) {
       iconUrl: chrome.runtime.getURL("icon48.png"),
       title: "Upwork Job Scraper",
       message: message,
-      requireInteraction: false, // Change this to false
+      requireInteraction: false,
     },
     (notificationId) => {
       if (chrome.runtime.lastError) {
