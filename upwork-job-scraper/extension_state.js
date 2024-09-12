@@ -1,0 +1,10 @@
+export let selectedFeedSource = "most-recent";
+export let customSearchUrl = "";
+export let checkFrequency = 5;
+export let webhookEnabled = false;
+export let jobScrapingEnabled = true;
+export let notificationsEnabled = true;
+export let newJobsCount = 0;
+export let lastViewedTimestamp = 0;
+export let webhookUrl = "";
+export let scrapedJobs = [];

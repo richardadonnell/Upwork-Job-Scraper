@@ -1,3 +1,10 @@
+import { logAndReportError } from './error_handling.js' assert { type: 'javascript' };
+
+// Initialize Sentry only if running in the extension context
+if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.getManifest) {
+  initializeSentry();
+}
+
 function waitForBackgroundScript() {
   console.log("Waiting for background script...");
   return new Promise((resolve) => {
@@ -39,342 +46,126 @@ function updateCountdown() {
     if (alarm) {
       const now = new Date().getTime();
       const nextAlarm = alarm.scheduledTime;
-      const timeLeft = nextAlarm - now;
-
-      if (timeLeft > 0) {
-        const hours = Math.floor(
-          (timeLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)
-        );
-        const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
-        const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
-
-        document.getElementById(
-          "next-check-countdown"
-        ).textContent = `⏲️ Next check in: ${hours}h ${minutes}m ${seconds}s`;
-      } else {
-        document.getElementById("next-check-countdown").textContent =
-          "Check imminent...";
-      }
-    } else {
-      document.getElementById("next-check-countdown").textContent =
-        "Countdown not available";
+      const timeUntilNextCheck = nextAlarm - now;
+      const countdownElement = document.getElementById("countdown");
+      countdownElement.textContent = `Next job check in: ${formatTime(timeUntilNextCheck)}`;
     }
   });
 }
 
-function startCountdown() {
-  updateCountdown(); // Initial update
-  clearInterval(countdownInterval); // Clear any existing interval
-  countdownInterval = setInterval(updateCountdown, 1000); // Update every second
+function formatTime(timeInMilliseconds) {
+  const totalSeconds = Math.floor(timeInMilliseconds / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  return `${hours.toString().padStart(2, "0")}:${minutes
+    .toString()
+    .padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
 }
 
-// Add this near the top of the file, after other function declarations
-function trackEvent(eventName, eventParams) {
-  console.log(`Event tracked: ${eventName}`, eventParams);
+function startCountdownUpdates() {
+  updateCountdown();
+  countdownInterval = setInterval(updateCountdown, 1000);
 }
 
-// Add this function at the top of your settings.js file
-function initializeSettings() {
-  console.log("Initializing settings...");
+function stopCountdownUpdates() {
+  clearInterval(countdownInterval);
+}
 
-  // Initialize Sentry
-  if (typeof Sentry !== "undefined") {
-    Sentry.init({
-      dsn: "https://5394268fe023ea7d082781a6ea85f4ce@o4507890797379584.ingest.us.sentry.io/4507891889471488",
-      tracesSampleRate: 1.0,
-      release: "upwork-job-scraper@" + chrome.runtime.getManifest().version,
-      environment: "production",
-    });
-  }
-
-  chrome.runtime.sendMessage({ type: "settingsPageOpened" });
-  trackEvent("settings_page_opened", {});
-
+async function initializeSettings() {
   try {
-    document.getElementById("save").addEventListener("click", () => {
-      const webhookUrl = document.getElementById("webhook-url").value;
-      const webhookEnabled = document.getElementById("webhook-toggle").checked;
-      chrome.storage.sync.set(
-        { webhookUrl: webhookUrl, webhookEnabled: webhookEnabled },
-        () => {
-          console.log("Webhook settings saved");
-          addLogEntry("Webhook settings saved");
-          chrome.runtime.sendMessage({ type: "updateWebhookSettings" });
-          trackEvent("webhook_settings_saved", { enabled: webhookEnabled });
-        }
-      );
+    await Promise.all([
+      waitForBackgroundScript(),
+      new Promise((resolve) => {
+        chrome.runtime.sendMessage({ type: "getSettings" }, resolve);
+      }),
+    ]);
+
+    const { logAndReportError } = await import('./error_handling.js');
+
+    const settings = await new Promise((resolve) => {
+      chrome.runtime.sendMessage({ type: "getSettings" }, resolve);
     });
 
-    document.getElementById("test-webhook").addEventListener("click", () => {
-      const webhookUrl = document.getElementById("webhook-url").value;
-      const webhookEnabled = document.getElementById("webhook-toggle").checked;
-      if (!webhookEnabled) {
-        alert("Please enable the webhook before testing.");
-        return;
-      }
-      if (!webhookUrl) {
-        alert("Please enter a webhook URL before testing.");
-        return;
-      }
+    document.getElementById("feed-source").value = settings.selectedFeedSource;
+    document.getElementById("custom-search-url").value = settings.customSearchUrl;
+    document.getElementById("check-frequency").value = settings.checkFrequency;
+    document.getElementById("webhook-enabled").checked = settings.webhookEnabled;
+    document.getElementById("job-scraping-enabled").checked = settings.jobScrapingEnabled;
+    document.getElementById("notifications-enabled").checked = settings.notificationsEnabled;
 
-      const testPayload = {
-        title: "Test Job",
-        url: "https://www.upwork.com/test-job",
-        jobType: "Fixed price",
-        skillLevel: "Intermediate",
-        budget: "$500",
-        hourlyRange: "N/A",
-        estimatedTime: "N/A",
-        description: "This is a test job posting to verify webhook functionality.",
-        skills: ["Test Skill 1", "Test Skill 2", "Test Skill 3"],
-        paymentVerified: true,
-        clientRating: 4.9,
-        clientSpent: "$10k+",
-        clientCountry: "Test Country",
-        attachments: [
-          { name: "Test Document", url: "https://www.upwork.com/test-document" }
-        ],
-        questions: [
-          "What is your experience with this type of project?",
-          "How soon can you start?"
-        ],
-        scrapedAt: Date.now(),
-        scrapedAtHuman: new Date().toLocaleString()
-      };
+    startCountdownUpdates();
 
-      fetch(webhookUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify([testPayload]),
-      })
-        .then((response) => response.text())
-        .then((result) => {
-          console.log("Test webhook response:", result);
-          addLogEntry("Test webhook sent successfully");
-          alert(
-            "Test webhook sent successfully. Check your webhook endpoint for the received data."
-          );
-          trackEvent("test_webhook_sent", { success: true });
-        })
-        .catch((error) => {
-          console.error("Error:", error);
-          addLogEntry("Error sending test webhook");
-          alert("Error sending test webhook. Check the console for details.");
-          trackEvent("test_webhook_sent", {
-            success: false,
-            error: error.message,
-          });
+    document.getElementById("save-settings").addEventListener("click", async () => {
+      const selectedFeedSource = document.getElementById("feed-source").value;
+      const customSearchUrl = document.getElementById("custom-search-url").value;
+      const checkFrequency = document.getElementById("check-frequency").value;
+      const webhookEnabled = document.getElementById("webhook-enabled").checked;
+      const jobScrapingEnabled = document.getElementById("job-scraping-enabled").checked;
+      const notificationsEnabled = document.getElementById("notifications-enabled").checked;
+
+      await new Promise((resolve) => {
+        chrome.runtime.sendMessage(
+          {
+            type: "saveSettings",
+            selectedFeedSource: selectedFeedSource,
+            customSearchUrl: customSearchUrl,
+            checkFrequency: checkFrequency,
+            webhookEnabled: webhookEnabled,
+            jobScrapingEnabled: jobScrapingEnabled,
+            notificationsEnabled: notificationsEnabled,
+          },
+          resolve
+        );
+      });
+
+      addLogEntry("Settings saved");
+    });
+
+    document.getElementById("manual-scrape").addEventListener("click", async () => {
+      await new Promise((resolve) => {
+        chrome.runtime.sendMessage({ type: "manualScrape" }, resolve);
+      });
+      addLogEntry("Manual scrape triggered");
+    });
+
+    document.getElementById("clear-jobs").addEventListener("click", async () => {
+      if (confirm("Are you sure you want to clear all scraped jobs?")) {
+        await new Promise((resolve) => {
+          chrome.runtime.sendMessage({ type: "clearJobs" }, resolve);
         });
+        addLogEntry("All scraped jobs cleared");
+        addJobEntries([]); // Add this line
+      }
     });
 
-    // Load saved webhook settings when the page opens
-    chrome.storage.sync.get(["webhookUrl", "webhookEnabled"], (data) => {
-      if (data.webhookUrl) {
-        document.getElementById("webhook-url").value = data.webhookUrl;
-      }
-      const webhookToggle = document.getElementById("webhook-toggle");
-      if (data.webhookEnabled === undefined) {
-        // Default to enabled if not set
-        webhookToggle.checked = true;
-        chrome.storage.sync.set({ webhookEnabled: true });
+    document.getElementById("open-custom-url").addEventListener("click", () => {
+      const customSearchUrl = document.getElementById("custom-search-url").value;
+      if (customSearchUrl) {
+        window.open(customSearchUrl, "_blank");
       } else {
-        webhookToggle.checked = data.webhookEnabled;
-      }
-      updateWebhookInputState();
-    });
-
-    // Load saved notification setting when the page opens
-    chrome.storage.sync.get("notificationsEnabled", (data) => {
-      const notificationToggle = document.getElementById("notification-toggle");
-      if (data.notificationsEnabled === undefined) {
-        // Default to enabled if not set
-        notificationToggle.checked = true;
-        chrome.storage.sync.set({ notificationsEnabled: true });
-      } else {
-        notificationToggle.checked = data.notificationsEnabled;
+        alert("Please enter a custom search URL first.");
       }
     });
 
-    // Save notification setting when toggled
-    document
-      .getElementById("notification-toggle")
-      .addEventListener("change", (event) => {
-        const isEnabled = event.target.checked;
-        chrome.storage.sync.set({ notificationsEnabled: isEnabled }, () => {
-          console.log("Notification setting saved:", isEnabled);
-          addLogEntry(`Notifications ${isEnabled ? "enabled" : "disabled"}`);
-          trackEvent("notification_setting_changed", { enabled: isEnabled });
-        });
+    document.getElementById("send-test-error").addEventListener("click", async () => {
+      const customMessage = prompt("Enter a custom error message (optional):");
+      await new Promise((resolve) => {
+        chrome.runtime.sendMessage({ type: "sendTestError", customMessage: customMessage }, resolve);
       });
-
-    // Save webhook setting when toggled
-    document
-      .getElementById("webhook-toggle")
-      .addEventListener("change", (event) => {
-        const webhookEnabled = event.target.checked;
-        chrome.storage.sync.set({ webhookEnabled: webhookEnabled }, () => {
-          console.log("Webhook " + (webhookEnabled ? "enabled" : "disabled"));
-          addLogEntry(`Webhook ${webhookEnabled ? "enabled" : "disabled"}`);
-          updateWebhookInputState();
-          chrome.runtime.sendMessage({ type: "updateWebhookSettings" });
-          trackEvent("webhook_setting_changed", { enabled: webhookEnabled });
-        });
-      });
-
-    // Add this after the other event listeners
-
-    document.getElementById("save-frequency").addEventListener("click", () => {
-      const days = parseInt(document.getElementById("days").value) || 0;
-      const hours = parseInt(document.getElementById("hours").value) || 0;
-      const minutes = parseInt(document.getElementById("minutes").value) || 1;
-
-      const totalMinutes = days * 1440 + hours * 60 + minutes;
-
-      if (totalMinutes < 1) {
-        alert("Please set a frequency of at least 1 minute.");
-        return;
-      }
-
-      chrome.storage.sync.set({ checkFrequency: totalMinutes }, () => {
-        console.log("Check frequency saved");
-        addLogEntry(`Check frequency saved: ${days}d ${hours}h ${minutes}m`);
-        chrome.runtime.sendMessage({
-          type: "updateCheckFrequency",
-          frequency: totalMinutes,
-        });
-        startCountdown(); // Restart the countdown with the new frequency
-        trackEvent("check_frequency_changed", { days, hours, minutes });
-      });
+      addLogEntry("Test error sent");
     });
 
-    // Load saved check frequency when the page opens
-    chrome.storage.sync.get("checkFrequency", (data) => {
-      if (data.checkFrequency) {
-        document.getElementById("days").value =
-          Math.floor(data.checkFrequency / 1440) || "";
-        document.getElementById("hours").value =
-          Math.floor((data.checkFrequency % 1440) / 60) || "";
-        document.getElementById("minutes").value =
-          data.checkFrequency % 60 || 1;
-      }
-      startCountdown(); // Start the countdown after loading the frequency
+    chrome.runtime.sendMessage({ type: "getJobs" }, (response) => {
+      addJobEntries(response.jobs);
     });
 
-    // Function to add log entries
-    function addLogEntry(message) {
-      const logContainer = document.getElementById("log-container");
-      const logEntry = document.createElement("p");
-      logEntry.textContent = `${new Date().toLocaleString()}: ${message}`;
-      logContainer.insertBefore(logEntry, logContainer.firstChild);
-    }
-
-    // Load existing log entries
-    chrome.storage.local.get("activityLog", (data) => {
-      if (data.activityLog) {
-        data.activityLog.forEach((entry) => addLogEntry(entry));
-      }
-    });
-
-    // Function to add job entries
-    function addJobEntries(jobs) {
-      const jobsContainer = document.getElementById("jobs-container");
-      jobsContainer.innerHTML = ""; // Clear existing jobs
-
-      if (!Array.isArray(jobs) || jobs.length === 0) {
-        jobsContainer.innerHTML = "<p>No jobs found.</p>";
-        return;
-      }
-
-      jobs.forEach((job) => {
-        if (!job) return; // Skip if job is undefined
-
-        const jobItem = document.createElement("div");
-        jobItem.className = "job-item";
-        jobItem.dataset.jobId = job.url || '';
-
-        const jobHeader = document.createElement("div");
-        jobHeader.className = "job-header";
-
-        const jobTitle = document.createElement("div");
-        jobTitle.className = "job-title";
-
-        const timeSpan = document.createElement("span");
-        timeSpan.className = "job-time";
-        timeSpan.dataset.timestamp = job.scrapedAt || Date.now();
-        updateTimeDifference(job.scrapedAt || Date.now(), timeSpan);
-
-        jobTitle.textContent = job.title || 'Untitled Job';
-        jobTitle.appendChild(document.createElement("br"));
-        jobTitle.appendChild(timeSpan);
-
-        jobTitle.onclick = () => toggleJobDetails(job.url || '');
-
-        const openButton = document.createElement("button");
-        openButton.className = "open-job-button button-secondary";
-        openButton.textContent = "Open";
-        openButton.onclick = (e) => {
-          e.stopPropagation();
-          if (job.url) window.open(job.url, "_blank");
-        };
-
-        jobHeader.appendChild(jobTitle);
-        jobHeader.appendChild(openButton);
-
-        const jobDetails = document.createElement("div");
-        jobDetails.className = "job-details";
-        jobDetails.id = `job-details-${job.url || ''}`;
-        jobDetails.innerHTML = `
-          <p><strong>URL:</strong> ${job.url ? `<a href="${job.url}" target="_blank">${job.url}</a>` : 'N/A'}</p>
-          <p><strong>Job Type:</strong> ${job.jobType || 'N/A'}</p>
-          <p><strong>Skill Level:</strong> ${job.skillLevel || 'N/A'}</p>
-          <p><strong>${job.jobType === 'Fixed price' ? 'Budget' : 'Hourly Range'}:</strong> ${job.jobType === 'Fixed price' ? (job.budget || 'N/A') : (job.hourlyRange || 'N/A')}</p>
-          ${job.jobType === 'Hourly' ? `<p><strong>Estimated Time:</strong> ${job.estimatedTime || 'N/A'}</p>` : ''}
-          <p><strong>Description:</strong> ${job.description || 'N/A'}</p>
-          <p><strong>Skills:</strong> ${Array.isArray(job.skills) ? job.skills.join(", ") : 'N/A'}</p>
-          <p><strong>Payment Verified:</strong> ${job.paymentVerified ? "Yes" : "No"}</p>
-          <p><strong>Client Rating:</strong> ${job.clientRating || 'N/A'}</p>
-          <p><strong>Client Spent:</strong> ${job.clientSpent || 'N/A'}</p>
-          <p><strong>Client Country:</strong> ${job.clientCountry || 'N/A'}</p>
-          ${Array.isArray(job.attachments) && job.attachments.length > 0 ? `<p><strong>Attachments:</strong> ${job.attachments.map(a => `<a href="${a.url}" target="_blank">${a.name}</a>`).join(", ")}</p>` : ''}
-          ${Array.isArray(job.questions) && job.questions.length > 0 ? `<p><strong>Questions:</strong><ul>${job.questions.map(q => `<li>${q}</li>`).join("")}</ul></p>` : ''}
-          <p><strong>Scraped At:</strong> ${job.scrapedAtHuman || 'N/A'}</p>
-        `;
-
-        jobItem.appendChild(jobHeader);
-        jobItem.appendChild(jobDetails);
-        jobsContainer.appendChild(jobItem);
-      });
-
-      // Start updating time differences
-      if (!window.timeUpdateInterval) {
-        window.timeUpdateInterval = setInterval(updateAllTimeDifferences, 1000);
-      }
-    }
-
-    function toggleJobDetails(jobId) {
-      const details = document.getElementById(`job-details-${jobId}`);
-      if (details.style.display === "block") {
-        details.style.display = "none";
-      } else {
-        details.style.display = "block";
-      }
-    }
-
-    // Load existing scraped jobs
-    chrome.storage.local.get("scrapedJobs", (data) => {
-      if (data.scrapedJobs) {
-        addJobEntries(data.scrapedJobs);
-      }
-    });
-
-    // Listen for log updates and job updates from the background script
-    chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-      if (message.type === "logUpdate") {
-        addLogEntry(message.content);
-      } else if (message.type === "jobsUpdate") {
+    chrome.runtime.onMessage.addListener((message) => {
+      if (message.type === "jobsUpdate") {
         addJobEntries(message.jobs);
+      } else if (message.type === "jobsCleared") {
+        addJobEntries([]);
       }
     });
 
@@ -402,151 +193,50 @@ function initializeSettings() {
         timeString = `${seconds} second${seconds !== 1 ? "s" : ""} ago`;
       }
 
-      element.textContent = `(${timeString})`;
+      element.textContent = timeString;
     }
 
-    function updateAllTimeDifferences() {
-      const timeElements = document.querySelectorAll(".job-time");
-      timeElements.forEach((element) => {
-        const timestamp = parseInt(element.dataset.timestamp);
+    window.timeUpdateInterval = setInterval(() => {
+      document.querySelectorAll(".time-difference").forEach((element) => {
+        const timestamp = parseInt(element.getAttribute("data-timestamp"), 10);
         updateTimeDifference(timestamp, element);
       });
+    }, 1000);
+
+    function addJobEntries(jobs) {
+      const jobList = document.getElementById("job-list");
+      jobList.innerHTML = "";
+
+      jobs.forEach((job) => {
+        const listItem = document.createElement("li");
+        const link = document.createElement("a");
+        link.href = job.url;
+        link.target = "_blank";
+        link.textContent = job.title;
+        listItem.appendChild(link);
+        jobList.appendChild(listItem);
+      });
     }
 
-    // Function to update webhook input state
-    function updateWebhookInputState() {
-      const webhookUrl = document.getElementById("webhook-url");
-      const testWebhookButton = document.getElementById("test-webhook");
-      const isEnabled = document.getElementById("webhook-toggle").checked;
-
-      webhookUrl.disabled = !isEnabled;
-      testWebhookButton.disabled = !isEnabled;
+    function addLogEntry(message) {
+      const logList = document.getElementById("log-list");
+      const listItem = document.createElement("li");
+      listItem.textContent = message;
+      logList.appendChild(listItem);
     }
 
-    // Add this new function to create and manage the error message element
-    function showCustomUrlError(message) {
-      let errorElement = document.getElementById("custom-url-error");
-      if (!errorElement) {
-        errorElement = document.createElement("p");
-        errorElement.id = "custom-url-error";
-        errorElement.style.color = "red";
-        errorElement.style.marginTop = "5px";
-        document
-          .getElementById("custom-search-url")
-          .insertAdjacentElement("afterend", errorElement);
-      }
-      errorElement.textContent = message;
-    }
-
-    // Modify the save-feed-sources event listener
-    document
-      .getElementById("save-feed-sources")
-      .addEventListener("click", () => {
-        const customSearchUrl =
-          document.getElementById("custom-search-url").value;
-
-        if (
-          !customSearchUrl.startsWith(
-            "https://www.upwork.com/nx/search/jobs/?"
-          )
-        ) {
-          showCustomUrlError(
-            "Custom Search URL must start with https://www.upwork.com/nx/search/jobs/?"
-          );
-          return;
-        }
-
-        // Clear any existing error message
-        showCustomUrlError("");
-
-        chrome.storage.sync.set(
+    document.getElementById("notifications-enabled").addEventListener("change", async (event) => {
+      const isEnabled = event.target.checked;
+      await new Promise((resolve) => {
+        chrome.runtime.sendMessage(
           {
-            selectedFeedSource: "custom-search",
-            customSearchUrl: customSearchUrl,
+            type: "saveSettings",
+            notificationsEnabled: isEnabled,
           },
-          () => {
-            console.log("Feed sources saved");
-            addLogEntry(`Feed source saved: custom-search`);
-            chrome.runtime.sendMessage({ type: "updateFeedSources" });
-            trackEvent("feed_sources_changed", {
-              selectedFeedSource: "custom-search",
-              customSearchUrl,
-            });
-          }
+          resolve
         );
       });
-
-    // Load saved feed source settings when the page opens
-    chrome.storage.sync.get(["customSearchUrl"], (data) => {
-      const customSearchUrl = data.customSearchUrl || "";
-      const customSearchUrlInput =
-        document.getElementById("custom-search-url");
-      customSearchUrlInput.value = customSearchUrl;
-    });
-
-    document.getElementById("manual-scrape").addEventListener("click", () => {
-      sendMessageToBackground({ type: "manualScrape" })
-        .then((response) => {
-          if (response && response.success) {
-            addLogEntry("Manual scrape initiated");
-            trackEvent("manual_scrape_initiated", {});
-          } else {
-            addLogEntry("Failed to initiate manual scrape");
-            trackEvent("manual_scrape_failed", {});
-          }
-        })
-        .catch((error) => {
-          console.error("Error sending message:", error);
-          addLogEntry("Error initiating manual scrape");
-          trackEvent("manual_scrape_error", { error: error.message });
-        });
-    });
-
-    // Master toggle (Job Scraping)
-    const masterToggle = document.getElementById("master-toggle");
-    chrome.storage.sync.get("jobScrapingEnabled", (data) => {
-      masterToggle.checked = data.jobScrapingEnabled !== false; // Default to true if not set
-    });
-
-    masterToggle.addEventListener("change", (event) => {
-      const isEnabled = event.target.checked;
-      chrome.storage.sync.set({ jobScrapingEnabled: isEnabled }, () => {
-        addLogEntry(`Job scraping ${isEnabled ? "enabled" : "disabled"}`);
-        chrome.runtime.sendMessage({
-          type: "updateJobScraping",
-          enabled: isEnabled,
-        });
-        trackEvent("job_scraping_toggle_changed", { enabled: isEnabled });
-      });
-    });
-
-    // Webhook toggle
-    const webhookToggle = document.getElementById("webhook-toggle");
-    chrome.storage.sync.get("webhookEnabled", (data) => {
-      webhookToggle.checked = data.webhookEnabled !== false; // Default to true if not set
-    });
-
-    webhookToggle.addEventListener("change", (event) => {
-      const isEnabled = event.target.checked;
-      chrome.storage.sync.set({ webhookEnabled: isEnabled }, () => {
-        addLogEntry(`Webhook ${isEnabled ? "enabled" : "disabled"}`);
-        chrome.runtime.sendMessage({ type: "updateWebhookSettings" });
-        trackEvent("webhook_toggle_changed", { enabled: isEnabled });
-      });
-    });
-
-    // Notification toggle
-    const notificationToggle = document.getElementById("notification-toggle");
-    chrome.storage.sync.get("notificationsEnabled", (data) => {
-      notificationToggle.checked = data.notificationsEnabled !== false; // Default to true if not set
-    });
-
-    notificationToggle.addEventListener("change", (event) => {
-      const isEnabled = event.target.checked;
-      chrome.storage.sync.set({ notificationsEnabled: isEnabled }, () => {
-        addLogEntry(`Push notifications ${isEnabled ? "enabled" : "disabled"}`);
-        trackEvent("notification_toggle_changed", { enabled: isEnabled });
-      });
+      addLogEntry(`Push notifications ${isEnabled ? "enabled" : "disabled"}`);
     });
 
     // Add this function near the top of the file, after other function declarations
@@ -562,19 +252,6 @@ function initializeSettings() {
     document.getElementById("clear-jobs").addEventListener("click", () => {
       if (confirm("Are you sure you want to clear all scraped jobs?")) {
         clearAllJobs();
-        trackEvent("clear_all_jobs", {});
-      }
-    });
-
-    // Modify the existing chrome.runtime.onMessage listener
-    chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-      if (message.type === "logUpdate") {
-        addLogEntry(message.content);
-      } else if (message.type === "jobsUpdate") {
-        addJobEntries(message.jobs);
-      } else if (message.type === "jobsCleared") {
-        // Update the UI to reflect that jobs have been cleared
-        addJobEntries([]);
       }
     });
 
@@ -583,23 +260,55 @@ function initializeSettings() {
       const customSearchUrl = document.getElementById("custom-search-url").value;
       if (customSearchUrl) {
         window.open(customSearchUrl, "_blank");
-        trackEvent("open_custom_url", { url: customSearchUrl });
       } else {
         alert("Please enter a custom search URL first.");
       }
     });
+
+    const activityLog = await sendMessageToBackground({ type: "getActivityLog" });
+    activityLog.forEach((entry) => {
+      addLogEntry(entry);
+    });
+
+    document.getElementById("clear-log").addEventListener("click", async () => {
+      if (confirm("Are you sure you want to clear the activity log?")) {
+        await sendMessageToBackground({ type: "clearActivityLog" });
+        document.getElementById("log-list").innerHTML = "";
+        addLogEntry("Activity log cleared");
+      }
+    });
+
+    await sendMessageToBackground({ type: "updateLastViewedTimestamp", timestamp: Date.now() });
+
+    // Add this function to handle saving the custom search URL
+    async function saveCustomSearchURL() {
+      const customSearchURL = document.getElementById('custom-search-url').value;
+      await sendMessageToBackground({ type: 'setCustomSearchURL', url: customSearchURL });
+      alert('Custom search URL saved successfully!');
+    }
+
+    // Add an event listener to the save button
+    document.getElementById('save-custom-search-url').addEventListener('click', saveCustomSearchURL);
+
+    // Add this function to handle manual job scraping
+    async function manuallyCheckForNewJobs() {
+      await sendMessageToBackground({ type: 'checkJobs' });
+      alert('Job scraping triggered manually!');
+    }
+
+    // Add an event listener to the manual scrape button
+    document.getElementById('manual-scrape-button').addEventListener('click', manuallyCheckForNewJobs);
+
+    initializeSentry();
+
   } catch (error) {
     console.error("Error initializing settings:", error);
-    window.logAndReportError("Error initializing settings", error);
+    logAndReportError("Error initializing settings", error);
   }
 }
 
 // Use this to initialize the settings page:
-waitForBackgroundScript()
-  .then(() => {
-    console.log("Starting initialization...");
-    initializeSettings();
-  })
+Promise.all([waitForBackgroundScript(), initializeSettings()])
   .catch((error) => {
     console.error("Error during initialization:", error);
   });
