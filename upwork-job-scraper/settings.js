@@ -639,16 +639,16 @@ async function initializeSettings() {
       accordionContent.style.display = accordionContent.style.display === 'block' ? 'none' : 'block';
     });
 
-    dismissButton.addEventListener('click', () => {
-      document.querySelector('.setup-instructions').style.display = 'none';
-      chrome.storage.sync.set({ setupInstructionsDismissed: true });
-    });
-
     // Check if the user has previously dismissed the setup instructions
     chrome.storage.sync.get('setupInstructionsDismissed', (data) => {
-      if (data.setupInstructionsDismissed) {
-        document.querySelector('.setup-instructions').style.display = 'none';
+      if (!data.setupInstructionsDismissed) {
+        document.getElementById('setup-instructions').classList.add('show');
       }
+    });
+
+    dismissButton.addEventListener('click', () => {
+      document.getElementById('setup-instructions').classList.remove('show');
+      chrome.storage.sync.set({ setupInstructionsDismissed: true });
     });
   } catch (error) {
     console.error("Error initializing settings:", error);

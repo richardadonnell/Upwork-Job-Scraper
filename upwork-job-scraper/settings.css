@@ -555,6 +555,7 @@ option {
   margin-bottom: 2em;
   border: 2px solid #4ebc2d;
   transition: border-color 0.3s ease;
+  display: none;
 }
 
 .setup-instructions .accordion-header {
@@ -639,4 +640,8 @@ option {
 
 .setup-instructions .dismiss-button:hover {
   color: #4ebc2d;
+}
+
+.setup-instructions.show {
+  display: block;
 }
