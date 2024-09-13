@@ -109,7 +109,9 @@ try {
         return true; // Will respond asynchronously
       } else if (message.type === "manualScrape") {
         if (jobScrapingEnabled) {
-          checkForNewJobs(jobScrapingEnabled).then(() => {
+          const feedSource = message.feedSource;
+          const customSearchUrl = message.customSearchUrl;
+          checkForNewJobs(jobScrapingEnabled, feedSource, customSearchUrl).then(() => {
             sendResponse({ success: true });
           });
         } else {

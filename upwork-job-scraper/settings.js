@@ -520,7 +520,7 @@ async function initializeSettings() {
     });
 
     document.getElementById("manual-scrape").addEventListener("click", () => {
-      sendMessageToBackground({ type: "manualScrape" })
+      sendMessageToBackground({ type: "manualScrape", feedSource: selectedFeedSource, customSearchUrl: customSearchUrl })
         .then((response) => {
           if (response && response.success) {
             addLogEntry("Manual scrape initiated");

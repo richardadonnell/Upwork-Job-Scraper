@@ -1,19 +1,17 @@
 // Wrap your main functions with try-catch blocks
 let jobScrapingEnabled = true; // or load the value from storage
 
-async function checkForNewJobs(jobScrapingEnabled) {
+async function checkForNewJobs(jobScrapingEnabled, feedSource, customSearchUrl) {
   try {
     if (!jobScrapingEnabled) {
       addToActivityLog("Job scraping is disabled. Skipping job check.");
       return;
     }
 
-    await loadFeedSourceSettings();
-
     addToActivityLog("Starting job check...");
 
     let url;
-    if (selectedFeedSource === "custom-search" && customSearchUrl) {
+    if (feedSource === "custom-search" && customSearchUrl) {
       url = customSearchUrl;
     } else {
       url = "https://www.upwork.com/nx/find-work/most-recent";
