@@ -1,5 +1,6 @@
 function addToActivityLog(message) {
-  const logEntry = `${new Date().toLocaleString()}: ${message}`;
+  const timestamp = new Date().toLocaleString();
+  const logEntry = `${timestamp}: ${message}`;
   console.log(logEntry); // Log to console for debugging
 
   chrome.storage.local.get("activityLog", (data) => {
