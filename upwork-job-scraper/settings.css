@@ -547,3 +547,37 @@ option {
   background-color: #ff0000;
   color: #ffffff;
 }
+
+/* Add these new styles for the setup instructions */
+.setup-instructions {
+  background-color: #1c1c1c;
+  border-radius: 0.5em;
+  padding: 1.5em;
+  margin-bottom: 2em;
+}
+
+.setup-instructions h2 {
+  margin-top: 0;
+  color: #4ebc2d;
+}
+
+.setup-instructions p {
+  margin-bottom: 1em;
+}
+
+.setup-instructions ol {
+  margin-left: 1.5em;
+}
+
+.setup-instructions li {
+  margin-bottom: 0.5em;
+}
+
+.setup-instructions a {
+  color: #4ebc2d;
+  text-decoration: underline;
+}
+
+.setup-instructions a:hover {
+  color: #108a00;
+}
