@@ -434,7 +434,7 @@ function loadFeedSourceSettings() {
 }
 
 function isUserLoggedOut() {
-  const loginLink = document.querySelector('a[data-test="UpLink"]');
+  const loginLink = document.querySelector('a[href="/ab/account-security/login"][data-test="UpLink"]');
   return loginLink !== null;
 }
 

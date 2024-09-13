@@ -383,7 +383,10 @@ async function initializeSettings() {
     function showLoginWarning(message) {
       const warningElement = document.createElement("div");
       warningElement.className = "alert alert-warning";
-      warningElement.textContent = message;
+      warningElement.innerHTML = `
+        <strong>Warning:</strong> ${message} Please check your Upwork login status and try again.
+        If the issue persists, you may need to manually log in to Upwork and then restart the extension.
+      `;
 
       const settingsContainer = document.querySelector(".settings-container");
       settingsContainer.insertBefore(warningElement, settingsContainer.firstChild);
