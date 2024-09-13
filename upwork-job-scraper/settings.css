@@ -553,6 +553,8 @@ option {
   border-radius: 0.5em;
   padding: 1.5em;
   margin-bottom: 2em;
+  border: 2px solid #4ebc2d;
+  transition: border-color 0.3s ease;
 }
 
 .setup-instructions .accordion-header {
@@ -560,6 +562,8 @@ option {
   color: #4ebc2d;
   cursor: pointer;
   transition: color 0.3s ease;
+  display: flex;
+  align-items: center;
 }
 
 .setup-instructions .accordion-header:hover {
@@ -590,4 +594,19 @@ option {
 
 .setup-instructions a:hover {
   color: #108a00;
+}
+
+.setup-instructions:hover {
+  border-color: #108a00; /* Change border color on hover */
+}
+
+.setup-instructions .accordion-header::before {
+  content: "\25B6"; /* Add a right-pointing triangle icon */
+  display: inline-block;
+  margin-right: 0.5em;
+  transition: transform 0.3s ease; /* Add transition for rotation */
+}
+
+.setup-instructions .accordion-header.open::before {
+  transform: rotate(90deg); /* Rotate the icon when open */
 }
