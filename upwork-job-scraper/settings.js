@@ -664,6 +664,27 @@ function showAlert(message, containerId, timeout = 15000) {
   });
   alertElement.appendChild(closeButton);
 
+  const countdownElement = document.createElement("span");
+  countdownElement.classList.add("countdown");
+  alertElement.appendChild(countdownElement);
+
+  let remainingTime = timeout;
+
+  // Update the countdown immediately
+  const seconds = Math.ceil(remainingTime / 1000);
+  countdownElement.textContent = `Closing in ${seconds}s`;
+
+  const countdownInterval = setInterval(() => {
+    remainingTime -= 1000;
+    const seconds = Math.ceil(remainingTime / 1000);
+    countdownElement.textContent = `Closing in ${seconds}s`;
+
+    if (remainingTime <= 0) {
+      clearInterval(countdownInterval);
+      alertElement.remove();
+    }
+  }, 1000);
+
   alertContainer.appendChild(alertElement);
 
   setTimeout(() => {
