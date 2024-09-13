@@ -505,13 +505,20 @@ option {
 
 .alert .close-btn {
   position: absolute;
-  top: 0.5em;
+  top: 50%;
   right: 0.5em;
+  transform: translateY(-50%);
   background: none;
   border: none;
   color: #e0e0e0;
   font-size: 1.2em;
   cursor: pointer;
+  transition: color 0.3s ease;
+}
+
+.alert .close-btn:hover {
+  color: #ffffff;
+  box-shadow: none;
 }
 
 .alert .countdown {
