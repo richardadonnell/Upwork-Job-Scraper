@@ -630,12 +630,25 @@ async function initializeSettings() {
       }
     });
 
-    // Add this code to handle the accordion functionality
+    // Add this code to handle the accordion functionality and dismiss button
     const accordionHeader = document.querySelector('.setup-instructions .accordion-header');
     const accordionContent = document.querySelector('.setup-instructions .accordion-content');
+    const dismissButton = document.querySelector('.setup-instructions .dismiss-button');
 
     accordionHeader.addEventListener('click', () => {
       accordionContent.style.display = accordionContent.style.display === 'block' ? 'none' : 'block';
+    });
+
+    dismissButton.addEventListener('click', () => {
+      document.querySelector('.setup-instructions').style.display = 'none';
+      chrome.storage.sync.set({ setupInstructionsDismissed: true });
+    });
+
+    // Check if the user has previously dismissed the setup instructions
+    chrome.storage.sync.get('setupInstructionsDismissed', (data) => {
+      if (data.setupInstructionsDismissed) {
+        document.querySelector('.setup-instructions').style.display = 'none';
+      }
     });
   } catch (error) {
     console.error("Error initializing settings:", error);

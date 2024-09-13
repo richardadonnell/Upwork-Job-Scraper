@@ -597,16 +597,46 @@ option {
 }
 
 .setup-instructions:hover {
-  border-color: #108a00; /* Change border color on hover */
+  border-color: #108a00;
 }
 
 .setup-instructions .accordion-header::before {
-  content: "\25B6"; /* Add a right-pointing triangle icon */
+  /* content: "\25B6"; */
   display: inline-block;
   margin-right: 0.5em;
-  transition: transform 0.3s ease; /* Add transition for rotation */
+  transition: transform 0.3s ease;
 }
 
 .setup-instructions .accordion-header.open::before {
-  transform: rotate(90deg); /* Rotate the icon when open */
+  transform: rotate(90deg);
+}
+
+.setup-instructions .accordion-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.setup-instructions .accordion-header h2 {
+  margin: 0;
+  color: #4ebc2d;
+}
+
+.setup-instructions .expand-text {
+  display: block;
+  font-size: 0.7em;
+  color: #8d8c8c;
+  margin-top: 0.5em;
+}
+
+.setup-instructions .dismiss-button {
+  background-color: transparent;
+  color: #8d8c8c;
+  border: none;
+  cursor: pointer;
+  font-size: 0.8em;
+}
+
+.setup-instructions .dismiss-button:hover {
+  color: #4ebc2d;
 }
