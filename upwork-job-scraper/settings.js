@@ -589,10 +589,16 @@ async function initializeSettings() {
     }
 
     // Add this inside the initializeSettings function
-    document.getElementById("clear-jobs").addEventListener("click", () => {
-      if (confirm("Are you sure you want to clear all scraped jobs?")) {
+    document.getElementById("clear-jobs").addEventListener("click", (event) => {
+      const button = event.target;
+      if (button.classList.contains("confirm")) {
         clearAllJobs();
         trackEvent("clear_all_jobs", {});
+        button.classList.remove("confirm");
+        button.textContent = "Clear All Jobs";
+      } else {
+        button.classList.add("confirm");
+        button.textContent = "Click to Confirm";
       }
     });
 
