@@ -91,18 +91,31 @@ async function initializeSettings() {
   trackEvent("settings_page_opened", {});
 
   try {
-    document.getElementById("save").addEventListener("click", () => {
+    // Update the webhook URL input event listener
+    document.getElementById("webhook-url").addEventListener("input", () => {
       const webhookUrl = document.getElementById("webhook-url").value;
       const webhookEnabled = document.getElementById("webhook-toggle").checked;
-      chrome.storage.sync.set(
-        { webhookUrl: webhookUrl, webhookEnabled: webhookEnabled },
-        () => {
-          console.log("Webhook settings saved");
-          addLogEntry("Webhook settings saved");
+      
+      if (webhookUrl === "") {
+        // If the URL is empty, clear the saved webhook URL
+        chrome.storage.sync.remove("webhookUrl", () => {
+          console.log("Webhook URL cleared");
+          addLogEntry("Webhook URL cleared");
           chrome.runtime.sendMessage({ type: "updateWebhookSettings" });
-          trackEvent("webhook_settings_saved", { enabled: webhookEnabled });
-        }
-      );
+          trackEvent("webhook_url_cleared", {});
+        });
+      } else {
+        // Otherwise, save the new webhook URL
+        chrome.storage.sync.set(
+          { webhookUrl: webhookUrl, webhookEnabled: webhookEnabled },
+          () => {
+            console.log("Webhook settings saved");
+            addLogEntry("Webhook settings saved");
+            chrome.runtime.sendMessage({ type: "updateWebhookSettings" });
+            trackEvent("webhook_settings_saved", { enabled: webhookEnabled });
+          }
+        );
+      }
     });
 
     document.getElementById("test-webhook").addEventListener("click", () => {
@@ -224,9 +237,12 @@ async function initializeSettings() {
         });
       });
 
-    // Add this after the other event listeners
+    // Update the check frequency input event listeners
+    document.getElementById("days").addEventListener("input", saveFrequency);
+    document.getElementById("hours").addEventListener("input", saveFrequency);
+    document.getElementById("minutes").addEventListener("input", saveFrequency);
 
-    document.getElementById("save-frequency").addEventListener("click", () => {
+    function saveFrequency() {
       const days = parseInt(document.getElementById("days").value) || 0;
       const hours = parseInt(document.getElementById("hours").value) || 0;
       const minutes = parseInt(document.getElementById("minutes").value) || 1;
@@ -248,7 +264,7 @@ async function initializeSettings() {
         startCountdown(); // Restart the countdown with the new frequency
         trackEvent("check_frequency_changed", { days, hours, minutes });
       });
-    });
+    }
 
     // Load saved check frequency when the page opens
     chrome.storage.sync.get("checkFrequency", (data) => {
@@ -453,27 +469,25 @@ async function initializeSettings() {
       errorElement.textContent = message;
     }
 
-    // Modify the save-feed-sources event listener
-    document
-      .getElementById("save-feed-sources")
-      .addEventListener("click", () => {
-        const customSearchUrl =
-          document.getElementById("custom-search-url").value;
+    // Update the custom search URL input event listener
+    document.getElementById("custom-search-url").addEventListener("input", () => {
+      const customSearchUrl = document.getElementById("custom-search-url").value;
 
-        if (
-          !customSearchUrl.startsWith(
-            "https://www.upwork.com/nx/search/jobs/?"
-          )
-        ) {
-          showCustomUrlError(
-            "Custom Search URL must start with https://www.upwork.com/nx/search/jobs/?"
-          );
-          return;
-        }
-
+      if (customSearchUrl === "") {
+        // If the URL is empty, clear the saved custom search URL
+        chrome.storage.sync.remove(["customSearchUrl", "selectedFeedSource"], () => {
+          console.log("Custom search URL cleared");
+          addLogEntry("Custom search URL cleared");
+          chrome.runtime.sendMessage({ type: "updateFeedSources" });
+          trackEvent("custom_search_url_cleared", {});
+        });
+      } else if (!customSearchUrl.startsWith("https://www.upwork.com/nx/search/jobs/?")) {
+        showCustomUrlError("Custom Search URL must start with https://www.upwork.com/nx/search/jobs/?");
+      } else {
         // Clear any existing error message
         showCustomUrlError("");
 
+        // Save the new custom search URL
         chrome.storage.sync.set(
           {
             selectedFeedSource: "custom-search",
@@ -489,7 +503,8 @@ async function initializeSettings() {
             });
           }
         );
-      });
+      }
+    });
 
     // Load saved feed source settings when the page opens
     chrome.storage.sync.get(["customSearchUrl"], (data) => {
