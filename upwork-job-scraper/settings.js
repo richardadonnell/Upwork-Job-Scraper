@@ -648,8 +648,8 @@ sendMessageToBackground({ type: "settingsPageOpened" })
     console.error("Error sending message to background script:", error);
   });
 
-function showAlert(message, containerId, timeout = 15000) {
-  const alertContainer = document.getElementById(containerId);
+function showAlert(message, timeout = "15000") {
+  const alertContainer = document.getElementById("alert-container");
   const alertElement = document.createElement("div");
   alertElement.classList.add("alert");
   const alertMessage = document.createElement("p");
@@ -660,6 +660,7 @@ function showAlert(message, containerId, timeout = 15000) {
   closeButton.classList.add("close-btn");
   closeButton.innerHTML = "&times;";
   closeButton.addEventListener("click", () => {
+    clearTimeout(alertTimeout);
     alertElement.remove();
   });
   alertElement.appendChild(closeButton);
@@ -668,7 +669,8 @@ function showAlert(message, containerId, timeout = 15000) {
   countdownElement.classList.add("countdown");
   alertElement.appendChild(countdownElement);
 
-  let remainingTime = timeout;
+  const parsedTimeout = parseInt(timeout, 10);
+  let remainingTime = isNaN(parsedTimeout) ? 15000 : parsedTimeout;
 
   // Update the countdown immediately
   const seconds = Math.ceil(remainingTime / 1000);
@@ -687,7 +689,7 @@ function showAlert(message, containerId, timeout = 15000) {
 
   alertContainer.appendChild(alertElement);
 
-  setTimeout(() => {
+  const alertTimeout = setTimeout(() => {
     alertElement.remove();
-  }, timeout);
+  }, remainingTime);
 }
