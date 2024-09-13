@@ -629,6 +629,14 @@ async function initializeSettings() {
         showAlert("Please enter a custom search URL first.", "feed-sources-alert-container");
       }
     });
+
+    // Add this code to handle the accordion functionality
+    const accordionHeader = document.querySelector('.setup-instructions .accordion-header');
+    const accordionContent = document.querySelector('.setup-instructions .accordion-content');
+
+    accordionHeader.addEventListener('click', () => {
+      accordionContent.style.display = accordionContent.style.display === 'block' ? 'none' : 'block';
+    });
   } catch (error) {
     console.error("Error initializing settings:", error);
     window.logAndReportError("Error initializing settings", error);

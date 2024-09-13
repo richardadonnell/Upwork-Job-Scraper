@@ -548,7 +548,6 @@ option {
   color: #ffffff;
 }
 
-/* Add these new styles for the setup instructions */
 .setup-instructions {
   background-color: #1c1c1c;
   border-radius: 0.5em;
@@ -556,9 +555,20 @@ option {
   margin-bottom: 2em;
 }
 
-.setup-instructions h2 {
+.setup-instructions .accordion-header {
   margin-top: 0;
   color: #4ebc2d;
+  cursor: pointer;
+  transition: color 0.3s ease;
+}
+
+.setup-instructions .accordion-header:hover {
+  color: #108a00;
+}
+
+.setup-instructions .accordion-content {
+  display: none;
+  margin-top: 1em;
 }
 
 .setup-instructions p {
