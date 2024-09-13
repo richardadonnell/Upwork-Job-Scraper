@@ -5,28 +5,26 @@ body {
   margin: 0;
   padding: 0;
   line-height: 1.6;
-  font-size: 20px; /* Base font size for em calculations */
+  font-size: 20px;
 }
 
 .main-nav {
-  /* background-color: #108a00; */
   padding: 0.625em 0;
   margin-bottom: 1.25em;
-  /* box-shadow: 0 0 30px rgba(16, 138, 0, 0.5); */
 }
 
 .nav-content {
   display: flex;
-  align-items: center; /* This ensures vertical alignment */
+  align-items: center;
   justify-content: center;
-  flex-wrap: nowrap; /* Prevent wrapping */
+  flex-wrap: nowrap;
 }
 
 .nav-content img {
   width: 48px;
   height: 48px;
   margin-right: 20px;
-  margin-bottom: 0; /* Remove bottom margin */
+  margin-bottom: 0;
 }
 
 .nav-content h1 {
@@ -58,7 +56,6 @@ body {
   padding: 0 1.25em;
 }
 
-/* Typography */
 h1,
 h2,
 h3,
@@ -86,7 +83,6 @@ a:hover {
   text-decoration: underline;
 }
 
-/* Form elements */
 input[type="text"],
 input[type="number"] {
   font-size: 1em;
@@ -120,7 +116,6 @@ button:hover {
   box-shadow: 0 0 30px rgba(16, 138, 0, 0.5);
 }
 
-/* Add this new style for secondary buttons */
 .button-secondary {
   background-color: transparent;
   color: #108a00;
@@ -134,7 +129,6 @@ button:hover {
   box-shadow: 0 0 30px rgba(16, 138, 0, 0.5);
 }
 
-/* Containers */
 #jobs-container {
   font-size: 1em;
   margin-top: 1.25em;
@@ -165,7 +159,6 @@ button:hover {
   scrollbar-color: #108a00 #2a2a2a;
 }
 
-/* Job items */
 .job-item {
   margin-bottom: 0.9375em;
   background-color: #1d1d1d;
@@ -187,12 +180,12 @@ button:hover {
   overflow-wrap: break-word;
   hyphens: auto;
   padding-right: 1em;
-  color: #ffffff; /* Change the title color to match the headings */
+  color: #ffffff;
   cursor: pointer;
 }
 
 .job-title span {
-  color: #8d8c8c; /* Darker green for the "time scraped" text */
+  color: #8d8c8c;
   font-weight: normal;
 }
 
@@ -225,7 +218,6 @@ button:hover {
   margin-top: 0.625em;
 }
 
-/* Toggle switch */
 .toggle-switch {
   position: relative;
   display: inline-block;
@@ -271,7 +263,6 @@ input:checked + .slider:before {
   transform: translateX(1.625em);
 }
 
-/* Layout */
 .header {
   display: flex;
   align-items: center;
@@ -334,7 +325,6 @@ input:checked + .slider:before {
   margin-top: 0.625em;
 }
 
-/* Custom elements */
 #next-check-countdown {
   margin-bottom: 0.9375em;
   font-weight: bold;
@@ -355,7 +345,6 @@ input:checked + .slider:before {
   transform: scale(1.05);
 }
 
-/* Footer */
 footer {
   margin-top: 1.25em;
   text-align: center;
@@ -385,7 +374,6 @@ footer {
   }
 }
 
-/* Add this to ensure all other text uses DM Sans */
 p,
 span,
 label,
@@ -423,7 +411,6 @@ option {
   }
 }
 
-/* Scrollbar Styling */
 ::-webkit-scrollbar {
   width: 0.75em;
   height: 0.75em;
@@ -444,13 +431,11 @@ option {
   background: #4ebc2d;
 }
 
-/* For Firefox */
 * {
   scrollbar-width: thin;
   scrollbar-color: #108a00 #2a2a2a;
 }
 
-/* Hire me link */
 .hire-me {
   margin-top: 0.625em;
   font-size: 0.625em;
@@ -478,7 +463,6 @@ option {
   color: #8d8c8c;
 }
 
-/* New alert styles */
 #alert-container {
   position: fixed;
   bottom: 50px;
@@ -538,7 +522,6 @@ option {
   color: #108a00;
 }
 
-/* Add this new style for the "Clear All Jobs" button */
 #clear-jobs {
   transition: background-color 0.3s ease, color 0.3s ease;
 }
@@ -602,7 +585,6 @@ option {
 }
 
 .setup-instructions .accordion-header::before {
-  /* content: "\25B6"; */
   display: inline-block;
   margin-right: 0.5em;
   transition: transform 0.3s ease;
