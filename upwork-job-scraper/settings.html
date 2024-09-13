@@ -27,6 +27,34 @@
       </div>
     </nav>
     <div class="container">
+      <!-- Add the "Getting Started" accordion here -->
+      <div class="setup-instructions" id="setup-instructions">
+        <div class="accordion-header">
+          <h2>Getting Started</h2>
+          <button class="dismiss-button">Dismiss</button>
+        </div>
+        <small class="expand-text">(click to expand)</small>
+        <div class="accordion-content">
+          <p>Welcome to the Upwork Job Scraper! Follow these simple steps to get started:</p>
+          <ol>
+            <li>
+              Enter your custom Upwork search URL in the "Feed Sources" section below. This will determine which jobs are scraped.
+            </li>
+            <li>
+              Choose whether you'd like to receive push notifications when new jobs are found by toggling the "Enable Push Notifications" switch in the "Notification Settings" section.
+            </li>
+            <li>
+              If you want to send the scraped jobs to a webhook, enter your webhook URL and enable the webhook in the "Webhook Settings" section.
+            </li>
+            <li>
+              (Optional) Adjust the frequency at which the extension checks for new jobs in the "Job Check Frequency" section. The default is set to a convenient 5 minutes.
+            </li>
+          </ol>
+          <p>That's it! You're ready to start scraping jobs. If you have any questions or feedback, please don't hesitate to <a href="https://github.com/richardadonnell/Upwork-Job-Scraper/issues" target="_blank">reach out on GitHub</a>. Happy scraping!</p>
+        </div>
+      </div>
+
+      <div id="alert-container"></div>
       <div class="alert">
         <p>
           <strong>Note:</strong> This Chrome extension is under development. If
@@ -56,6 +84,7 @@
       </div>
 
       <h2>Webhook Settings</h2>
+      <div id="webhook-alert-container"></div>
       <div class="toggle-container">
         <label class="toggle-switch">
           <input type="checkbox" id="webhook-toggle" checked />
@@ -71,11 +100,12 @@
         placeholder="Enter your webhook URL"
       />
       <div class="button-group">
-        <button id="save">Save URL</button>
+        <!-- Remove the "Save URL" button -->
         <button id="test-webhook" class="button-secondary">Test Webhook</button>
       </div>
 
       <h2>Notification Settings</h2>
+      <div id="notification-alert-container"></div>
       <div class="toggle-container">
         <label class="toggle-switch">
           <input type="checkbox" id="notification-toggle" checked />
@@ -85,6 +115,7 @@
       </div>
 
       <h2>Job Check Frequency</h2>
+      <div id="frequency-alert-container"></div>
       <div id="next-check-countdown"></div>
       <div class="frequency-container">
         <div class="frequency-input">
@@ -99,10 +130,11 @@
           <label for="minutes">Minutes:</label>
           <input type="number" id="minutes" min="1" max="59" placeholder="5" />
         </div>
-        <button id="save-frequency">Save Frequency</button>
+        <!-- Remove the "Save Frequency" button -->
       </div>
 
       <h2>Feed Sources</h2>
+      <div id="feed-sources-alert-container"></div>
       <div class="feed-sources">
         <!-- Remove or comment out the most-recent-feed option -->
         <!--
@@ -141,7 +173,7 @@
         />
       </div>
       <div class="button-group">
-        <button id="save-feed-sources">Save Feed Sources</button>
+        <!-- Remove the "Save Feed Sources" button -->
         <button id="open-custom-url" class="button-secondary">
           Open Custom URL
         </button>
@@ -157,9 +189,7 @@
           </li>
           <li>Search for the jobs you're interested in</li>
           <li>Search for multiple terms like this (python OR javascript)</li>
-          <li>
-            Use the "Advanced search filters" to narrow down the search results
-          </li>
+          <li>Use the "Advanced search filters" to narrow down the search results</li>
           <li>Copy the URL from your browser's address bar</li>
           <li>Paste the URL into the "Custom Search URL" field above</li>
           <li>Click the button below to save the changes</li>
@@ -201,6 +231,8 @@
         </a>
       </p>
     </footer>
+
+    <div id="alert-container"></div>
 
     <script src="settings.js"></script>
   </body>

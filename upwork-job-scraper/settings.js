@@ -74,7 +74,7 @@ function trackEvent(eventName, eventParams) {
 }
 
 // Add this function at the top of your settings.js file
-function initializeSettings() {
+async function initializeSettings() {
   console.log("Initializing settings...");
 
   // Initialize Sentry
@@ -91,29 +91,42 @@ function initializeSettings() {
   trackEvent("settings_page_opened", {});
 
   try {
-    document.getElementById("save").addEventListener("click", () => {
+    // Update the webhook URL input event listener
+    document.getElementById("webhook-url").addEventListener("input", () => {
       const webhookUrl = document.getElementById("webhook-url").value;
       const webhookEnabled = document.getElementById("webhook-toggle").checked;
-      chrome.storage.sync.set(
-        { webhookUrl: webhookUrl, webhookEnabled: webhookEnabled },
-        () => {
-          console.log("Webhook settings saved");
-          addLogEntry("Webhook settings saved");
+      
+      if (webhookUrl === "") {
+        // If the URL is empty, clear the saved webhook URL
+        chrome.storage.sync.remove("webhookUrl", () => {
+          console.log("Webhook URL cleared");
+          addLogEntry("Webhook URL cleared");
           chrome.runtime.sendMessage({ type: "updateWebhookSettings" });
-          trackEvent("webhook_settings_saved", { enabled: webhookEnabled });
-        }
-      );
+          trackEvent("webhook_url_cleared", {});
+        });
+      } else {
+        // Otherwise, save the new webhook URL
+        chrome.storage.sync.set(
+          { webhookUrl: webhookUrl, webhookEnabled: webhookEnabled },
+          () => {
+            console.log("Webhook settings saved");
+            addLogEntry("Webhook settings saved");
+            chrome.runtime.sendMessage({ type: "updateWebhookSettings" });
+            trackEvent("webhook_settings_saved", { enabled: webhookEnabled });
+          }
+        );
+      }
     });
 
     document.getElementById("test-webhook").addEventListener("click", () => {
       const webhookUrl = document.getElementById("webhook-url").value;
       const webhookEnabled = document.getElementById("webhook-toggle").checked;
       if (!webhookEnabled) {
-        alert("Please enable the webhook before testing.");
+        showAlert("Please enable the webhook before testing.", "webhook-alert-container");
         return;
       }
       if (!webhookUrl) {
-        alert("Please enter a webhook URL before testing.");
+        showAlert("Please enter a webhook URL before testing.", "webhook-alert-container");
         return;
       }
 
@@ -153,15 +166,16 @@ function initializeSettings() {
         .then((result) => {
           console.log("Test webhook response:", result);
           addLogEntry("Test webhook sent successfully");
-          alert(
-            "Test webhook sent successfully. Check your webhook endpoint for the received data."
+          showAlert(
+            "Test webhook sent successfully. Check your webhook endpoint for the received data.",
+            "webhook-alert-container"
           );
           trackEvent("test_webhook_sent", { success: true });
         })
         .catch((error) => {
           console.error("Error:", error);
           addLogEntry("Error sending test webhook");
-          alert("Error sending test webhook. Check the console for details.");
+          showAlert("Error sending test webhook. Check the console for details.", "webhook-alert-container");
           trackEvent("test_webhook_sent", {
             success: false,
             error: error.message,
@@ -223,9 +237,12 @@ function initializeSettings() {
         });
       });
 
-    // Add this after the other event listeners
+    // Update the check frequency input event listeners
+    document.getElementById("days").addEventListener("input", saveFrequency);
+    document.getElementById("hours").addEventListener("input", saveFrequency);
+    document.getElementById("minutes").addEventListener("input", saveFrequency);
 
-    document.getElementById("save-frequency").addEventListener("click", () => {
+    function saveFrequency() {
       const days = parseInt(document.getElementById("days").value) || 0;
       const hours = parseInt(document.getElementById("hours").value) || 0;
       const minutes = parseInt(document.getElementById("minutes").value) || 1;
@@ -233,7 +250,7 @@ function initializeSettings() {
       const totalMinutes = days * 1440 + hours * 60 + minutes;
 
       if (totalMinutes < 1) {
-        alert("Please set a frequency of at least 1 minute.");
+        showAlert("Please set a frequency of at least 1 minute.", "frequency-alert-container");
         return;
       }
 
@@ -247,7 +264,7 @@ function initializeSettings() {
         startCountdown(); // Restart the countdown with the new frequency
         trackEvent("check_frequency_changed", { days, hours, minutes });
       });
-    });
+    }
 
     // Load saved check frequency when the page opens
     chrome.storage.sync.get("checkFrequency", (data) => {
@@ -265,9 +282,14 @@ function initializeSettings() {
     // Function to add log entries
     function addLogEntry(message) {
       const logContainer = document.getElementById("log-container");
-      const logEntry = document.createElement("p");
+      const logEntry = document.createElement("div");
       logEntry.textContent = `${new Date().toLocaleString()}: ${message}`;
-      logContainer.insertBefore(logEntry, logContainer.firstChild);
+      logContainer.prepend(logEntry);
+
+      // Remove oldest log entry if there are more than 100
+      if (logContainer.children.length > 100) {
+        logContainer.removeChild(logContainer.lastChild);
+      }
     }
 
     // Load existing log entries
@@ -369,14 +391,28 @@ function initializeSettings() {
       }
     });
 
-    // Listen for log updates and job updates from the background script
+    // Listen for log updates, job updates, and login warnings from the background script
     chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       if (message.type === "logUpdate") {
         addLogEntry(message.content);
       } else if (message.type === "jobsUpdate") {
         addJobEntries(message.jobs);
+      } else if (message.type === "loginWarning") {
+        showLoginWarning(message.message);
       }
     });
+
+    function showLoginWarning(message) {
+      const warningElement = document.createElement("div");
+      warningElement.className = "alert alert-warning";
+      warningElement.innerHTML = `
+        <strong>Warning:</strong> ${message} Please check your Upwork login status and try again.
+        If the issue persists, you may need to manually log in to Upwork and then restart the extension.
+      `;
+
+      const settingsContainer = document.querySelector(".settings-container");
+      settingsContainer.insertBefore(warningElement, settingsContainer.firstChild);
+    }
 
     function updateTimeDifference(timestamp, element) {
       if (!timestamp) {
@@ -438,27 +474,25 @@ function initializeSettings() {
       errorElement.textContent = message;
     }
 
-    // Modify the save-feed-sources event listener
-    document
-      .getElementById("save-feed-sources")
-      .addEventListener("click", () => {
-        const customSearchUrl =
-          document.getElementById("custom-search-url").value;
+    // Update the custom search URL input event listener
+    document.getElementById("custom-search-url").addEventListener("input", () => {
+      const customSearchUrl = document.getElementById("custom-search-url").value;
 
-        if (
-          !customSearchUrl.startsWith(
-            "https://www.upwork.com/nx/search/jobs/?"
-          )
-        ) {
-          showCustomUrlError(
-            "Custom Search URL must start with https://www.upwork.com/nx/search/jobs/?"
-          );
-          return;
-        }
-
+      if (customSearchUrl === "") {
+        // If the URL is empty, clear the saved custom search URL
+        chrome.storage.sync.remove(["customSearchUrl", "selectedFeedSource"], () => {
+          console.log("Custom search URL cleared");
+          addLogEntry("Custom search URL cleared");
+          chrome.runtime.sendMessage({ type: "updateFeedSources" });
+          trackEvent("custom_search_url_cleared", {});
+        });
+      } else if (!customSearchUrl.startsWith("https://www.upwork.com/nx/search/jobs/?")) {
+        showCustomUrlError("Custom Search URL must start with https://www.upwork.com/nx/search/jobs/?");
+      } else {
         // Clear any existing error message
         showCustomUrlError("");
 
+        // Save the new custom search URL
         chrome.storage.sync.set(
           {
             selectedFeedSource: "custom-search",
@@ -474,7 +508,8 @@ function initializeSettings() {
             });
           }
         );
-      });
+      }
+    });
 
     // Load saved feed source settings when the page opens
     chrome.storage.sync.get(["customSearchUrl"], (data) => {
@@ -559,10 +594,16 @@ function initializeSettings() {
     }
 
     // Add this inside the initializeSettings function
-    document.getElementById("clear-jobs").addEventListener("click", () => {
-      if (confirm("Are you sure you want to clear all scraped jobs?")) {
+    document.getElementById("clear-jobs").addEventListener("click", (event) => {
+      const button = event.target;
+      if (button.classList.contains("confirm")) {
         clearAllJobs();
         trackEvent("clear_all_jobs", {});
+        button.classList.remove("confirm");
+        button.textContent = "Clear All Jobs";
+      } else {
+        button.classList.add("confirm");
+        button.textContent = "Click to Confirm";
       }
     });
 
@@ -585,8 +626,29 @@ function initializeSettings() {
         window.open(customSearchUrl, "_blank");
         trackEvent("open_custom_url", { url: customSearchUrl });
       } else {
-        alert("Please enter a custom search URL first.");
+        showAlert("Please enter a custom search URL first.", "feed-sources-alert-container");
       }
+    });
+
+    // Add this code to handle the accordion functionality and dismiss button
+    const accordionHeader = document.querySelector('.setup-instructions .accordion-header');
+    const accordionContent = document.querySelector('.setup-instructions .accordion-content');
+    const dismissButton = document.querySelector('.setup-instructions .dismiss-button');
+
+    accordionHeader.addEventListener('click', () => {
+      accordionContent.style.display = accordionContent.style.display === 'block' ? 'none' : 'block';
+    });
+
+    // Check if the user has previously dismissed the setup instructions
+    chrome.storage.sync.get('setupInstructionsDismissed', (data) => {
+      if (!data.setupInstructionsDismissed) {
+        document.getElementById('setup-instructions').classList.add('show');
+      }
+    });
+
+    dismissButton.addEventListener('click', () => {
+      document.getElementById('setup-instructions').classList.remove('show');
+      chrome.storage.sync.set({ setupInstructionsDismissed: true });
     });
   } catch (error) {
     console.error("Error initializing settings:", error);
@@ -610,3 +672,71 @@ window.addEventListener("beforeunload", () => {
     clearInterval(window.timeUpdateInterval);
   }
 });
+
+// Add this function near the top of the file, after the waitForBackgroundScript function
+function sendMessageToBackground(message) {
+  return new Promise((resolve, reject) => {
+    chrome.runtime.sendMessage(message, (response) => {
+      if (chrome.runtime.lastError) {
+        reject(chrome.runtime.lastError);
+      } else {
+        resolve(response);
+      }
+    });
+  });
+}
+
+// Add this inside the initializeSettings function
+sendMessageToBackground({ type: "settingsPageOpened" })
+  .then(() => {
+    console.log("Notified background script that settings page is open");
+  })
+  .catch((error) => {
+    console.error("Error sending message to background script:", error);
+  });
+
+function showAlert(message, timeout = "15000") {
+  const alertContainer = document.getElementById("alert-container");
+  const alertElement = document.createElement("div");
+  alertElement.classList.add("alert");
+  const alertMessage = document.createElement("p");
+  alertMessage.textContent = message;
+  alertElement.appendChild(alertMessage);
+
+  const closeButton = document.createElement("button");
+  closeButton.classList.add("close-btn");
+  closeButton.innerHTML = "&times;";
+  closeButton.addEventListener("click", () => {
+    clearTimeout(alertTimeout);
+    alertElement.remove();
+  });
+  alertElement.appendChild(closeButton);
+
+  const countdownElement = document.createElement("span");
+  countdownElement.classList.add("countdown");
+  alertElement.appendChild(countdownElement);
+
+  const parsedTimeout = parseInt(timeout, 10);
+  let remainingTime = isNaN(parsedTimeout) ? 15000 : parsedTimeout;
+
+  // Update the countdown immediately
+  const seconds = Math.ceil(remainingTime / 1000);
+  countdownElement.textContent = `Closing in ${seconds}s`;
+
+  const countdownInterval = setInterval(() => {
+    remainingTime -= 1000;
+    const seconds = Math.ceil(remainingTime / 1000);
+    countdownElement.textContent = `Closing in ${seconds}s`;
+
+    if (remainingTime <= 0) {
+      clearInterval(countdownInterval);
+      alertElement.remove();
+    }
+  }, 1000);
+
+  alertContainer.appendChild(alertElement);
+
+  const alertTimeout = setTimeout(() => {
+    alertElement.remove();
+  }, remainingTime);
+}
