@@ -20,26 +20,70 @@ async function checkForNewJobs(jobScrapingEnabled) {
     }
 
     await new Promise((resolve, reject) => {
-      chrome.tabs.create({ url: url, active: false }, (tab) => {
+      chrome.tabs.create({ url: url, active: false }, async (tab) => {
+        // Wait for the page to load
+        await new Promise((resolve) => {
+          chrome.tabs.onUpdated.addListener(function listener(tabId, info) {
+            if (tabId === tab.id && info.status === 'complete') {
+              chrome.tabs.onUpdated.removeListener(listener);
+              resolve();
+            }
+          });
+        });
+
+        // Check if the user is "fake" logged out
         chrome.scripting.executeScript(
           {
             target: { tabId: tab.id },
-            function: scrapeJobs,
+            function: isUserLoggedOut,
           },
-          (results) => {
-            if (chrome.runtime.lastError) {
-              addToActivityLog("Error: " + chrome.runtime.lastError.message);
-              reject(chrome.runtime.lastError);
-            } else if (results && results[0] && results[0].result) {
-              const jobs = results[0].result;
-              addToActivityLog(`Scraped ${jobs.length} jobs from ${url}`);
-              processJobs(jobs);
-            } else {
-              addToActivityLog("No jobs scraped or unexpected result");
+          async (results) => {
+            if (results && results[0] && results[0].result) {
+              // User is "fake" logged out, click the "Log In" link
+              await chrome.scripting.executeScript({
+                target: { tabId: tab.id },
+                function: clickLoginLink,
+              });
+
+              // Wait for the redirect to happen and the user to be logged in
+              await new Promise((resolve) => setTimeout(resolve, 5000));
+
+              // Navigate back to the custom search URL
+              await chrome.tabs.update(tab.id, { url: url });
+
+              // Wait for the page to load again
+              await new Promise((resolve) => {
+                chrome.tabs.onUpdated.addListener(function listener(tabId, info) {
+                  if (tabId === tab.id && info.status === 'complete') {
+                    chrome.tabs.onUpdated.removeListener(listener);
+                    resolve();
+                  }
+                });
+              });
             }
-            chrome.tabs.remove(tab.id);
-            addToActivityLog("Job check completed for " + url);
-            resolve();
+
+            // User is logged in, proceed with scraping jobs
+            chrome.scripting.executeScript(
+              {
+                target: { tabId: tab.id },
+                function: scrapeJobs,
+              },
+              (results) => {
+                if (chrome.runtime.lastError) {
+                  addToActivityLog("Error: " + chrome.runtime.lastError.message);
+                  reject(chrome.runtime.lastError);
+                } else if (results && results[0] && results[0].result) {
+                  const jobs = results[0].result;
+                  addToActivityLog(`Scraped ${jobs.length} jobs from ${url}`);
+                  processJobs(jobs);
+                } else {
+                  addToActivityLog("No jobs scraped or unexpected result");
+                }
+                chrome.tabs.remove(tab.id);
+                addToActivityLog("Job check completed for " + url);
+                resolve();
+              }
+            );
           }
         );
       });
@@ -341,4 +385,16 @@ function loadFeedSourceSettings() {
       }
     );
   });
+}
+
+function isUserLoggedOut() {
+  const loginLink = document.querySelector('a[data-test="UpLink"]');
+  return loginLink !== null;
+}
+
+function clickLoginLink() {
+  const loginLink = document.querySelector('a[data-test="UpLink"]');
+  if (loginLink) {
+    loginLink.click();
+  }
 }
