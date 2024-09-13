@@ -610,3 +610,25 @@ window.addEventListener("beforeunload", () => {
     clearInterval(window.timeUpdateInterval);
   }
 });
+
+// Add this function near the top of the file, after the waitForBackgroundScript function
+function sendMessageToBackground(message) {
+  return new Promise((resolve, reject) => {
+    chrome.runtime.sendMessage(message, (response) => {
+      if (chrome.runtime.lastError) {
+        reject(chrome.runtime.lastError);
+      } else {
+        resolve(response);
+      }
+    });
+  });
+}
+
+// Add this inside the initializeSettings function
+sendMessageToBackground({ type: "settingsPageOpened" })
+  .then(() => {
+    console.log("Notified background script that settings page is open");
+  })
+  .catch((error) => {
+    console.error("Error sending message to background script:", error);
+  });
