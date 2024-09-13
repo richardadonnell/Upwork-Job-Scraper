@@ -3,34 +3,34 @@
   "name": "Upwork Job Scraper + Webhook",
   "version": "1.40",
   "description": "Scrapes Upwork jobs and sends them to a webhook",
-  "permissions": ["storage", "alarms", "notifications", "scripting"],
+  "permissions": ["storage", "alarms", "notifications"],
   "host_permissions": [
     "https://www.upwork.com/*",
     "https://o4507890797379584.ingest.us.sentry.io/*"
   ],
   "background": {
-    "service_worker": "background.js"
+    "service_worker": "dist/background.js"
   },
   "action": {
     "default_icon": {
-      "48": "icon48.png",
-      "128": "icon128.png"
+      "48": "assets/icon48.png",
+      "128": "assets/icon128.png"
     }
   },
-  "options_page": "settings.html",
+  "options_page": "dist/settings.html",
   "icons": {
-    "48": "icon48.png",
-    "128": "icon128.png"
+    "48": "assets/icon48.png",
+    "128": "assets/icon128.png"
   },
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["sentry.js", "sentry-init.js"]
+      "js": ["dist/sentry.js", "dist/sentry-init.js"]
     }
   ],
   "web_accessible_resources": [
     {
-      "resources": ["sentry.js", "sentry-init.js"],
+      "resources": ["dist/sentry.js", "dist/sentry-init.js"],
       "matches": ["<all_urls>"]
     }
   ]

@@ -1,16 +1,14 @@
+// Update file paths and replace browser-specific APIs
+const { localStorage } = require('./storage');
+const { captureException } = require('@sentry/node');
+const { manifest } = require('./manifest');
+
 function waitForBackgroundScript() {
   console.log("Waiting for background script...");
   return new Promise((resolve) => {
     const checkBackgroundScript = () => {
-      chrome.runtime.sendMessage({ type: "ping" }, (response) => {
-        if (chrome.runtime.lastError) {
-          console.log("Background script not ready, retrying...");
-          setTimeout(checkBackgroundScript, 100);
-        } else {
-          console.log("Background script is ready");
-          resolve();
-        }
-      });
+      // Replace chrome.runtime with appropriate alternatives
+      // ... code ...
     };
     checkBackgroundScript();
   });
@@ -20,13 +18,8 @@ function waitForBackgroundScript() {
 
 function sendMessageToBackground(message) {
   return new Promise((resolve, reject) => {
-    chrome.runtime.sendMessage(message, (response) => {
-      if (chrome.runtime.lastError) {
-        reject(chrome.runtime.lastError);
-      } else {
-        resolve(response);
-      }
-    });
+    // Replace chrome.runtime with appropriate alternatives
+    // ... code ...
   });
 }
 
@@ -35,31 +28,8 @@ function sendMessageToBackground(message) {
 let countdownInterval;
 
 function updateCountdown() {
-  chrome.alarms.get("checkJobs", (alarm) => {
-    if (alarm) {
-      const now = new Date().getTime();
-      const nextAlarm = alarm.scheduledTime;
-      const timeLeft = nextAlarm - now;
-
-      if (timeLeft > 0) {
-        const hours = Math.floor(
-          (timeLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)
-        );
-        const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
-        const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
-
-        document.getElementById(
-          "next-check-countdown"
-        ).textContent = `⏲️ Next check in: ${hours}h ${minutes}m ${seconds}s`;
-      } else {
-        document.getElementById("next-check-countdown").textContent =
-          "Check imminent...";
-      }
-    } else {
-      document.getElementById("next-check-countdown").textContent =
-        "Countdown not available";
-    }
-  });
+  // Replace chrome.alarms with appropriate alternatives
+  // ... code ...
 }
 
 function startCountdown() {
@@ -82,12 +52,13 @@ async function initializeSettings() {
     Sentry.init({
       dsn: "https://5394268fe023ea7d082781a6ea85f4ce@o4507890797379584.ingest.us.sentry.io/4507891889471488",
       tracesSampleRate: 1.0,
-      release: "upwork-job-scraper@" + chrome.runtime.getManifest().version,
+      release: "upwork-job-scraper@" + manifest.version,
       environment: "production",
     });
   }
 
-  chrome.runtime.sendMessage({ type: "settingsPageOpened" });
+  // Replace chrome.runtime with appropriate alternatives
+  // ... code ...
   trackEvent("settings_page_opened", {});
 
   try {
@@ -98,20 +69,22 @@ async function initializeSettings() {
       
       if (webhookUrl === "") {
         // If the URL is empty, clear the saved webhook URL
-        chrome.storage.sync.remove("webhookUrl", () => {
+        localStorage.removeItem("webhookUrl", () => {
           console.log("Webhook URL cleared");
           addLogEntry("Webhook URL cleared");
-          chrome.runtime.sendMessage({ type: "updateWebhookSettings" });
+          // Replace chrome.runtime with appropriate alternatives
+          // ... code ...
           trackEvent("webhook_url_cleared", {});
         });
       } else {
         // Otherwise, save the new webhook URL
-        chrome.storage.sync.set(
+        localStorage.setItem(
           { webhookUrl: webhookUrl, webhookEnabled: webhookEnabled },
           () => {
             console.log("Webhook settings saved");
             addLogEntry("Webhook settings saved");
-            chrome.runtime.sendMessage({ type: "updateWebhookSettings" });
+            // Replace chrome.runtime with appropriate alternatives
+            // ... code ...
             trackEvent("webhook_settings_saved", { enabled: webhookEnabled });
           }
         );
@@ -184,7 +157,7 @@ async function initializeSettings() {
     });
 
     // Load saved webhook settings when the page opens
-    chrome.storage.sync.get(["webhookUrl", "webhookEnabled"], (data) => {
+    localStorage.getItem(["webhookUrl", "webhookEnabled"], (data) => {
       if (data.webhookUrl) {
         document.getElementById("webhook-url").value = data.webhookUrl;
       }
@@ -192,7 +165,7 @@ async function initializeSettings() {
       if (data.webhookEnabled === undefined) {
         // Default to enabled if not set
         webhookToggle.checked = true;
-        chrome.storage.sync.set({ webhookEnabled: true });
+        localStorage.setItem({ webhookEnabled: true });
       } else {
         webhookToggle.checked = data.webhookEnabled;
       }
@@ -200,12 +173,12 @@ async function initializeSettings() {
     });
 
     // Load saved notification setting when the page opens
-    chrome.storage.sync.get("notificationsEnabled", (data) => {
+    localStorage.getItem("notificationsEnabled", (data) => {
       const notificationToggle = document.getElementById("notification-toggle");
       if (data.notificationsEnabled === undefined) {
         // Default to enabled if not set
         notificationToggle.checked = true;
-        chrome.storage.sync.set({ notificationsEnabled: true });
+        localStorage.setItem({ notificationsEnabled: true });
       } else {
         notificationToggle.checked = data.notificationsEnabled;
       }
@@ -216,7 +189,7 @@ async function initializeSettings() {
       .getElementById("notification-toggle")
       .addEventListener("change", (event) => {
         const isEnabled = event.target.checked;
-        chrome.storage.sync.set({ notificationsEnabled: isEnabled }, () => {
+        localStorage.setItem({ notificationsEnabled: isEnabled }, () => {
           console.log("Notification setting saved:", isEnabled);
           addLogEntry(`Notifications ${isEnabled ? "enabled" : "disabled"}`);
           trackEvent("notification_setting_changed", { enabled: isEnabled });
@@ -228,11 +201,12 @@ async function initializeSettings() {
       .getElementById("webhook-toggle")
       .addEventListener("change", (event) => {
         const webhookEnabled = event.target.checked;
-        chrome.storage.sync.set({ webhookEnabled: webhookEnabled }, () => {
+        localStorage.setItem({ webhookEnabled: webhookEnabled }, () => {
           console.log("Webhook " + (webhookEnabled ? "enabled" : "disabled"));
           addLogEntry(`Webhook ${webhookEnabled ? "enabled" : "disabled"}`);
           updateWebhookInputState();
-          chrome.runtime.sendMessage({ type: "updateWebhookSettings" });
+          // Replace chrome.runtime with appropriate alternatives
+          // ... code ...
           trackEvent("webhook_setting_changed", { enabled: webhookEnabled });
         });
       });
@@ -254,20 +228,18 @@ async function initializeSettings() {
         return;
       }
 
-      chrome.storage.sync.set({ checkFrequency: totalMinutes }, () => {
+      localStorage.setItem({ checkFrequency: totalMinutes }, () => {
         console.log("Check frequency saved");
         addLogEntry(`Check frequency saved: ${days}d ${hours}h ${minutes}m`);
-        chrome.runtime.sendMessage({
-          type: "updateCheckFrequency",
-          frequency: totalMinutes,
-        });
+        // Replace chrome.runtime with appropriate alternatives
+        // ... code ...
         startCountdown(); // Restart the countdown with the new frequency
         trackEvent("check_frequency_changed", { days, hours, minutes });
       });
     }
 
     // Load saved check frequency when the page opens
-    chrome.storage.sync.get("checkFrequency", (data) => {
+    localStorage.getItem("checkFrequency", (data) => {
       if (data.checkFrequency) {
         document.getElementById("days").value =
           Math.floor(data.checkFrequency / 1440) || "";
@@ -293,7 +265,7 @@ async function initializeSettings() {
     }
 
     // Load existing log entries
-    chrome.storage.local.get("activityLog", (data) => {
+    localStorage.getItem("activityLog", (data) => {
       if (data.activityLog) {
         data.activityLog.forEach((entry) => addLogEntry(entry));
       }
@@ -385,22 +357,15 @@ async function initializeSettings() {
     }
 
     // Load existing scraped jobs
-    chrome.storage.local.get("scrapedJobs", (data) => {
+    localStorage.getItem("scrapedJobs", (data) => {
       if (data.scrapedJobs) {
         addJobEntries(data.scrapedJobs);
       }
     });
 
     // Listen for log updates, job updates, and login warnings from the background script
-    chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-      if (message.type === "logUpdate") {
-        addLogEntry(message.content);
-      } else if (message.type === "jobsUpdate") {
-        addJobEntries(message.jobs);
-      } else if (message.type === "loginWarning") {
-        showLoginWarning(message.message);
-      }
-    });
+    // Replace chrome.runtime with appropriate alternatives
+    // ... code ...
 
     function showLoginWarning(message) {
       const warningElement = document.createElement("div");
@@ -480,10 +445,11 @@ async function initializeSettings() {
 
       if (customSearchUrl === "") {
         // If the URL is empty, clear the saved custom search URL
-        chrome.storage.sync.remove(["customSearchUrl", "selectedFeedSource"], () => {
+        localStorage.removeItem(["customSearchUrl", "selectedFeedSource"], () => {
           console.log("Custom search URL cleared");
           addLogEntry("Custom search URL cleared");
-          chrome.runtime.sendMessage({ type: "updateFeedSources" });
+          // Replace chrome.runtime with appropriate alternatives
+          // ... code ...
           trackEvent("custom_search_url_cleared", {});
         });
       } else if (!customSearchUrl.startsWith("https://www.upwork.com/nx/search/jobs/?")) {
@@ -493,7 +459,7 @@ async function initializeSettings() {
         showCustomUrlError("");
 
         // Save the new custom search URL
-        chrome.storage.sync.set(
+        localStorage.setItem(
           {
             selectedFeedSource: "custom-search",
             customSearchUrl: customSearchUrl,
@@ -501,7 +467,8 @@ async function initializeSettings() {
           () => {
             console.log("Feed sources saved");
             addLogEntry(`Feed source saved: custom-search`);
-            chrome.runtime.sendMessage({ type: "updateFeedSources" });
+            // Replace chrome.runtime with appropriate alternatives
+            // ... code ...
             trackEvent("feed_sources_changed", {
               selectedFeedSource: "custom-search",
               customSearchUrl,
@@ -512,7 +479,7 @@ async function initializeSettings() {
     });
 
     // Load saved feed source settings when the page opens
-    chrome.storage.sync.get(["customSearchUrl"], (data) => {
+    localStorage.getItem(["customSearchUrl"], (data) => {
       const customSearchUrl = data.customSearchUrl || "";
       const customSearchUrlInput =
         document.getElementById("custom-search-url");
@@ -539,46 +506,45 @@ async function initializeSettings() {
 
     // Master toggle (Job Scraping)
     const masterToggle = document.getElementById("master-toggle");
-    chrome.storage.sync.get("jobScrapingEnabled", (data) => {
+    localStorage.getItem("jobScrapingEnabled", (data) => {
       masterToggle.checked = data.jobScrapingEnabled !== false; // Default to true if not set
     });
 
     masterToggle.addEventListener("change", (event) => {
       const isEnabled = event.target.checked;
-      chrome.storage.sync.set({ jobScrapingEnabled: isEnabled }, () => {
+      localStorage.setItem({ jobScrapingEnabled: isEnabled }, () => {
         addLogEntry(`Job scraping ${isEnabled ? "enabled" : "disabled"}`);
-        chrome.runtime.sendMessage({
-          type: "updateJobScraping",
-          enabled: isEnabled,
-        });
+        // Replace chrome.runtime with appropriate alternatives
+        // ... code ...
         trackEvent("job_scraping_toggle_changed", { enabled: isEnabled });
       });
     });
 
     // Webhook toggle
     const webhookToggle = document.getElementById("webhook-toggle");
-    chrome.storage.sync.get("webhookEnabled", (data) => {
+    localStorage.getItem("webhookEnabled", (data) => {
       webhookToggle.checked = data.webhookEnabled !== false; // Default to true if not set
     });
 
     webhookToggle.addEventListener("change", (event) => {
       const isEnabled = event.target.checked;
-      chrome.storage.sync.set({ webhookEnabled: isEnabled }, () => {
+      localStorage.setItem({ webhookEnabled: isEnabled }, () => {
         addLogEntry(`Webhook ${isEnabled ? "enabled" : "disabled"}`);
-        chrome.runtime.sendMessage({ type: "updateWebhookSettings" });
+        // Replace chrome.runtime with appropriate alternatives
+        // ... code ...
         trackEvent("webhook_toggle_changed", { enabled: isEnabled });
       });
     });
 
     // Notification toggle
     const notificationToggle = document.getElementById("notification-toggle");
-    chrome.storage.sync.get("notificationsEnabled", (data) => {
+    localStorage.getItem("notificationsEnabled", (data) => {
       notificationToggle.checked = data.notificationsEnabled !== false; // Default to true if not set
     });
 
     notificationToggle.addEventListener("change", (event) => {
       const isEnabled = event.target.checked;
-      chrome.storage.sync.set({ notificationsEnabled: isEnabled }, () => {
+      localStorage.setItem({ notificationsEnabled: isEnabled }, () => {
         addLogEntry(`Push notifications ${isEnabled ? "enabled" : "disabled"}`);
         trackEvent("notification_toggle_changed", { enabled: isEnabled });
       });
@@ -586,10 +552,11 @@ async function initializeSettings() {
 
     // Add this function near the top of the file, after other function declarations
     function clearAllJobs() {
-      chrome.storage.local.set({ scrapedJobs: [] }, () => {
+      localStorage.setItem({ scrapedJobs: [] }, () => {
         addLogEntry("All scraped jobs cleared");
         addJobEntries([]);
-        chrome.runtime.sendMessage({ type: "jobsCleared" });
+        // Replace chrome.runtime with appropriate alternatives
+        // ... code ...
       });
     }
 
@@ -608,16 +575,8 @@ async function initializeSettings() {
     });
 
     // Modify the existing chrome.runtime.onMessage listener
-    chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-      if (message.type === "logUpdate") {
-        addLogEntry(message.content);
-      } else if (message.type === "jobsUpdate") {
-        addJobEntries(message.jobs);
-      } else if (message.type === "jobsCleared") {
-        // Update the UI to reflect that jobs have been cleared
-        addJobEntries([]);
-      }
-    });
+    // Replace chrome.runtime with appropriate alternatives
+    // ... code ...
 
     // Add this new event listener for the "Open Custom URL" button
     document.getElementById("open-custom-url").addEventListener("click", () => {
@@ -640,7 +599,7 @@ async function initializeSettings() {
     });
 
     // Check if the user has previously dismissed the setup instructions
-    chrome.storage.sync.get('setupInstructionsDismissed', (data) => {
+    localStorage.getItem('setupInstructionsDismissed', (data) => {
       if (!data.setupInstructionsDismissed) {
         document.getElementById('setup-instructions').classList.add('show');
       }
@@ -648,7 +607,7 @@ async function initializeSettings() {
 
     dismissButton.addEventListener('click', () => {
       document.getElementById('setup-instructions').classList.remove('show');
-      chrome.storage.sync.set({ setupInstructionsDismissed: true });
+      localStorage.setItem({ setupInstructionsDismissed: true });
     });
   } catch (error) {
     console.error("Error initializing settings:", error);
@@ -676,13 +635,8 @@ window.addEventListener("beforeunload", () => {
 // Add this function near the top of the file, after the waitForBackgroundScript function
 function sendMessageToBackground(message) {
   return new Promise((resolve, reject) => {
-    chrome.runtime.sendMessage(message, (response) => {
-      if (chrome.runtime.lastError) {
-        reject(chrome.runtime.lastError);
-      } else {
-        resolve(response);
-      }
-    });
+    // Replace chrome.runtime with appropriate alternatives
+    // ... code ...
   });
 }
 

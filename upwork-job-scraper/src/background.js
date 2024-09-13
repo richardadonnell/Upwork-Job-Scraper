@@ -1,3 +1,8 @@
+// Update file paths and replace browser-specific APIs
+const { localStorage } = require('./storage');
+const { captureException } = require('@sentry/node');
+const { manifest } = require('./manifest');
+
 // Wrap the main logic in a try-catch block
 try {
   // Open settings page when extension icon is clicked
