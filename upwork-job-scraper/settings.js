@@ -282,9 +282,14 @@ async function initializeSettings() {
     // Function to add log entries
     function addLogEntry(message) {
       const logContainer = document.getElementById("log-container");
-      const logEntry = document.createElement("p");
+      const logEntry = document.createElement("div");
       logEntry.textContent = `${new Date().toLocaleString()}: ${message}`;
-      logContainer.insertBefore(logEntry, logContainer.firstChild);
+      logContainer.prepend(logEntry);
+
+      // Remove oldest log entry if there are more than 100
+      if (logContainer.children.length > 100) {
+        logContainer.removeChild(logContainer.lastChild);
+      }
     }
 
     // Load existing log entries
