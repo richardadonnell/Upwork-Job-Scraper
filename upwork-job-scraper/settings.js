@@ -109,11 +109,11 @@ async function initializeSettings() {
       const webhookUrl = document.getElementById("webhook-url").value;
       const webhookEnabled = document.getElementById("webhook-toggle").checked;
       if (!webhookEnabled) {
-        alert("Please enable the webhook before testing.");
+        showAlert("Please enable the webhook before testing.", "webhook-alert-container");
         return;
       }
       if (!webhookUrl) {
-        alert("Please enter a webhook URL before testing.");
+        showAlert("Please enter a webhook URL before testing.", "webhook-alert-container");
         return;
       }
 
@@ -153,15 +153,16 @@ async function initializeSettings() {
         .then((result) => {
           console.log("Test webhook response:", result);
           addLogEntry("Test webhook sent successfully");
-          alert(
-            "Test webhook sent successfully. Check your webhook endpoint for the received data."
+          showAlert(
+            "Test webhook sent successfully. Check your webhook endpoint for the received data.",
+            "webhook-alert-container"
           );
           trackEvent("test_webhook_sent", { success: true });
         })
         .catch((error) => {
           console.error("Error:", error);
           addLogEntry("Error sending test webhook");
-          alert("Error sending test webhook. Check the console for details.");
+          showAlert("Error sending test webhook. Check the console for details.", "webhook-alert-container");
           trackEvent("test_webhook_sent", {
             success: false,
             error: error.message,
@@ -233,7 +234,7 @@ async function initializeSettings() {
       const totalMinutes = days * 1440 + hours * 60 + minutes;
 
       if (totalMinutes < 1) {
-        alert("Please set a frequency of at least 1 minute.");
+        showAlert("Please set a frequency of at least 1 minute.", "frequency-alert-container");
         return;
       }
 
@@ -599,7 +600,7 @@ async function initializeSettings() {
         window.open(customSearchUrl, "_blank");
         trackEvent("open_custom_url", { url: customSearchUrl });
       } else {
-        alert("Please enter a custom search URL first.");
+        showAlert("Please enter a custom search URL first.", "feed-sources-alert-container");
       }
     });
   } catch (error) {
@@ -646,3 +647,26 @@ sendMessageToBackground({ type: "settingsPageOpened" })
   .catch((error) => {
     console.error("Error sending message to background script:", error);
   });
+
+function showAlert(message, containerId, timeout = 15000) {
+  const alertContainer = document.getElementById(containerId);
+  const alertElement = document.createElement("div");
+  alertElement.classList.add("alert");
+  const alertMessage = document.createElement("p");
+  alertMessage.textContent = message;
+  alertElement.appendChild(alertMessage);
+
+  const closeButton = document.createElement("button");
+  closeButton.classList.add("close-btn");
+  closeButton.innerHTML = "&times;";
+  closeButton.addEventListener("click", () => {
+    alertElement.remove();
+  });
+  alertElement.appendChild(closeButton);
+
+  alertContainer.appendChild(alertElement);
+
+  setTimeout(() => {
+    alertElement.remove();
+  }, timeout);
+}

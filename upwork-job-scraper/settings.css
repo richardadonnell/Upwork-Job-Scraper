@@ -484,18 +484,34 @@ option {
 }
 
 /* New alert styles */
+#alert-container {
+  margin-bottom: 1.25em;
+}
+
 .alert {
+  position: relative;
   background-color: #2c2c2c;
   border-left: 4px solid #108a00;
   color: #e0e0e0;
   padding: 1em;
-  margin-bottom: 1.25em;
+  margin-bottom: 0.625em;
   border-radius: 0.25em;
 }
 
 .alert p {
   margin: 0;
   font-size: 0.9em;
+}
+
+.alert .close-btn {
+  position: absolute;
+  top: 0.5em;
+  right: 0.5em;
+  background: none;
+  border: none;
+  color: #e0e0e0;
+  font-size: 1.2em;
+  cursor: pointer;
 }
 
 .alert a {
