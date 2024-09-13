@@ -369,14 +369,25 @@ async function initializeSettings() {
       }
     });
 
-    // Listen for log updates and job updates from the background script
+    // Listen for log updates, job updates, and login warnings from the background script
     chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       if (message.type === "logUpdate") {
         addLogEntry(message.content);
       } else if (message.type === "jobsUpdate") {
         addJobEntries(message.jobs);
+      } else if (message.type === "loginWarning") {
+        showLoginWarning(message.message);
       }
     });
+
+    function showLoginWarning(message) {
+      const warningElement = document.createElement("div");
+      warningElement.className = "alert alert-warning";
+      warningElement.textContent = message;
+
+      const settingsContainer = document.querySelector(".settings-container");
+      settingsContainer.insertBefore(warningElement, settingsContainer.firstChild);
+    }
 
     function updateTimeDifference(timestamp, element) {
       if (!timestamp) {

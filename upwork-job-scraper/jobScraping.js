@@ -60,30 +60,76 @@ async function checkForNewJobs(jobScrapingEnabled) {
                   }
                 });
               });
-            }
 
-            // User is logged in, proceed with scraping jobs
-            chrome.scripting.executeScript(
-              {
-                target: { tabId: tab.id },
-                function: scrapeJobs,
-              },
-              (results) => {
-                if (chrome.runtime.lastError) {
-                  addToActivityLog("Error: " + chrome.runtime.lastError.message);
-                  reject(chrome.runtime.lastError);
-                } else if (results && results[0] && results[0].result) {
-                  const jobs = results[0].result;
-                  addToActivityLog(`Scraped ${jobs.length} jobs from ${url}`);
-                  processJobs(jobs);
-                } else {
-                  addToActivityLog("No jobs scraped or unexpected result");
+              // Check if the user is still "fake" logged out after the login attempt
+              chrome.scripting.executeScript(
+                {
+                  target: { tabId: tab.id },
+                  function: isUserLoggedOut,
+                },
+                (results) => {
+                  if (results && results[0] && results[0].result) {
+                    // User is still "fake" logged out, show a warning and send a notification
+                    const warningMessage = "Warning: User is still logged out after the login attempt. Please log in manually.";
+                    addToActivityLog(warningMessage);
+                    chrome.runtime.sendMessage({ type: "loginWarning", message: warningMessage });
+
+                    if (notificationsEnabled) {
+                      sendNotification(warningMessage);
+                    }
+
+                    chrome.tabs.remove(tab.id);
+                    reject(new Error(warningMessage));
+                  } else {
+                    // User is logged in, proceed with scraping jobs
+                    chrome.scripting.executeScript(
+                      {
+                        target: { tabId: tab.id },
+                        function: scrapeJobs,
+                      },
+                      (results) => {
+                        if (chrome.runtime.lastError) {
+                          addToActivityLog("Error: " + chrome.runtime.lastError.message);
+                          reject(chrome.runtime.lastError);
+                        } else if (results && results[0] && results[0].result) {
+                          const jobs = results[0].result;
+                          addToActivityLog(`Scraped ${jobs.length} jobs from ${url}`);
+                          processJobs(jobs);
+                        } else {
+                          addToActivityLog("No jobs scraped or unexpected result");
+                        }
+                        chrome.tabs.remove(tab.id);
+                        addToActivityLog("Job check completed for " + url);
+                        resolve();
+                      }
+                    );
+                  }
                 }
-                chrome.tabs.remove(tab.id);
-                addToActivityLog("Job check completed for " + url);
-                resolve();
-              }
-            );
+              );
+            } else {
+              // User is logged in, proceed with scraping jobs
+              chrome.scripting.executeScript(
+                {
+                  target: { tabId: tab.id },
+                  function: scrapeJobs,
+                },
+                (results) => {
+                  if (chrome.runtime.lastError) {
+                    addToActivityLog("Error: " + chrome.runtime.lastError.message);
+                    reject(chrome.runtime.lastError);
+                  } else if (results && results[0] && results[0].result) {
+                    const jobs = results[0].result;
+                    addToActivityLog(`Scraped ${jobs.length} jobs from ${url}`);
+                    processJobs(jobs);
+                  } else {
+                    addToActivityLog("No jobs scraped or unexpected result");
+                  }
+                  chrome.tabs.remove(tab.id);
+                  addToActivityLog("Job check completed for " + url);
+                  resolve();
+                }
+              );
+            }
           }
         );
       });
