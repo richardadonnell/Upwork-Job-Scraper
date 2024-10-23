@@ -32,7 +32,7 @@ try {
         "webhookEnabled",
         "notificationsEnabled",
         "checkFrequency",
-        "lastViewedTimestamp", // Add this
+        "lastViewedTimestamp",
       ],
       (data) => {
         jobScrapingEnabled = data.jobScrapingEnabled !== false; // Default to true if not set
@@ -40,6 +40,12 @@ try {
         notificationsEnabled = data.notificationsEnabled !== false; // Default to true if not set
         checkFrequency = data.checkFrequency || 5; // Default to 5 minutes if not set
         lastViewedTimestamp = data.lastViewedTimestamp || Date.now(); // Initialize lastViewedTimestamp
+
+        // Load the persisted newJobsCount
+        chrome.storage.local.get(['newJobsCount'], (result) => {
+          newJobsCount = result.newJobsCount || 0;
+          updateBadge(); // Update badge with loaded count
+        });
 
         console.log(
           "Extension initialized. Job scraping enabled:",
@@ -90,9 +96,11 @@ try {
         lastViewedTimestamp = Date.now();
         chrome.storage.local.set({ lastViewedTimestamp: lastViewedTimestamp });
 
-        // Reset the newJobsCount and update the badge
+        // Reset the newJobsCount and persist it
         newJobsCount = 0;
-        updateBadge();
+        chrome.storage.local.set({ newJobsCount: 0 }, () => {
+          updateBadge();
+        });
 
         handled = true;
       } else if (message.type === "updateCheckFrequency") {
@@ -180,10 +188,13 @@ try {
 
   function processJobs(newJobs) {
     try {
-      chrome.storage.local.get(["scrapedJobs"], (data) => {
+      chrome.storage.local.get(["scrapedJobs", "newJobsCount"], (data) => {
         let existingJobs = data.scrapedJobs || [];
         let updatedJobs = [];
         let addedJobsCount = 0;
+        
+        // Load the persisted newJobsCount
+        newJobsCount = data.newJobsCount || 0;
 
         // Sort new jobs by scraped time, newest first
         newJobs.sort((a, b) => b.scrapedAt - a.scrapedAt);
@@ -192,40 +203,30 @@ try {
           if (!existingJobs.some((job) => job.url === newJob.url)) {
             updatedJobs.push(newJob);
             addedJobsCount++;
-
-            // Increment newJobsCount if the job was scraped after the last viewed timestamp
-            if (newJob.scrapedAt > lastViewedTimestamp) {
-              newJobsCount++;
-            }
-
-            // Only send to webhook if it's enabled
-            if (webhookEnabled && webhookUrl) {
-              sendToWebhook(webhookUrl, [newJob]);
-            }
+            newJobsCount++;
           }
         });
 
         // Combine new jobs with existing jobs, keeping the most recent ones
         let allJobs = [...updatedJobs, ...existingJobs];
-
-        // Limit to a maximum of 100 jobs (or any other number you prefer)
         allJobs = allJobs.slice(0, 100);
 
-        // Store the updated scraped jobs
-        chrome.storage.local.set({ scrapedJobs: allJobs }, () => {
+        // Store both the updated jobs and the new count
+        chrome.storage.local.set({ 
+          scrapedJobs: allJobs,
+          newJobsCount: newJobsCount 
+        }, () => {
           addToActivityLog(
             `Added ${addedJobsCount} new jobs. Total jobs: ${allJobs.length}`
           );
 
-          // Update the badge
           updateBadge();
 
-          // Send message to update the settings page if it's open
+          // Rest of the existing code...
           chrome.runtime.sendMessage(
             { type: "jobsUpdate", jobs: allJobs },
             (response) => {
               if (chrome.runtime.lastError) {
-                // This will happen if the settings page is not open, which is fine
                 console.log("Settings page not available for job update");
               }
             }
@@ -246,12 +247,11 @@ try {
   }
 
   function updateBadge() {
-    if (newJobsCount > 0) {
-      chrome.action.setBadgeText({ text: newJobsCount.toString() });
-      chrome.action.setBadgeBackgroundColor({ color: "#4688F1" });
-    } else {
-      chrome.action.setBadgeText({ text: "" });
-    }
+    // Always show the badge if there are accumulated new jobs
+    chrome.action.setBadgeText({ 
+      text: newJobsCount > 0 ? newJobsCount.toString() : "" 
+    });
+    chrome.action.setBadgeBackgroundColor({ color: "#4688F1" });
   }
 
   chrome.storage.onChanged.addListener((changes, area) => {

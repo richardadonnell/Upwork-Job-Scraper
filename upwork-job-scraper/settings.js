@@ -740,3 +740,4 @@ function showAlert(message, timeout = "15000") {
     alertElement.remove();
   }, remainingTime);
 }
+
