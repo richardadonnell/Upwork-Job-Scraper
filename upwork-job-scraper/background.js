@@ -186,62 +186,74 @@ try {
   importScripts("notifications.js");
   importScripts("utils.js");
 
-  function processJobs(newJobs) {
+  // Import the webhook functions at the top of background.js
+  importScripts('webhook.js', 'activityLog.js');
+
+  async function processJobs(newJobs) {
     try {
-      chrome.storage.local.get(["scrapedJobs", "newJobsCount"], (data) => {
-        let existingJobs = data.scrapedJobs || [];
-        let updatedJobs = [];
-        let addedJobsCount = 0;
-        
-        // Load the persisted newJobsCount
-        newJobsCount = data.newJobsCount || 0;
+      console.log('Starting processJobs with', newJobs.length, 'new jobs');
+      
+      // Get webhook settings
+      const webhookSettings = await chrome.storage.sync.get(['webhookUrl', 'webhookEnabled']);
+      console.log('Current webhook settings:', webhookSettings);
 
-        // Sort new jobs by scraped time, newest first
-        newJobs.sort((a, b) => b.scrapedAt - a.scrapedAt);
+      // Get existing jobs
+      const data = await chrome.storage.local.get(['scrapedJobs']);
+      let existingJobs = data.scrapedJobs || [];
+      let updatedJobs = [];
+      let addedJobsCount = 0;
 
-        newJobs.forEach((newJob) => {
-          if (!existingJobs.some((job) => job.url === newJob.url)) {
-            updatedJobs.push(newJob);
-            addedJobsCount++;
-            newJobsCount++;
-          }
-        });
+      // Sort new jobs by scraped time, newest first
+      newJobs.sort((a, b) => b.scrapedAt - a.scrapedAt);
 
-        // Combine new jobs with existing jobs, keeping the most recent ones
-        let allJobs = [...updatedJobs, ...existingJobs];
-        allJobs = allJobs.slice(0, 100);
+      // Process each new job
+      for (const newJob of newJobs) {
+        if (!existingJobs.some((job) => job.url === newJob.url)) {
+          updatedJobs.push(newJob);
+          addedJobsCount++;
 
-        // Store both the updated jobs and the new count
-        chrome.storage.local.set({ 
-          scrapedJobs: allJobs,
-          newJobsCount: newJobsCount 
-        }, () => {
-          addToActivityLog(
-            `Added ${addedJobsCount} new jobs. Total jobs: ${allJobs.length}`
-          );
-
-          updateBadge();
-
-          // Rest of the existing code...
-          chrome.runtime.sendMessage(
-            { type: "jobsUpdate", jobs: allJobs },
-            (response) => {
-              if (chrome.runtime.lastError) {
-                console.log("Settings page not available for job update");
-              }
+          // Send to webhook if enabled and URL is set
+          if (webhookSettings.webhookEnabled && webhookSettings.webhookUrl) {
+            console.log('Sending job to webhook:', {
+              jobTitle: newJob.title,
+              webhookUrl: webhookSettings.webhookUrl
+            });
+            
+            try {
+              await sendToWebhook(webhookSettings.webhookUrl, [newJob]);
+              addToActivityLog(`Successfully sent job to webhook: ${newJob.title}`);
+            } catch (error) {
+              console.error('Failed to send job to webhook:', error);
+              addToActivityLog(`Failed to send job to webhook: ${error.message}`);
             }
-          );
-
-          if (notificationsEnabled && addedJobsCount > 0) {
-            sendNotification(
-              `Found ${addedJobsCount} new job${addedJobsCount > 1 ? "s" : ""}!`,
-              30000,
-              notificationsEnabled
-            );
+          } else {
+            console.log('Webhook not enabled or URL not set:', webhookSettings);
           }
-        });
-      });
+        }
+      }
+
+      // Combine and store jobs
+      let allJobs = [...updatedJobs, ...existingJobs].slice(0, 100);
+
+      await chrome.storage.local.set({ scrapedJobs: allJobs });
+      addToActivityLog(`Added ${addedJobsCount} new jobs. Total jobs: ${allJobs.length}`);
+
+      // Update badge and notify
+      updateBadge();
+      
+      if (addedJobsCount > 0) {
+        chrome.runtime.sendMessage({ type: "jobsUpdate", jobs: allJobs });
+
+        const notificationSettings = await chrome.storage.sync.get(['notificationsEnabled']);
+        if (notificationSettings.notificationsEnabled) {
+          sendNotification(
+            `Found ${addedJobsCount} new job${addedJobsCount > 1 ? "s" : ""}!`
+          );
+        }
+      }
+
     } catch (error) {
+      console.error('Error in processJobs:', error);
       logAndReportError("Error in processJobs", error);
     }
   }

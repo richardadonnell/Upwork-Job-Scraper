@@ -650,6 +650,47 @@ async function initializeSettings() {
       document.getElementById('setup-instructions').classList.remove('show');
       chrome.storage.sync.set({ setupInstructionsDismissed: true });
     });
+
+    // Add this to where you handle the webhook toggle and URL changes
+    document.getElementById("webhook-toggle").addEventListener("change", (e) => {
+      const enabled = e.target.checked;
+      console.log('Saving webhook enabled:', enabled);
+      chrome.storage.sync.set({ webhookEnabled: enabled }, () => {
+        console.log('Webhook enabled saved:', enabled);
+        addToActivityLog(`Webhook ${enabled ? 'enabled' : 'disabled'}`);
+      });
+    });
+
+    document.getElementById("webhook-url").addEventListener("change", (e) => {
+      const url = e.target.value.trim();
+      console.log('Saving webhook URL:', url);
+      chrome.storage.sync.set({ webhookUrl: url }, () => {
+        console.log('Webhook URL saved:', url);
+        addToActivityLog(`Webhook URL updated: ${url}`);
+      });
+    });
+
+    // Add this function to initialize webhook settings
+    function loadWebhookSettings() {
+      chrome.storage.sync.get(['webhookUrl', 'webhookEnabled'], (settings) => {
+        console.log('Loading webhook settings:', settings);
+        const webhookToggle = document.getElementById("webhook-toggle");
+        const webhookUrl = document.getElementById("webhook-url");
+        
+        if (webhookToggle) {
+          webhookToggle.checked = settings.webhookEnabled !== false;
+        }
+        if (webhookUrl && settings.webhookUrl) {
+          webhookUrl.value = settings.webhookUrl;
+        }
+      });
+    }
+
+    // Call this when the settings page loads
+    document.addEventListener('DOMContentLoaded', () => {
+      loadWebhookSettings();
+      // ... other initialization code
+    });
   } catch (error) {
     console.error("Error initializing settings:", error);
     window.logAndReportError("Error initializing settings", error);
@@ -741,3 +782,42 @@ function showAlert(message, timeout = "15000") {
   }, remainingTime);
 }
 
+// Add this near the top of settings.js, before it's used
+function addToActivityLog(message) {
+  const timestamp = new Date().toLocaleString();
+  const logEntry = `${timestamp}: ${message}`;
+  console.log(logEntry); // Log to console for debugging
+
+  // Add to the log container if it exists
+  const logContainer = document.getElementById("log-container");
+  if (logContainer) {
+    const logElement = document.createElement("div");
+    logElement.textContent = logEntry;
+    logContainer.prepend(logElement);
+
+    // Keep only the last 100 entries
+    while (logContainer.children.length > 100) {
+      logContainer.removeChild(logContainer.lastChild);
+    }
+  }
+
+  // Store in chrome.storage
+  chrome.storage.local.get("activityLog", (data) => {
+    const log = data.activityLog || [];
+    log.unshift(logEntry);
+    // Keep only the last 100 entries
+    if (log.length > 100) log.pop();
+    chrome.storage.local.set({ activityLog: log });
+  });
+
+  // Send message to update other open instances of the settings page
+  chrome.runtime.sendMessage(
+    { type: "logUpdate", content: logEntry },
+    (response) => {
+      if (chrome.runtime.lastError) {
+        // This will happen if no other instances are open, which is fine
+        console.log("No other settings pages available for log update");
+      }
+    }
+  );
+}

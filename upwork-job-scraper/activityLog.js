@@ -3,6 +3,7 @@ function addToActivityLog(message) {
   const logEntry = `${timestamp}: ${message}`;
   console.log(logEntry); // Log to console for debugging
 
+  // Store in chrome.storage
   chrome.storage.local.get("activityLog", (data) => {
     const log = data.activityLog || [];
     log.unshift(logEntry);
@@ -11,13 +12,12 @@ function addToActivityLog(message) {
     chrome.storage.local.set({ activityLog: log });
   });
 
-  // Send message to update the settings page if it's open
+  // Send message to update any open settings pages
   chrome.runtime.sendMessage(
     { type: "logUpdate", content: logEntry },
     (response) => {
       if (chrome.runtime.lastError) {
-        // This will happen if the settings page is not open, which is fine
-        console.log("Settings page not available for log update");
+        console.log("No settings pages available for log update");
       }
     }
   );

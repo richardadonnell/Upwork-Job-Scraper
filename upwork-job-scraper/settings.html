@@ -35,22 +35,38 @@
         </div>
         <small class="expand-text">(click to expand)</small>
         <div class="accordion-content">
-          <p>Welcome to the Upwork Job Scraper! Follow these simple steps to get started:</p>
+          <p>
+            Welcome to the Upwork Job Scraper! Follow these simple steps to get
+            started:
+          </p>
           <ol>
             <li>
-              Enter your custom Upwork search URL in the "Feed Sources" section below. This will determine which jobs are scraped.
+              Enter your custom Upwork search URL in the "Feed Sources" section
+              below. This will determine which jobs are scraped.
             </li>
             <li>
-              Choose whether you'd like to receive push notifications when new jobs are found by toggling the "Enable Push Notifications" switch in the "Notification Settings" section.
+              Choose whether you'd like to receive push notifications when new
+              jobs are found by toggling the "Enable Push Notifications" switch
+              in the "Notification Settings" section.
             </li>
             <li>
-              If you want to send the scraped jobs to a webhook, enter your webhook URL and enable the webhook in the "Webhook Settings" section.
+              If you want to send the scraped jobs to a webhook, enter your
+              webhook URL and enable the webhook in the "Webhook Settings"
+              section.
             </li>
             <li>
-              (Optional) Adjust the frequency at which the extension checks for new jobs in the "Job Check Frequency" section. The default is set to a convenient 5 minutes.
+              (Optional) Adjust the frequency at which the extension checks for
+              new jobs in the "Job Check Frequency" section. The default is set
+              to a convenient 5 minutes.
             </li>
           </ol>
-          <p>That's it! You're ready to start scraping jobs. If you have any questions or feedback, please don't hesitate to <a href="https://github.com/richardadonnell/Upwork-Job-Scraper/issues" target="_blank">reach out on GitHub</a>. Happy scraping!</p>
+          <p>
+            That's it! You're ready to start scraping jobs. If you have any
+            questions or feedback, please don't hesitate to
+            <a href="https://discord.gg/GUYhJK4XCN" target="_blank"
+              >reach out on Discord</a
+            >. Happy scraping!
+          </p>
         </div>
       </div>
 
@@ -59,10 +75,8 @@
         <p>
           <strong>Note:</strong> This Chrome extension is under development. If
           you encounter any issues or have any feedback, please
-          <a
-            href="https://github.com/richardadonnell/Upwork-Job-Scraper/issues"
-            target="_blank"
-            >leave a comment on GitHub</a
+          <a href="https://discord.gg/GUYhJK4XCN" target="_blank"
+            >leave a comment on Discord</a
           >! Suggestions are welcome!
         </p>
       </div>
@@ -189,7 +203,9 @@
           </li>
           <li>Search for the jobs you're interested in</li>
           <li>Search for multiple terms like this (python OR javascript)</li>
-          <li>Use the "Advanced search filters" to narrow down the search results</li>
+          <li>
+            Use the "Advanced search filters" to narrow down the search results
+          </li>
           <li>Copy the URL from your browser's address bar</li>
           <li>Paste the URL into the "Custom Search URL" field above</li>
           <li>Click the button below to save the changes</li>
@@ -234,6 +250,9 @@
 
     <div id="alert-container"></div>
 
+    <!-- Add this near the end of the body tag -->
+    <script src="activityLog.js"></script>
+    <script src="webhook.js"></script>
     <script src="settings.js"></script>
   </body>
 </html>
