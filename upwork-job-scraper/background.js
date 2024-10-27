@@ -152,9 +152,6 @@ try {
           }
         );
         return true; // Will respond asynchronously
-      } else if (message.type === "updateNotificationSettings") {
-        notificationsEnabled = message.enabled;
-        handled = true;
       }
 
       if (handled) {
