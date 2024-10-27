@@ -219,6 +219,11 @@ async function initializeSettings() {
         chrome.storage.sync.set({ notificationsEnabled: isEnabled }, () => {
           console.log("Notification setting saved:", isEnabled);
           addLogEntry(`Notifications ${isEnabled ? "enabled" : "disabled"}`);
+          // Send message to background script to update its state
+          chrome.runtime.sendMessage({ 
+            type: "updateNotificationSettings", 
+            enabled: isEnabled 
+          });
           trackEvent("notification_setting_changed", { enabled: isEnabled });
         });
       });
@@ -821,3 +826,4 @@ function addToActivityLog(message) {
     }
   );
 }
+
