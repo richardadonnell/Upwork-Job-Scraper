@@ -252,11 +252,8 @@ try {
       if (addedJobsCount > 0) {
         chrome.runtime.sendMessage({ type: "jobsUpdate", jobs: allJobs });
 
-        // Double-check storage before sending notification
-        const result = await chrome.storage.sync.get(['notificationsEnabled']);
-        const shouldNotify = result.notificationsEnabled !== false;
-        
-        if (shouldNotify && notificationsEnabled) {
+        // Remove the double-check and just use the in-memory state
+        if (notificationsEnabled) {
           sendNotification(
             `Found ${addedJobsCount} new job${addedJobsCount > 1 ? "s" : ""}!`
           );
