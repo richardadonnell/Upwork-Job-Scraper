@@ -16,7 +16,7 @@ try {
   let checkFrequency = 5; // Default to 5 minutes
   let webhookEnabled = false;
   let jobScrapingEnabled = true; // Default to true, but we'll load the actual state
-  let notificationsEnabled = true;
+  let notificationsEnabled = true; // Default state
   let newJobsCount = 0;
   let lastViewedTimestamp = 0;
 
@@ -152,6 +152,10 @@ try {
           }
         );
         return true; // Will respond asynchronously
+      } else if (message.type === "updateNotificationSettings") {
+        notificationsEnabled = message.enabled;
+        console.log("Notification settings updated:", notificationsEnabled);
+        sendResponse({ success: true });
       }
 
       if (handled) {
@@ -271,6 +275,28 @@ try {
       notificationsEnabled = changes.notificationsEnabled.newValue;
     }
   });
+
+  function sendNotification(message, duration = 30000) {
+    if (!notificationsEnabled) {
+      console.log("Notifications are disabled, skipping notification:", message);
+      return;
+    }
+
+    chrome.notifications.create(
+      {
+        type: "basic",
+        iconUrl: chrome.runtime.getURL("icon48.png"),
+        title: "Upwork Job Scraper",
+        message: message,
+        buttons: [{ title: "Close" }],
+      },
+      (notificationId) => {
+        if (chrome.runtime.lastError) {
+          console.error("Notification error: ", chrome.runtime.lastError.message);
+        }
+      }
+    );
+  }
 } catch (error) {
   console.error("Uncaught error in background script:", error);
   logAndReportError("Uncaught error in background script", error);
