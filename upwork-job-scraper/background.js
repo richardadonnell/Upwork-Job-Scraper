@@ -154,7 +154,11 @@ try {
         return true; // Will respond asynchronously
       } else if (message.type === "updateNotificationSettings") {
         notificationsEnabled = message.enabled;
-        console.log("Notification settings updated:", notificationsEnabled);
+        // Save to storage to ensure persistence
+        chrome.storage.sync.set({ notificationsEnabled: message.enabled }, () => {
+          console.log("Notification settings saved to storage:", message.enabled);
+        });
+        console.log("Notification settings updated in memory:", notificationsEnabled);
         sendResponse({ success: true });
       }
 
@@ -248,8 +252,11 @@ try {
       if (addedJobsCount > 0) {
         chrome.runtime.sendMessage({ type: "jobsUpdate", jobs: allJobs });
 
-        // Use the in-memory state instead of checking storage
-        if (notificationsEnabled) {
+        // Double-check storage before sending notification
+        const result = await chrome.storage.sync.get(['notificationsEnabled']);
+        const shouldNotify = result.notificationsEnabled !== false;
+        
+        if (shouldNotify && notificationsEnabled) {
           sendNotification(
             `Found ${addedJobsCount} new job${addedJobsCount > 1 ? "s" : ""}!`
           );
@@ -272,9 +279,13 @@ try {
     chrome.action.setBadgeBackgroundColor({ color: "#4688F1" });
   }
 
+  // Update the storage change listener to be more specific
   chrome.storage.onChanged.addListener((changes, area) => {
-    if (area === "sync" && changes.notificationsEnabled) {
-      notificationsEnabled = changes.notificationsEnabled.newValue;
+    if (area === "sync") {
+      if (changes.notificationsEnabled) {
+        notificationsEnabled = changes.notificationsEnabled.newValue;
+        console.log("Notification state updated from storage:", notificationsEnabled);
+      }
     }
   });
 
