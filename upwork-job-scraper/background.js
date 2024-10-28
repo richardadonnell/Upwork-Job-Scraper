@@ -256,15 +256,11 @@ try {
       
       if (addedJobsCount > 0) {
         chrome.runtime.sendMessage({ type: "jobsUpdate", jobs: allJobs });
-
-        // Remove the double-check and just use the in-memory state
-        if (notificationsEnabled) {
-          sendNotification(
-            `Found ${addedJobsCount} new job${addedJobsCount > 1 ? "s" : ""}!`
-          );
-        } else {
-          console.log("Notifications disabled, skipping notification for new jobs");
-        }
+        
+        // Use the sendNotification from notifications.js
+        sendNotification(
+          `Found ${addedJobsCount} new job${addedJobsCount > 1 ? "s" : ""}!`
+        );
       }
 
     } catch (error) {
@@ -295,27 +291,7 @@ try {
     }
   });
 
-  function sendNotification(message, duration = 30000) {
-    if (!notificationsEnabled) {
-      console.log("Notifications are disabled, skipping notification:", message);
-      return;
-    }
-
-    chrome.notifications.create(
-      {
-        type: "basic",
-        iconUrl: chrome.runtime.getURL("icon48.png"),
-        title: "Upwork Job Scraper",
-        message: message,
-        buttons: [{ title: "Close" }],
-      },
-      (notificationId) => {
-        if (chrome.runtime.lastError) {
-          console.error("Notification error: ", chrome.runtime.lastError.message);
-        }
-      }
-    );
-  }
+  // Remove the duplicate sendNotification function
 } catch (error) {
   console.error("Uncaught error in background script:", error);
   logAndReportError("Uncaught error in background script", error);
