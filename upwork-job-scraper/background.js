@@ -60,6 +60,11 @@ try {
 
         loadFeedSourceSettings();
         initializeLastViewedTimestamp();
+
+        // Update the notifications module with the current state
+        if (typeof updateNotificationsEnabled === 'function') {
+          updateNotificationsEnabled(notificationsEnabled);
+        }
       }
     );
   }
@@ -281,6 +286,10 @@ try {
     if (area === "sync") {
       if (changes.notificationsEnabled) {
         notificationsEnabled = changes.notificationsEnabled.newValue;
+        // Update the notifications module with the new state
+        if (typeof updateNotificationsEnabled === 'function') {
+          updateNotificationsEnabled(notificationsEnabled);
+        }
         console.log("Notification state updated from storage:", notificationsEnabled);
       }
     }
