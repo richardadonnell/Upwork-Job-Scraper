@@ -268,7 +268,7 @@ try {
 
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area === "sync" && changes.notificationsEnabled) {
-      updateNotificationsEnabled(changes.notificationsEnabled.newValue);
+      notificationsEnabled = changes.notificationsEnabled.newValue;
     }
   });
 } catch (error) {

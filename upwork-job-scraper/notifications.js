@@ -5,7 +5,6 @@ function updateNotificationsEnabled(value) {
 }
 
 function sendNotification(message, duration = 30000) {
-  // Default duration: 30 seconds
   if (!notificationsEnabled) {
     addToActivityLog("Push notifications are disabled. Skipping notification.");
     return;

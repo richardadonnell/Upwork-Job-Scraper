@@ -691,6 +691,15 @@ async function initializeSettings() {
       loadWebhookSettings();
       // ... other initialization code
     });
+
+    // Add this inside the initializeSettings function
+    document.getElementById("notification-toggle").addEventListener("change", (e) => {
+      const enabled = e.target.checked;
+      chrome.storage.sync.set({ notificationsEnabled: enabled }, () => {
+        console.log('Notifications enabled:', enabled);
+        addToActivityLog(`Push notifications ${enabled ? 'enabled' : 'disabled'}`);
+      });
+    });
   } catch (error) {
     console.error("Error initializing settings:", error);
     window.logAndReportError("Error initializing settings", error);
@@ -821,3 +830,4 @@ function addToActivityLog(message) {
     }
   );
 }
+
