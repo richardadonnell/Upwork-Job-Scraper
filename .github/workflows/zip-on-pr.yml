@@ -4,29 +4,33 @@ on:
   pull_request:
     branches:
       - main
+  workflow_dispatch:  # Allow manual triggering
 
 jobs:
   create-zip:
     runs-on: ubuntu-latest
 
     steps:
-      # Step 1: Check out the repository code
       - name: Check out code
         uses: actions/checkout@v3
 
-      # Step 2: Get the branch name
       - name: Get branch name
         id: vars
-        run: echo "branch_name=${{ github.head_ref }}" >> $GITHUB_ENV
+        run: |
+          if [[ ${{ github.event_name }} == 'pull_request' ]]; then
+            echo "branch_name=${{ github.head_ref }}" >> $GITHUB_ENV
+          else
+            echo "branch_name=${GITHUB_REF#refs/heads/}" >> $GITHUB_ENV
+          fi
 
-      # Step 3: Debug file structure
       - name: List files in repository
-        run: ls -al upwork-job-scraper/
+        run: |
+          echo "Contents of upwork-job-scraper directory:"
+          ls -al upwork-job-scraper/
 
-      # Step 4: Create and populate the zip file
       - name: Create a zip file with specific files
         run: |
-          mkdir upwork-job-scraper-temp
+          mkdir -p upwork-job-scraper-temp
           files=(
             activityLog.js
             background.js
@@ -46,23 +50,27 @@ jobs:
           )
           
           # Copy files to temporary directory
+          echo "Copying files..."
           for file in "${files[@]}"; do
             if [[ -f "upwork-job-scraper/$file" ]]; then
               cp "upwork-job-scraper/$file" upwork-job-scraper-temp/
+              echo "✓ Copied $file"
             else
-              echo "Warning: upwork-job-scraper/$file does not exist."
-              exit 1  # Fail the workflow if any file is missing
+              echo "❌ Error: upwork-job-scraper/$file does not exist."
+              exit 1
             fi
           done
           
           # Create zip with the correct structure
+          echo "Creating zip file..."
           cd upwork-job-scraper-temp
           zip -r "../upwork-job-scraper-${{ env.branch_name }}.zip" .
           cd ..
+          echo "✓ Zip file created successfully"
 
-      # Step 5: Upload the artifact
       - name: Upload zip file as artifact
         uses: actions/upload-artifact@v3
         with:
           name: "upwork-job-scraper-${{ env.branch_name }}"
           path: "upwork-job-scraper-${{ env.branch_name }}.zip"
+          retention-days: 5  # Keep artifacts for 5 days
