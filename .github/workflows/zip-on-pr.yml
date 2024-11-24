@@ -97,7 +97,7 @@ jobs:
           # Create zip from the temp directory to maintain folder structure
           echo "Creating zip file..."
           cd upwork-job-scraper-temp
-          zip -r "../releases/upwork-job-scraper-${{ env.version_tag }}.zip" ./*
+          zip -r "../releases/upwork-job-scraper-${{ env.version_tag }}.zip" upwork-job-scraper
           cd ..
           
           # Debug: Show contents of releases directory
