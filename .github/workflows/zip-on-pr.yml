@@ -13,16 +13,37 @@ jobs:
     steps:
       - name: Check out code
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 0 # Fetch all history to get merge commit info
 
-      - name: Get version
+      - name: Get branch name
         id: vars
         run: |
           if [[ ${{ github.event_name }} == 'push' ]]; then
-            # Get short SHA of the commit
-            echo "version_tag=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+            # Get the merge commit message
+            COMMIT_MSG=$(git log -1 --pretty=%B)
+            
+            # Check if this is a PR merge
+            if [[ $COMMIT_MSG == "Merge pull request"* ]]; then
+              # Extract branch name from the merge commit message
+              BRANCH_NAME=$(git log -1 --pretty=%B | grep -o "from.*" | cut -d'/' -f2 | tr -d "'")
+              if [[ ! -z "$BRANCH_NAME" ]]; then
+                echo "version_tag=$BRANCH_NAME" >> $GITHUB_ENV
+                echo "Found branch name: $BRANCH_NAME"
+              else
+                # Fallback to commit SHA if branch name not found
+                echo "version_tag=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+                echo "Using commit SHA as fallback"
+              fi
+            else
+              # Not a PR merge, use commit SHA
+              echo "version_tag=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+              echo "Using commit SHA (not a PR merge)"
+            fi
           else
             # For manual triggers, use timestamp
             echo "version_tag=$(date +'%Y%m%d_%H%M%S')" >> $GITHUB_ENV
+            echo "Using timestamp (manual trigger)"
           fi
 
       - name: List files in repository
