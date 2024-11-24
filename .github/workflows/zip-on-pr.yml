@@ -1,0 +1,49 @@
+name: Create Zip on Pull Request
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  create-zip:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Check out the repository code
+      - name: Check out code
+        uses: actions/checkout@v3
+
+      # Step 2: Get the branch name
+      - name: Get branch name
+        id: vars
+        run: echo "branch_name=${GITHUB_HEAD_REF}" >> $GITHUB_ENV
+
+      # Step 3: Prepare the zip file structure
+      - name: Create a zip file with specific files
+        run: |
+          mkdir -p temp/upwork-job-scraper
+          cp upwork-job-scraper/activityLog.js temp/upwork-job-scraper/
+          cp upwork-job-scraper/background.js temp/upwork-job-scraper/
+          cp upwork-job-scraper/errorHandling.js temp/upwork-job-scraper/
+          cp upwork-job-scraper/icon128.png temp/upwork-job-scraper/
+          cp upwork-job-scraper/icon48.png temp/upwork-job-scraper/
+          cp upwork-job-scraper/jobScraping.js temp/upwork-job-scraper/
+          cp upwork-job-scraper/manifest.json temp/upwork-job-scraper/
+          cp upwork-job-scraper/notifications.js temp/upwork-job-scraper/
+          cp upwork-job-scraper/sentry-init.js temp/upwork-job-scraper/
+          cp upwork-job-scraper/sentry.js temp/upwork-job-scraper/
+          cp upwork-job-scraper/settings.css temp/upwork-job-scraper/
+          cp upwork-job-scraper/settings.html temp/upwork-job-scraper/
+          cp upwork-job-scraper/settings.js temp/upwork-job-scraper/
+          cp upwork-job-scraper/utils.js temp/upwork-job-scraper/
+          cp upwork-job-scraper/webhook.js temp/upwork-job-scraper/
+          zip -r "upwork-job-scraper-${branch_name}.zip" temp/upwork-job-scraper/
+          mv "upwork-job-scraper-${branch_name}.zip" .
+
+      # Step 4: Upload the artifact (optional)
+      - name: Upload zip file as artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: "upwork-job-scraper-${branch_name}"
+          path: "upwork-job-scraper-${branch_name}.zip"
