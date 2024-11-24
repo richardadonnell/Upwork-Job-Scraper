@@ -55,8 +55,15 @@ jobs:
 
       - name: Create a zip file with specific files
         run: |
+          # Create directories
           mkdir -p releases
           mkdir -p upwork-job-scraper-temp
+          
+          # Debug: Print current directory and structure
+          echo "Current directory structure:"
+          pwd
+          ls -la
+          
           files=(
             activityLog.js
             background.js
@@ -92,15 +99,38 @@ jobs:
           cd upwork-job-scraper-temp
           zip -r "../releases/upwork-job-scraper-${{ env.version_tag }}.zip" .
           cd ..
+          
+          # Debug: Show contents of releases directory
+          echo "Contents of releases directory:"
+          ls -la releases/
+          
+          # Clean up temp directory
+          rm -rf upwork-job-scraper-temp
           echo "✓ Zip file created successfully in releases folder"
 
       - name: Commit and push releases folder
         run: |
+          # Debug: Show git status
+          echo "Git status before commit:"
+          git status
+          
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          git add releases/
-          git commit -m "Add release zip for version ${{ env.version_tag }}"
-          git push
+          
+          # Force add the releases directory
+          git add -f releases/
+          
+          # Debug: Show git status after add
+          echo "Git status after add:"
+          git status
+          
+          # Only commit if there are changes
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Add release zip for version ${{ env.version_tag }}"
+            git push
+          fi
 
       - name: Upload zip file as artifact
         uses: actions/upload-artifact@v3
