@@ -57,7 +57,7 @@ jobs:
         run: |
           # Create directories
           mkdir -p releases
-          mkdir -p upwork-job-scraper-temp
+          mkdir -p upwork-job-scraper-temp/upwork-job-scraper
           
           # Debug: Print current directory and structure
           echo "Current directory structure:"
@@ -82,11 +82,11 @@ jobs:
             webhook.js
           )
           
-          # Copy files to temporary directory
+          # Copy files to temporary directory inside the upwork-job-scraper subfolder
           echo "Copying files..."
           for file in "${files[@]}"; do
             if [[ -f "upwork-job-scraper/$file" ]]; then
-              cp "upwork-job-scraper/$file" upwork-job-scraper-temp/
+              cp "upwork-job-scraper/$file" upwork-job-scraper-temp/upwork-job-scraper/
               echo "✓ Copied $file"
             else
               echo "❌ Error: upwork-job-scraper/$file does not exist."
@@ -94,7 +94,7 @@ jobs:
             fi
           done
           
-          # Create zip with the correct structure
+          # Create zip from the parent temp directory to include the subfolder
           echo "Creating zip file..."
           cd upwork-job-scraper-temp
           zip -r "../releases/upwork-job-scraper-${{ env.version_tag }}.zip" .
