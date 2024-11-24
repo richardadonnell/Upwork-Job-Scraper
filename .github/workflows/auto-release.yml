@@ -1,0 +1,39 @@
+name: Auto Release
+
+on:
+  push:
+    paths:
+      - 'releases/*.zip'
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Get changed files
+        id: changed-files
+        uses: tj-actions/changed-files@v39
+        with:
+          files: releases/*.zip
+
+      - name: Create Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          for file in ${{ steps.changed-files.outputs.all_changed_files }}; do
+            if [[ $file == releases/*.zip ]]; then
+              # Extract version from filename (assuming format: upwork-job-scraper-X.XX.zip)
+              VERSION=$(echo "$file" | sed -n 's/.*-\([0-9.]*\)\.zip$/\1/p')
+              FILENAME=$(basename "$file")
+              
+              # Create and publish release
+              gh release create "$VERSION" \
+                --title "$FILENAME" \
+                --notes "" \
+                "$file"
+            fi
+          done 
