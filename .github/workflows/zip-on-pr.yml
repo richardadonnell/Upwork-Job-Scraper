@@ -55,9 +55,12 @@ jobs:
 
       - name: Create a zip file with specific files
         run: |
-          # Create directories
+          # Start fresh - remove any existing files
+          rm -rf temp releases
+
+          # Create our directory structure
           mkdir -p releases
-          mkdir -p temp/upwork-job-scraper
+          mkdir -p temp
 
           # Debug: Print current directory and structure
           echo "Current directory structure:"
@@ -82,11 +85,14 @@ jobs:
             webhook.js
           )
 
-          # Copy files to temporary directory inside the upwork-job-scraper subfolder
+          # First, create our target directory structure
+          mkdir -p "temp/upwork-job-scraper"
+
+          # Copy files to the correct location
           echo "Copying files..."
           for file in "${files[@]}"; do
             if [[ -f "upwork-job-scraper/$file" ]]; then
-              cp "upwork-job-scraper/$file" temp/upwork-job-scraper/
+              cp "upwork-job-scraper/$file" "temp/upwork-job-scraper/"
               echo "✓ Copied $file"
             else
               echo "❌ Error: upwork-job-scraper/$file does not exist."
@@ -94,15 +100,15 @@ jobs:
             fi
           done
 
-          # Create zip from the temp directory to maintain folder structure
+          # Create the zip file - IMPORTANT: We're in the root and specifically targeting the folder
           echo "Creating zip file..."
-          (cd temp && zip -rf "../releases/upwork-job-scraper-${{ env.version_tag }}.zip" *)
+          (cd temp && zip -rf "../releases/upwork-job-scraper-${{ env.version_tag }}.zip" "upwork-job-scraper")
 
-          # Debug: Show contents of releases directory
-          echo "Contents of releases directory:"
-          ls -la releases/
+          # Verify zip contents
+          echo "Verifying zip contents..."
+          unzip -l "releases/upwork-job-scraper-${{ env.version_tag }}.zip"
 
-          # Clean up temp directory
+          # Clean up
           rm -rf temp
           echo "✓ Zip file created successfully in releases folder"
 
