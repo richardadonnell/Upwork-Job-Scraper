@@ -102,7 +102,7 @@ jobs:
 
           # Create the zip file - IMPORTANT: We're in the root and specifically targeting the folder
           echo "Creating zip file..."
-          (cd temp && zip -rf "../releases/upwork-job-scraper-${{ env.version_tag }}.zip" "upwork-job-scraper")
+          (cd temp && zip -r "../releases/upwork-job-scraper-${{ env.version_tag }}.zip" "upwork-job-scraper")
 
           # Verify zip contents
           echo "Verifying zip contents..."
