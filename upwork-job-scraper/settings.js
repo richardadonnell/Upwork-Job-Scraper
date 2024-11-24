@@ -659,13 +659,10 @@ async function initializeSettings() {
       }
     });
 
-    // Add this code to handle the accordion functionality and dismiss button
-    const accordionHeader = document.querySelector('.setup-instructions .accordion-header');
-    const accordionContent = document.querySelector('.setup-instructions .accordion-content');
-    const dismissButton = document.querySelector('.setup-instructions .dismiss-button');
-
-    accordionHeader.addEventListener('click', () => {
-      accordionContent.style.display = accordionContent.style.display === 'block' ? 'none' : 'block';
+    // Add this code to handle the accordion functionality
+    document.querySelector('.setup-instructions .accordion-header').addEventListener('click', () => {
+      const content = document.querySelector('.setup-instructions .accordion-content');
+      content.style.display = content.style.display === 'block' ? 'none' : 'block';
     });
 
     // Check if the user has previously dismissed the setup instructions
