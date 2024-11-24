@@ -1,6 +1,6 @@
 <p align="center">
     <h1 align="center">‼️ NOTE: THIS IS UNDER DEVELOPMENT ‼️</h1>
-    <h3 align="center">Got questions, feedback, or ideas? Run into any hiccups? Feel free to drop an <a href="https://github.com/warezit/Upwork-Job-Scraper/issues">issue here</a>.</h3>
+    <h3 align="center">Got questions, feedback, or ideas? Run into any hiccups? Feel free to drop an <a href="https://github.com/richardadonnell/Upwork-Job-Scraper/issues">issue here</a>.</h3>
     <p align="center">Things might be a little buggy, but hang tight—I'm working hard to keep improving it!</p>
 <br>
 <br>
@@ -30,6 +30,12 @@
 </p>
 
 # Upwork Job Scraper + Webhook Chrome Extension
+
+## 🔴👇 HOW TO SETUP VIDEO BELOW 👇🔴
+
+[![Watch the video](https://img.youtube.com/vi/FMH1QU0lz0Y/0.jpg)](https://www.youtube.com/watch?v=FMH1QU0lz0Y)
+
+## 🔴👆 HOW TO SETUP VIDEO ABOVE 👆🔴
 
 ![Upwork Job Scraper Screenshot](upwork-job-scraper/screenshot-1.30.png)
 
