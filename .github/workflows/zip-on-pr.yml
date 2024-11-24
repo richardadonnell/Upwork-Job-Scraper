@@ -4,7 +4,7 @@ on:
   pull_request:
     branches:
       - main
-  workflow_dispatch:  # Allow manual triggering
+  workflow_dispatch: # Allow manual triggering
 
 jobs:
   create-zip:
@@ -31,6 +31,7 @@ jobs:
       - name: Create a zip file with specific files
         run: |
           mkdir -p upwork-job-scraper-temp
+          mkdir -p releases
           files=(
             activityLog.js
             background.js
@@ -48,7 +49,7 @@ jobs:
             utils.js
             webhook.js
           )
-          
+
           # Copy files to temporary directory
           echo "Copying files..."
           for file in "${files[@]}"; do
@@ -60,17 +61,17 @@ jobs:
               exit 1
             fi
           done
-          
+
           # Create zip with the correct structure
           echo "Creating zip file..."
           cd upwork-job-scraper-temp
-          zip -r "../upwork-job-scraper-${{ env.branch_name }}.zip" .
+          zip -r "../releases/upwork-job-scraper-${{ env.branch_name }}.zip" .
           cd ..
-          echo "✓ Zip file created successfully"
+          echo "✓ Zip file created successfully in releases folder"
 
       - name: Upload zip file as artifact
         uses: actions/upload-artifact@v3
         with:
           name: "upwork-job-scraper-${{ env.branch_name }}"
-          path: "upwork-job-scraper-${{ env.branch_name }}.zip"
-          retention-days: 5  # Keep artifacts for 5 days
+          path: "releases/upwork-job-scraper-${{ env.branch_name }}.zip"
+          retention-days: 5 # Keep artifacts for 5 days
