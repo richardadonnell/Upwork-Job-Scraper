@@ -57,13 +57,13 @@ jobs:
         run: |
           # Create directories
           mkdir -p releases
-          mkdir -p upwork-job-scraper-temp/upwork-job-scraper
-          
+          mkdir -p temp/upwork-job-scraper
+
           # Debug: Print current directory and structure
           echo "Current directory structure:"
           pwd
           ls -la
-          
+
           files=(
             activityLog.js
             background.js
@@ -81,31 +81,29 @@ jobs:
             utils.js
             webhook.js
           )
-          
+
           # Copy files to temporary directory inside the upwork-job-scraper subfolder
           echo "Copying files..."
           for file in "${files[@]}"; do
             if [[ -f "upwork-job-scraper/$file" ]]; then
-              cp "upwork-job-scraper/$file" upwork-job-scraper-temp/upwork-job-scraper/
+              cp "upwork-job-scraper/$file" temp/upwork-job-scraper/
               echo "✓ Copied $file"
             else
               echo "❌ Error: upwork-job-scraper/$file does not exist."
               exit 1
             fi
           done
-          
+
           # Create zip from the temp directory to maintain folder structure
           echo "Creating zip file..."
-          cd upwork-job-scraper-temp
-          zip -rf "../releases/upwork-job-scraper-${{ env.version_tag }}.zip" upwork-job-scraper
-          cd ..
-          
+          (cd temp && zip -rf "../releases/upwork-job-scraper-${{ env.version_tag }}.zip" *)
+
           # Debug: Show contents of releases directory
           echo "Contents of releases directory:"
           ls -la releases/
-          
+
           # Clean up temp directory
-          rm -rf upwork-job-scraper-temp
+          rm -rf temp
           echo "✓ Zip file created successfully in releases folder"
 
       - name: Commit and push releases folder
@@ -113,17 +111,17 @@ jobs:
           # Debug: Show git status
           echo "Git status before commit:"
           git status
-          
+
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          
+
           # Force add the releases directory
           git add -f releases/
-          
+
           # Debug: Show git status after add
           echo "Git status after add:"
           git status
-          
+
           # Only commit if there are changes
           if git diff --staged --quiet; then
             echo "No changes to commit"
