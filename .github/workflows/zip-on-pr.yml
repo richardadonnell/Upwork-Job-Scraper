@@ -94,10 +94,10 @@ jobs:
             fi
           done
           
-          # Create zip from the parent temp directory to include the subfolder
+          # Create zip from the temp directory to maintain folder structure
           echo "Creating zip file..."
           cd upwork-job-scraper-temp
-          zip -r "../releases/upwork-job-scraper-${{ env.version_tag }}.zip" upwork-job-scraper
+          zip -r "../releases/upwork-job-scraper-${{ env.version_tag }}.zip" ./*
           cd ..
           
           # Debug: Show contents of releases directory
