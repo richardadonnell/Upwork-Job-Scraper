@@ -672,11 +672,6 @@ async function initializeSettings() {
       }
     });
 
-    dismissButton.addEventListener('click', () => {
-      document.getElementById('setup-instructions').classList.remove('show');
-      chrome.storage.sync.set({ setupInstructionsDismissed: true });
-    });
-
     // Add this to where you handle the webhook toggle and URL changes
     document.getElementById("webhook-toggle").addEventListener("change", (e) => {
       const enabled = e.target.checked;
