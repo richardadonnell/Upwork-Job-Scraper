@@ -3,7 +3,7 @@ name: Auto Release
 on:
   push:
     paths:
-      - 'releases/*.zip'
+      - "releases/*.zip"
 
 jobs:
   create-release:
@@ -36,4 +36,4 @@ jobs:
                 --notes "" \
                 "$file"
             fi
-          done 
+          done
