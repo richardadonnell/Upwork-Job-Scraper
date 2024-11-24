@@ -24,7 +24,7 @@ async function checkForNewJobs(jobScrapingEnabled) {
         // Wait for the page to load
         await new Promise((resolve) => {
           chrome.tabs.onUpdated.addListener(function listener(tabId, info) {
-            if (tabId === tab.id && info.status === 'complete') {
+            if (tabId === tab.id && info.status === "complete") {
               chrome.tabs.onUpdated.removeListener(listener);
               resolve();
             }
@@ -53,8 +53,11 @@ async function checkForNewJobs(jobScrapingEnabled) {
 
               // Wait for the page to load again
               await new Promise((resolve) => {
-                chrome.tabs.onUpdated.addListener(function listener(tabId, info) {
-                  if (tabId === tab.id && info.status === 'complete') {
+                chrome.tabs.onUpdated.addListener(function listener(
+                  tabId,
+                  info
+                ) {
+                  if (tabId === tab.id && info.status === "complete") {
                     chrome.tabs.onUpdated.removeListener(listener);
                     resolve();
                   }
@@ -70,9 +73,13 @@ async function checkForNewJobs(jobScrapingEnabled) {
                 (results) => {
                   if (results && results[0] && results[0].result) {
                     // User is still "fake" logged out, show a warning and send a notification
-                    const warningMessage = "Warning: User is still logged out after the login attempt. Please log in manually.";
+                    const warningMessage =
+                      "Warning: User is still logged out after the login attempt. Please log in manually.";
                     addToActivityLog(warningMessage);
-                    chrome.runtime.sendMessage({ type: "loginWarning", message: warningMessage });
+                    chrome.runtime.sendMessage({
+                      type: "loginWarning",
+                      message: warningMessage,
+                    });
 
                     if (notificationsEnabled) {
                       sendNotification(warningMessage);
@@ -89,14 +96,20 @@ async function checkForNewJobs(jobScrapingEnabled) {
                       },
                       (results) => {
                         if (chrome.runtime.lastError) {
-                          addToActivityLog("Error: " + chrome.runtime.lastError.message);
+                          addToActivityLog(
+                            "Error: " + chrome.runtime.lastError.message
+                          );
                           reject(chrome.runtime.lastError);
                         } else if (results && results[0] && results[0].result) {
                           const jobs = results[0].result;
-                          addToActivityLog(`Scraped ${jobs.length} jobs from ${url}`);
+                          addToActivityLog(
+                            `Scraped ${jobs.length} jobs from ${url}`
+                          );
                           processJobs(jobs);
                         } else {
-                          addToActivityLog("No jobs scraped or unexpected result");
+                          addToActivityLog(
+                            "No jobs scraped or unexpected result"
+                          );
                         }
                         chrome.tabs.remove(tab.id);
                         addToActivityLog("Job check completed for " + url);
@@ -115,7 +128,9 @@ async function checkForNewJobs(jobScrapingEnabled) {
                 },
                 (results) => {
                   if (chrome.runtime.lastError) {
-                    addToActivityLog("Error: " + chrome.runtime.lastError.message);
+                    addToActivityLog(
+                      "Error: " + chrome.runtime.lastError.message
+                    );
                     reject(chrome.runtime.lastError);
                   } else if (results && results[0] && results[0].result) {
                     const jobs = results[0].result;
@@ -183,33 +198,33 @@ function scrapeJobs() {
         } else if (item.getAttribute("data-test") === "experience-level") {
           skillLevel = item.textContent.trim();
         } else if (item.getAttribute("data-test") === "is-fixed-price") {
-          budget = item.querySelector("strong:last-child").textContent.trim();
+          const strongElement = item.querySelector("strong:last-child");
+          budget = strongElement ? strongElement.textContent.trim() : "N/A";
         } else if (item.getAttribute("data-test") === "duration-label") {
-          estimatedTime = item
-            .querySelector("strong:last-child")
-            .textContent.trim();
+          const strongElement = item.querySelector("strong:last-child");
+          estimatedTime = strongElement ? strongElement.textContent.trim() : "N/A";
         }
       });
 
       if (jobType && jobType.includes("Hourly")) {
-        hourlyRange = jobType.split(":")[1].trim();
+        const parts = jobType.split(":");
+        hourlyRange = parts.length > 1 ? parts[1].trim() : "N/A";
         jobType = "Hourly";
       } else if (jobType) {
         jobType = "Fixed price";
       }
     } else {
       // Fallback for Most Recent job feed structure
-      const jobTypeElement = jobElement.querySelector(
-        '[data-test="job-type"]'
-      );
+      const jobTypeElement = jobElement.querySelector('[data-test="job-type"]');
       if (jobTypeElement) {
-        if (jobTypeElement.textContent.includes("Fixed-price")) {
+        const jobTypeText = jobTypeElement.textContent || "";
+        if (jobTypeText.includes("Fixed-price")) {
           jobType = "Fixed price";
           const budgetElement = jobElement.querySelector(
             '[data-test="budget"]'
           );
           budget = budgetElement ? budgetElement.textContent.trim() : "N/A";
-        } else if (jobTypeElement.textContent.includes("Hourly")) {
+        } else if (jobTypeText.includes("Hourly")) {
           jobType = "Hourly";
           const hourlyRangeElement = jobElement.querySelector(
             '[data-test="hourly-rate"]'
@@ -313,18 +328,22 @@ function scrapeJobs() {
     }
 
     return {
-      title: titleElement ? titleElement.textContent.trim() : "N/A",
+      title:
+        titleElement && titleElement.textContent
+          ? titleElement.textContent.trim()
+          : "N/A",
       url: titleElement ? titleElement.href : "N/A",
       jobType: jobType || "N/A",
       skillLevel: skillLevel || "N/A",
       budget: budget || "N/A",
       hourlyRange: hourlyRange || "N/A",
       estimatedTime: estimatedTime || "N/A",
-      description: descriptionElement
-        ? descriptionElement.textContent.trim()
-        : "N/A",
+      description:
+        descriptionElement && descriptionElement.textContent
+          ? descriptionElement.textContent.trim()
+          : "N/A",
       skills: Array.from(skillsElements).map((skill) =>
-        skill.textContent.trim()
+        skill && skill.textContent ? skill.textContent.trim() : ""
       ),
       paymentVerified: paymentVerified,
       clientRating: clientRating,
@@ -343,83 +362,95 @@ function scrapeJobs() {
 // Wrap other important functions similarly
 function processJobs(newJobs) {
   try {
-    console.log('Starting processJobs with', newJobs.length, 'new jobs');
-    
+    console.log("Starting processJobs with", newJobs.length, "new jobs");
+
     // First get webhook settings
-    chrome.storage.sync.get(['webhookUrl', 'webhookEnabled'], async (webhookSettings) => {
-      console.log('Current webhook settings:', webhookSettings);
-      
-      if (!webhookSettings.webhookUrl || !webhookSettings.webhookEnabled) {
-        console.log('Webhook is disabled or URL not set:', {
-          enabled: webhookSettings.webhookEnabled,
-          hasUrl: Boolean(webhookSettings.webhookUrl)
-        });
-      }
+    chrome.storage.sync.get(
+      ["webhookUrl", "webhookEnabled"],
+      async (webhookSettings) => {
+        console.log("Current webhook settings:", webhookSettings);
 
-      chrome.storage.local.get(['scrapedJobs'], async (data) => {
-        let existingJobs = data.scrapedJobs || [];
-        let updatedJobs = [];
-        let addedJobsCount = 0;
-
-        // Sort new jobs by scraped time, newest first
-        newJobs.sort((a, b) => b.scrapedAt - a.scrapedAt);
-
-        // Process each new job
-        for (const newJob of newJobs) {
-          if (!existingJobs.some((job) => job.url === newJob.url)) {
-            updatedJobs.push(newJob);
-            addedJobsCount++;
-
-            // Send to webhook if enabled and URL is set
-            if (webhookSettings.webhookEnabled && webhookSettings.webhookUrl) {
-              console.log('Sending job to webhook:', {
-                jobTitle: newJob.title,
-                webhookUrl: webhookSettings.webhookUrl
-              });
-              
-              try {
-                await sendToWebhook(webhookSettings.webhookUrl, [newJob]);
-                addToActivityLog(`Successfully sent job to webhook: ${newJob.title}`);
-              } catch (error) {
-                console.error('Failed to send job to webhook:', error);
-                addToActivityLog(`Failed to send job to webhook: ${error.message}`);
-              }
-            }
-          }
+        if (!webhookSettings.webhookUrl || !webhookSettings.webhookEnabled) {
+          console.log("Webhook is disabled or URL not set:", {
+            enabled: webhookSettings.webhookEnabled,
+            hasUrl: Boolean(webhookSettings.webhookUrl),
+          });
         }
 
-        // Combine and store jobs
-        let allJobs = [...updatedJobs, ...existingJobs].slice(0, 100);
+        chrome.storage.local.get(["scrapedJobs"], async (data) => {
+          let existingJobs = data.scrapedJobs || [];
+          let updatedJobs = [];
+          let addedJobsCount = 0;
 
-        chrome.storage.local.set({ scrapedJobs: allJobs }, () => {
-          addToActivityLog(
-            `Added ${addedJobsCount} new jobs. Total jobs: ${allJobs.length}`
-          );
+          // Sort new jobs by scraped time, newest first
+          newJobs.sort((a, b) => b.scrapedAt - a.scrapedAt);
 
-          // Update badge and notify
-          updateBadge();
-          
-          if (addedJobsCount > 0) {
-            chrome.runtime.sendMessage(
-              { type: "jobsUpdate", jobs: allJobs },
-              (response) => {
-                if (chrome.runtime.lastError) {
-                  console.log("Settings page not available for job update");
+          // Process each new job
+          for (const newJob of newJobs) {
+            if (!existingJobs.some((job) => job.url === newJob.url)) {
+              updatedJobs.push(newJob);
+              addedJobsCount++;
+
+              // Send to webhook if enabled and URL is set
+              if (
+                webhookSettings.webhookEnabled &&
+                webhookSettings.webhookUrl
+              ) {
+                console.log("Sending job to webhook:", {
+                  jobTitle: newJob.title,
+                  webhookUrl: webhookSettings.webhookUrl,
+                });
+
+                try {
+                  await sendToWebhook(webhookSettings.webhookUrl, [newJob]);
+                  addToActivityLog(
+                    `Successfully sent job to webhook: ${newJob.title}`
+                  );
+                } catch (error) {
+                  console.error("Failed to send job to webhook:", error);
+                  addToActivityLog(
+                    `Failed to send job to webhook: ${error.message}`
+                  );
                 }
               }
-            );
-
-            if (notificationsEnabled) {
-              sendNotification(
-                `Found ${addedJobsCount} new job${addedJobsCount > 1 ? "s" : ""}!`
-              );
             }
           }
+
+          // Combine and store jobs
+          let allJobs = [...updatedJobs, ...existingJobs].slice(0, 100);
+
+          chrome.storage.local.set({ scrapedJobs: allJobs }, () => {
+            addToActivityLog(
+              `Added ${addedJobsCount} new jobs. Total jobs: ${allJobs.length}`
+            );
+
+            // Update badge and notify
+            updateBadge();
+
+            if (addedJobsCount > 0) {
+              chrome.runtime.sendMessage(
+                { type: "jobsUpdate", jobs: allJobs },
+                (response) => {
+                  if (chrome.runtime.lastError) {
+                    console.log("Settings page not available for job update");
+                  }
+                }
+              );
+
+              if (notificationsEnabled) {
+                sendNotification(
+                  `Found ${addedJobsCount} new job${
+                    addedJobsCount > 1 ? "s" : ""
+                  }!`
+                );
+              }
+            }
+          });
         });
-      });
-    });
+      }
+    );
   } catch (error) {
-    console.error('Error in processJobs:', error);
+    console.error("Error in processJobs:", error);
     logAndReportError("Error in processJobs", error);
   }
 }
@@ -428,12 +459,7 @@ function processJobs(newJobs) {
 function loadFeedSourceSettings() {
   return new Promise((resolve) => {
     chrome.storage.sync.get(
-      [
-        "selectedFeedSource",
-        "customSearchUrl",
-        "webhookUrl",
-        "webhookEnabled",
-      ],
+      ["selectedFeedSource", "customSearchUrl", "webhookUrl", "webhookEnabled"],
       (data) => {
         selectedFeedSource = data.selectedFeedSource || "most-recent";
         customSearchUrl = data.customSearchUrl || "";
@@ -452,7 +478,9 @@ function loadFeedSourceSettings() {
 }
 
 function isUserLoggedOut() {
-  const loginLink = document.querySelector('a[href="/ab/account-security/login"][data-test="UpLink"]');
+  const loginLink = document.querySelector(
+    'a[href="/ab/account-security/login"][data-test="UpLink"]'
+  );
   return loginLink !== null;
 }
 
@@ -462,4 +490,3 @@ function clickLoginLink() {
     loginLink.click();
   }
 }
-
