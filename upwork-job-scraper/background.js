@@ -291,7 +291,14 @@ try {
     }
   });
 
-  // Remove the duplicate sendNotification function
+  // Add this near your other chrome.notifications listeners
+  chrome.notifications.onButtonClicked.addListener((notificationId, buttonIndex) => {
+    if (buttonIndex === 0) { // First button (Login to Upwork)
+      chrome.tabs.create({ url: "https://www.upwork.com/ab/account-security/login" });
+    }
+    // Button index 1 is Close, which just dismisses the notification
+  });
+
 } catch (error) {
   console.error("Uncaught error in background script:", error);
   logAndReportError("Uncaught error in background script", error);

@@ -29,3 +29,24 @@ function sendNotification(message, duration = 30000) {
     );
   });
 }
+
+// Add new function for login notifications that bypass the enabled check
+function sendLoginNotification(message) {
+  chrome.notifications.create(
+    {
+      type: "basic",
+      iconUrl: chrome.runtime.getURL("icon48.png"),
+      title: "Upwork Job Scraper - Login Required",
+      message: message,
+      buttons: [
+        { title: "Login to Upwork" },
+        { title: "Close" }
+      ],
+    },
+    (notificationId) => {
+      if (chrome.runtime.lastError) {
+        console.error("Login notification error: ", chrome.runtime.lastError.message);
+      }
+    }
+  );
+}
