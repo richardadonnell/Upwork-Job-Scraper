@@ -112,7 +112,7 @@ async function checkForNewJobs(jobScrapingEnabled) {
                           );
                         }
                         chrome.tabs.remove(tab.id);
-                        addToActivityLog("Job check completed for " + url);
+                        addToActivityLog(`Job check completed for ${url}`);
                         resolve();
                       }
                     );
@@ -140,7 +140,7 @@ async function checkForNewJobs(jobScrapingEnabled) {
                     addToActivityLog("No jobs scraped or unexpected result");
                   }
                   chrome.tabs.remove(tab.id);
-                  addToActivityLog("Job check completed for " + url);
+                  addToActivityLog(`Job check completed for ${url}`);
                   resolve();
                 }
               );

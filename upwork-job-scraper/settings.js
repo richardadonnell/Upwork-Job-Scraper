@@ -287,20 +287,39 @@ async function initializeSettings() {
     // Function to add log entries
     function addLogEntry(message) {
       const logContainer = document.getElementById("log-container");
-      const logEntry = document.createElement("div");
-      logEntry.textContent = `${new Date().toLocaleString()}: ${message}`;
-      logContainer.prepend(logEntry);
+      
+      // Remove any existing timestamp from the message if it exists
+      const cleanMessage = message.replace(/^\d{1,2}\/\d{1,2}\/\d{4},\s\d{1,2}:\d{2}:\d{2}\s[AP]M:\s/, '');
+      
+      // Only add timestamp if message doesn't already have one
+      const logEntry = message.includes(":") ? message : `${new Date().toLocaleString()}: ${cleanMessage}`;
+      
+      // Check if this exact message already exists at the top
+      const existingTopEntry = logContainer.firstChild?.textContent;
+      if (existingTopEntry !== logEntry) {
+        const logElement = document.createElement("div");
+        logElement.textContent = logEntry;
+        logContainer.prepend(logElement);
 
-      // Remove oldest log entry if there are more than 100
-      if (logContainer.children.length > 100) {
-        logContainer.removeChild(logContainer.lastChild);
+        // Remove oldest log entry if there are more than 100
+        while (logContainer.children.length > 100) {
+          logContainer.removeChild(logContainer.lastChild);
+        }
       }
     }
 
     // Load existing log entries
     chrome.storage.local.get("activityLog", (data) => {
       if (data.activityLog) {
-        data.activityLog.forEach((entry) => addLogEntry(entry));
+        const logContainer = document.getElementById("log-container");
+        logContainer.innerHTML = ''; // Clear existing entries
+        
+        // Add entries in reverse order (newest first)
+        data.activityLog.forEach((entry) => {
+          const logElement = document.createElement("div");
+          logElement.textContent = entry;
+          logContainer.appendChild(logElement);
+        });
       }
     });
 
@@ -399,7 +418,12 @@ async function initializeSettings() {
     // Listen for log updates, job updates, and login warnings from the background script
     chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       if (message.type === "logUpdate") {
-        addLogEntry(message.content);
+        // Prevent duplicate messages by checking if the exact same message exists
+        const logContainer = document.getElementById("log-container");
+        const existingTopEntry = logContainer.firstChild?.textContent;
+        if (existingTopEntry !== message.content) {
+          addLogEntry(message.content);
+        }
       } else if (message.type === "jobsUpdate") {
         addJobEntries(message.jobs);
       } else if (message.type === "loginWarning") {
