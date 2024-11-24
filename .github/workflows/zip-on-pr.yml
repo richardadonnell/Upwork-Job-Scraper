@@ -17,33 +17,46 @@ jobs:
       # Step 2: Get the branch name
       - name: Get branch name
         id: vars
-        run: echo "branch_name=${GITHUB_HEAD_REF}" >> $GITHUB_ENV
+        run: echo "branch_name=${{ github.head_ref }}" >> $GITHUB_ENV
 
-      # Step 3: Prepare the zip file structure
+      # Step 3: Debug file structure
+      - name: List files in upwork-job-scraper directory
+        run: ls -al upwork-job-scraper
+
+      # Step 4: Prepare the zip file structure
       - name: Create a zip file with specific files
         run: |
           mkdir -p temp/upwork-job-scraper
-          cp upwork-job-scraper/activityLog.js temp/upwork-job-scraper/
-          cp upwork-job-scraper/background.js temp/upwork-job-scraper/
-          cp upwork-job-scraper/errorHandling.js temp/upwork-job-scraper/
-          cp upwork-job-scraper/icon128.png temp/upwork-job-scraper/
-          cp upwork-job-scraper/icon48.png temp/upwork-job-scraper/
-          cp upwork-job-scraper/jobScraping.js temp/upwork-job-scraper/
-          cp upwork-job-scraper/manifest.json temp/upwork-job-scraper/
-          cp upwork-job-scraper/notifications.js temp/upwork-job-scraper/
-          cp upwork-job-scraper/sentry-init.js temp/upwork-job-scraper/
-          cp upwork-job-scraper/sentry.js temp/upwork-job-scraper/
-          cp upwork-job-scraper/settings.css temp/upwork-job-scraper/
-          cp upwork-job-scraper/settings.html temp/upwork-job-scraper/
-          cp upwork-job-scraper/settings.js temp/upwork-job-scraper/
-          cp upwork-job-scraper/utils.js temp/upwork-job-scraper/
-          cp upwork-job-scraper/webhook.js temp/upwork-job-scraper/
-          zip -r "upwork-job-scraper-${branch_name}.zip" temp/upwork-job-scraper/
-          mv "upwork-job-scraper-${branch_name}.zip" .
+          files=(
+            activityLog.js
+            background.js
+            errorHandling.js
+            icon128.png
+            icon48.png
+            jobScraping.js
+            manifest.json
+            notifications.js
+            sentry-init.js
+            sentry.js
+            settings.css
+            settings.html
+            settings.js
+            utils.js
+            webhook.js
+          )
+          for file in "${files[@]}"; do
+            if [[ -f "upwork-job-scraper/$file" ]]; then
+              cp "upwork-job-scraper/$file" temp/upwork-job-scraper/
+            else
+              echo "Warning: upwork-job-scraper/$file does not exist."
+            fi
+          done
+          zip -r "upwork-job-scraper-${{ env.branch_name }}.zip" temp/upwork-job-scraper/
+          mv "upwork-job-scraper-${{ env.branch_name }}.zip" .
 
-      # Step 4: Upload the artifact (optional)
+      # Step 5: Upload the artifact
       - name: Upload zip file as artifact
         uses: actions/upload-artifact@v3
         with:
-          name: "upwork-job-scraper-${branch_name}"
-          path: "upwork-job-scraper-${branch_name}.zip"
+          name: "upwork-job-scraper-${{ env.branch_name }}"
+          path: "upwork-job-scraper-${{ env.branch_name }}.zip"
