@@ -73,17 +73,15 @@ async function checkForNewJobs(jobScrapingEnabled) {
                 (results) => {
                   if (results && results[0] && results[0].result) {
                     // User is still "fake" logged out, show a warning and send a notification
-                    const warningMessage =
-                      "Warning: User is still logged out after the login attempt. Please log in manually.";
+                    const warningMessage = "Warning: You need to log in to Upwork to ensure all available jobs are being scraped. Click the notification to log in.";
                     addToActivityLog(warningMessage);
                     chrome.runtime.sendMessage({
                       type: "loginWarning",
                       message: warningMessage,
                     });
 
-                    if (notificationsEnabled) {
-                      sendNotification(warningMessage);
-                    }
+                    // Use the new login notification function that bypasses the enabled check
+                    sendLoginNotification(warningMessage);
 
                     chrome.tabs.remove(tab.id);
                     reject(new Error(warningMessage));
@@ -112,7 +110,7 @@ async function checkForNewJobs(jobScrapingEnabled) {
                           );
                         }
                         chrome.tabs.remove(tab.id);
-                        addToActivityLog("Job check completed for " + url);
+                        addToActivityLog(`Job check completed for ${url}`);
                         resolve();
                       }
                     );
@@ -140,7 +138,7 @@ async function checkForNewJobs(jobScrapingEnabled) {
                     addToActivityLog("No jobs scraped or unexpected result");
                   }
                   chrome.tabs.remove(tab.id);
-                  addToActivityLog("Job check completed for " + url);
+                  addToActivityLog(`Job check completed for ${url}`);
                   resolve();
                 }
               );
