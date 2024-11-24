@@ -1,7 +1,7 @@
-name: Create Zip on Pull Request
+name: Create Release Zip
 
 on:
-  pull_request:
+  push:
     branches:
       - main
   workflow_dispatch: # Allow manual triggering
@@ -14,13 +14,15 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v3
 
-      - name: Get branch name
+      - name: Get version
         id: vars
         run: |
-          if [[ ${{ github.event_name }} == 'pull_request' ]]; then
-            echo "branch_name=${{ github.head_ref }}" >> $GITHUB_ENV
+          if [[ ${{ github.event_name }} == 'push' ]]; then
+            # Get short SHA of the commit
+            echo "version_tag=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
           else
-            echo "branch_name=${GITHUB_REF#refs/heads/}" >> $GITHUB_ENV
+            # For manual triggers, use timestamp
+            echo "version_tag=$(date +'%Y%m%d_%H%M%S')" >> $GITHUB_ENV
           fi
 
       - name: List files in repository
@@ -65,13 +67,13 @@ jobs:
           # Create zip with the correct structure
           echo "Creating zip file..."
           cd upwork-job-scraper-temp
-          zip -r "../releases/upwork-job-scraper-${{ env.branch_name }}.zip" .
+          zip -r "../releases/upwork-job-scraper-${{ env.version_tag }}.zip" .
           cd ..
           echo "✓ Zip file created successfully in releases folder"
 
       - name: Upload zip file as artifact
         uses: actions/upload-artifact@v3
         with:
-          name: "upwork-job-scraper-${{ env.branch_name }}"
-          path: "releases/upwork-job-scraper-${{ env.branch_name }}.zip"
+          name: "upwork-job-scraper-${{ env.version_tag }}"
+          path: "releases/upwork-job-scraper-${{ env.version_tag }}.zip"
           retention-days: 5 # Keep artifacts for 5 days
