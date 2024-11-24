@@ -9,6 +9,8 @@ on:
 jobs:
   create-zip:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
       - name: Check out code
@@ -53,8 +55,8 @@ jobs:
 
       - name: Create a zip file with specific files
         run: |
-          mkdir -p upwork-job-scraper-temp
           mkdir -p releases
+          mkdir -p upwork-job-scraper-temp
           files=(
             activityLog.js
             background.js
@@ -72,7 +74,7 @@ jobs:
             utils.js
             webhook.js
           )
-
+          
           # Copy files to temporary directory
           echo "Copying files..."
           for file in "${files[@]}"; do
@@ -84,13 +86,21 @@ jobs:
               exit 1
             fi
           done
-
+          
           # Create zip with the correct structure
           echo "Creating zip file..."
           cd upwork-job-scraper-temp
           zip -r "../releases/upwork-job-scraper-${{ env.version_tag }}.zip" .
           cd ..
           echo "✓ Zip file created successfully in releases folder"
+
+      - name: Commit and push releases folder
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add releases/
+          git commit -m "Add release zip for version ${{ env.version_tag }}"
+          git push
 
       - name: Upload zip file as artifact
         uses: actions/upload-artifact@v3
