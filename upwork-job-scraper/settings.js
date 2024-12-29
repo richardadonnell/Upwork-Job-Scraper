@@ -893,6 +893,33 @@ async function initializeSettings() {
           );
         });
       });
+
+    // Add event listener for copy log and open GitHub issue button
+    document
+      .getElementById("copy-log-github")
+      .addEventListener("click", async () => {
+        const logContainer = document.getElementById("log-container");
+        const logText = logContainer.innerText;
+        const formattedLog = `\`\`\`\n${logText}\n\`\`\``;
+
+        try {
+          await navigator.clipboard.writeText(formattedLog);
+          showAlert(
+            "Activity log copied to clipboard with markdown formatting!",
+            "alert-container"
+          );
+          window.open(
+            "https://github.com/richardadonnell/Upwork-Job-Scraper/issues/new",
+            "_blank"
+          );
+        } catch (err) {
+          console.error("Failed to copy text: ", err);
+          showAlert(
+            "Failed to copy activity log. Please try again.",
+            "alert-container"
+          );
+        }
+      });
   } catch (error) {
     console.error("Error initializing settings:", error);
     window.logAndReportError("Error initializing settings", error);
