@@ -1,6 +1,7 @@
 ** Think carefully, step by step. **
 ** IMPORTANT: CODE LOCATION RESTRICTIONS BELOW**
-- All code changes must be made ONLY within the ./upwork-job-scraper directory
+
+- All code changes must be made ONLY within the ./upwork-job-scraper sub-directory
 - DO NOT modify any files outside of ./upwork-job-scraper
 - DO NOT modify the "sentry.js" file (as previously noted)
 
