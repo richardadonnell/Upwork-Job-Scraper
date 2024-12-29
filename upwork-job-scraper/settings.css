@@ -293,29 +293,29 @@ input:checked + .slider:before {
 }
 
 .frequency-container {
-  margin: 20px 0;
-  padding: 20px;
-  background: var(--background-secondary);
-  border-radius: 8px;
+  margin: 0;
+  padding: 0;
+  background: transparent;
 }
 
 .days-selection,
 .time-range {
-  margin-top: 20px;
+  margin-top: 15px;
 }
 
 .days-selection h3,
 .time-range h3 {
-  font-size: 1.1em;
-  margin-bottom: 10px;
-  color: var(--text-primary);
+  font-size: 1em;
+  margin: 0 0 10px 0;
+  color: #e0e0e0;
+  font-weight: normal;
 }
 
 .days-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-  gap: 10px;
-  margin-top: 10px;
+  gap: 8px;
+  margin: 0;
 }
 
 .day-checkbox {
@@ -323,23 +323,28 @@ input:checked + .slider:before {
   align-items: center;
   gap: 8px;
   padding: 8px;
-  background: var(--background-primary);
+  background: #181818;
+  border: 1px solid #333;
   border-radius: 4px;
   cursor: pointer;
   transition: background-color 0.2s;
 }
 
 .day-checkbox:hover {
-  background: var(--background-hover);
+  background: #222;
 }
 
 .day-checkbox input[type="checkbox"] {
   margin: 0;
 }
 
+.day-checkbox span {
+  color: #e0e0e0;
+}
+
 .time-inputs {
   display: flex;
-  gap: 20px;
+  gap: 15px;
   flex-wrap: wrap;
 }
 
@@ -350,38 +355,34 @@ input:checked + .slider:before {
 }
 
 .time-input-group label {
-  font-size: 0.9em;
-  color: var(--text-secondary);
+  font-size: 1em;
+  color: #e0e0e0;
 }
 
 input[type="time"] {
   padding: 8px;
-  border: 1px solid var(--border-color);
+  border: 1px solid #333;
   border-radius: 4px;
-  background: var(--background-primary);
-  color: var(--text-primary);
-  font-size: 14px;
+  background: #181818;
+  color: #e0e0e0;
+  font-size: 1em;
+  width: 150px;
 }
 
 input[type="time"]:focus {
   outline: none;
-  border-color: var(--primary-color);
-  box-shadow: 0 0 0 2px var(--primary-color-alpha);
+  border-color: #108a00;
+  box-shadow: 0 0 0 1px rgba(16, 138, 0, 0.2);
 }
 
 .frequency-input {
   margin-bottom: 15px;
 }
 
-#save-frequency {
-  align-self: flex-start;
-  margin-top: 0.625em;
-}
-
 #next-check-countdown {
-  margin-bottom: 0.9375em;
-  font-weight: bold;
-  color: #1f57c3;
+  margin: 10px 0;
+  font-weight: normal;
+  color: #108a00;
 }
 
 .buy-me-coffee {
