@@ -316,6 +316,7 @@ input:checked + .slider:before {
   flex-wrap: wrap;
   gap: 8px;
   margin: 0;
+  width: 100%;
 }
 
 .day-checkbox {
@@ -329,7 +330,9 @@ input:checked + .slider:before {
   border-radius: 4px;
   cursor: pointer;
   transition: background-color 0.2s;
-  min-width: fit-content;
+  flex: 1;
+  min-width: 100px;
+  max-width: calc((100% - 48px) / 7); /* Account for 6 gaps between 7 items */
 }
 
 .day-checkbox:hover {
@@ -344,6 +347,21 @@ input:checked + .slider:before {
   color: #e0e0e0;
   white-space: nowrap;
   display: inline-block;
+  text-align: center;
+}
+
+@media (max-width: 768px) {
+  .day-checkbox {
+    flex: 1 1 calc((100% - 16px) / 3); /* 3 items per row on medium screens */
+    max-width: calc((100% - 16px) / 3);
+  }
+}
+
+@media (max-width: 480px) {
+  .day-checkbox {
+    flex: 1 1 calc((100% - 8px) / 2); /* 2 items per row on small screens */
+    max-width: calc((100% - 8px) / 2);
+  }
 }
 
 .time-inputs {
