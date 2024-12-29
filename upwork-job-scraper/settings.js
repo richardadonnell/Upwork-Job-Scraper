@@ -259,13 +259,14 @@ async function initializeSettings() {
     document.getElementById("minutes").addEventListener("input", saveFrequency);
 
     function saveFrequency() {
-      const minutes = parseInt(document.getElementById("minutes").value) || 1;
+      const minutes = parseInt(document.getElementById("minutes").value) || 5;
 
-      if (minutes < 1) {
+      if (minutes < 5) {
         showAlert(
-          "Please set a frequency of at least 1 minute.",
+          "Please set a frequency of at least 5 minutes.",
           "frequency-alert-container"
         );
+        document.getElementById("minutes").value = 5;
         return;
       }
 
@@ -284,10 +285,20 @@ async function initializeSettings() {
     // Load saved check frequency when the page opens
     chrome.storage.sync.get("checkFrequency", (data) => {
       if (data.checkFrequency) {
-        document.getElementById("minutes").value = data.checkFrequency || 1;
+        const savedFrequency = data.checkFrequency || 5;
+        document.getElementById("minutes").value =
+          savedFrequency < 5 ? 5 : savedFrequency;
       }
       startCountdown(); // Start the countdown after loading the frequency
     });
+
+    // Add function to get randomized check interval
+    function getRandomizedCheckInterval(baseMinutes) {
+      // Convert minutes to milliseconds and add random seconds (±15 max)
+      const baseMs = baseMinutes * 60 * 1000;
+      const randomMs = Math.floor(Math.random() * 31 - 15) * 1000; // Random between -15 and +15 seconds
+      return (baseMs + randomMs) / 60000; // Convert back to minutes
+    }
 
     // Function to add log entries
     function addLogEntry(message) {

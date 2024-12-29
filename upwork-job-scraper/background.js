@@ -42,7 +42,7 @@ try {
         lastViewedTimestamp = data.lastViewedTimestamp || Date.now(); // Initialize lastViewedTimestamp
 
         // Load the persisted newJobsCount
-        chrome.storage.local.get(['newJobsCount'], (result) => {
+        chrome.storage.local.get(["newJobsCount"], (result) => {
           newJobsCount = result.newJobsCount || 0;
           updateBadge(); // Update badge with loaded count
         });
@@ -62,7 +62,7 @@ try {
         initializeLastViewedTimestamp();
 
         // Update the notifications module with the current state
-        if (typeof updateNotificationsEnabled === 'function') {
+        if (typeof updateNotificationsEnabled === "function") {
           updateNotificationsEnabled(notificationsEnabled);
         }
       }
@@ -72,8 +72,26 @@ try {
   function updateAlarm() {
     if (jobScrapingEnabled) {
       chrome.alarms.clear("checkJobs");
-      chrome.alarms.create("checkJobs", { periodInMinutes: checkFrequency });
-      console.log("Alarm updated. Check frequency:", checkFrequency, "minutes");
+
+      // Add random variation to the check frequency (±15 seconds)
+      const randomVariationMs = Math.floor(Math.random() * 31 - 15) * 1000; // Random between -15 and +15 seconds
+      const baseDelayMinutes = checkFrequency;
+      const totalDelayMinutes =
+        (baseDelayMinutes * 60000 + randomVariationMs) / 60000;
+
+      chrome.alarms.create("checkJobs", {
+        delayInMinutes: totalDelayMinutes,
+        periodInMinutes: checkFrequency,
+      });
+
+      console.log(
+        "Alarm updated. Base frequency:",
+        checkFrequency,
+        "minutes, with random variation"
+      );
+      addToActivityLog(
+        `Job check scheduled with random variation (base: ${checkFrequency}m)`
+      );
     } else {
       chrome.alarms.clear("checkJobs");
       console.log("Alarm cleared because job scraping is disabled");
@@ -160,10 +178,19 @@ try {
       } else if (message.type === "updateNotificationSettings") {
         notificationsEnabled = message.enabled;
         // Save to storage to ensure persistence
-        chrome.storage.sync.set({ notificationsEnabled: message.enabled }, () => {
-          console.log("Notification settings saved to storage:", message.enabled);
-        });
-        console.log("Notification settings updated in memory:", notificationsEnabled);
+        chrome.storage.sync.set(
+          { notificationsEnabled: message.enabled },
+          () => {
+            console.log(
+              "Notification settings saved to storage:",
+              message.enabled
+            );
+          }
+        );
+        console.log(
+          "Notification settings updated in memory:",
+          notificationsEnabled
+        );
         sendResponse({ success: true });
       }
 
@@ -200,18 +227,21 @@ try {
   importScripts("utils.js");
 
   // Import the webhook functions at the top of background.js
-  importScripts('webhook.js', 'activityLog.js');
+  importScripts("webhook.js", "activityLog.js");
 
   async function processJobs(newJobs) {
     try {
-      console.log('Starting processJobs with', newJobs.length, 'new jobs');
-      
+      console.log("Starting processJobs with", newJobs.length, "new jobs");
+
       // Get webhook settings
-      const webhookSettings = await chrome.storage.sync.get(['webhookUrl', 'webhookEnabled']);
-      console.log('Current webhook settings:', webhookSettings);
+      const webhookSettings = await chrome.storage.sync.get([
+        "webhookUrl",
+        "webhookEnabled",
+      ]);
+      console.log("Current webhook settings:", webhookSettings);
 
       // Get existing jobs
-      const data = await chrome.storage.local.get(['scrapedJobs']);
+      const data = await chrome.storage.local.get(["scrapedJobs"]);
       let existingJobs = data.scrapedJobs || [];
       let updatedJobs = [];
       let addedJobsCount = 0;
@@ -227,20 +257,24 @@ try {
 
           // Send to webhook if enabled and URL is set
           if (webhookSettings.webhookEnabled && webhookSettings.webhookUrl) {
-            console.log('Sending job to webhook:', {
+            console.log("Sending job to webhook:", {
               jobTitle: newJob.title,
-              webhookUrl: webhookSettings.webhookUrl
+              webhookUrl: webhookSettings.webhookUrl,
             });
-            
+
             try {
               await sendToWebhook(webhookSettings.webhookUrl, [newJob]);
-              addToActivityLog(`Successfully sent job to webhook: ${newJob.title}`);
+              addToActivityLog(
+                `Successfully sent job to webhook: ${newJob.title}`
+              );
             } catch (error) {
-              console.error('Failed to send job to webhook:', error);
-              addToActivityLog(`Failed to send job to webhook: ${error.message}`);
+              console.error("Failed to send job to webhook:", error);
+              addToActivityLog(
+                `Failed to send job to webhook: ${error.message}`
+              );
             }
           } else {
-            console.log('Webhook not enabled or URL not set:', webhookSettings);
+            console.log("Webhook not enabled or URL not set:", webhookSettings);
           }
         }
       }
@@ -249,30 +283,31 @@ try {
       let allJobs = [...updatedJobs, ...existingJobs].slice(0, 100);
 
       await chrome.storage.local.set({ scrapedJobs: allJobs });
-      addToActivityLog(`Added ${addedJobsCount} new jobs. Total jobs: ${allJobs.length}`);
+      addToActivityLog(
+        `Added ${addedJobsCount} new jobs. Total jobs: ${allJobs.length}`
+      );
 
       // Update badge and notify
       updateBadge();
-      
+
       if (addedJobsCount > 0) {
         chrome.runtime.sendMessage({ type: "jobsUpdate", jobs: allJobs });
-        
+
         // Use the sendNotification from notifications.js
         sendNotification(
           `Found ${addedJobsCount} new job${addedJobsCount > 1 ? "s" : ""}!`
         );
       }
-
     } catch (error) {
-      console.error('Error in processJobs:', error);
+      console.error("Error in processJobs:", error);
       logAndReportError("Error in processJobs", error);
     }
   }
 
   function updateBadge() {
     // Always show the badge if there are accumulated new jobs
-    chrome.action.setBadgeText({ 
-      text: newJobsCount > 0 ? newJobsCount.toString() : "" 
+    chrome.action.setBadgeText({
+      text: newJobsCount > 0 ? newJobsCount.toString() : "",
     });
     chrome.action.setBadgeBackgroundColor({ color: "#4688F1" });
   }
@@ -283,22 +318,29 @@ try {
       if (changes.notificationsEnabled) {
         notificationsEnabled = changes.notificationsEnabled.newValue;
         // Update the notifications module with the new state
-        if (typeof updateNotificationsEnabled === 'function') {
+        if (typeof updateNotificationsEnabled === "function") {
           updateNotificationsEnabled(notificationsEnabled);
         }
-        console.log("Notification state updated from storage:", notificationsEnabled);
+        console.log(
+          "Notification state updated from storage:",
+          notificationsEnabled
+        );
       }
     }
   });
 
   // Add this near your other chrome.notifications listeners
-  chrome.notifications.onButtonClicked.addListener((notificationId, buttonIndex) => {
-    if (buttonIndex === 0) { // First button (Login to Upwork)
-      chrome.tabs.create({ url: "https://www.upwork.com/ab/account-security/login" });
+  chrome.notifications.onButtonClicked.addListener(
+    (notificationId, buttonIndex) => {
+      if (buttonIndex === 0) {
+        // First button (Login to Upwork)
+        chrome.tabs.create({
+          url: "https://www.upwork.com/ab/account-security/login",
+        });
+      }
+      // Button index 1 is Close, which just dismisses the notification
     }
-    // Button index 1 is Close, which just dismisses the notification
-  });
-
+  );
 } catch (error) {
   console.error("Uncaught error in background script:", error);
   logAndReportError("Uncaught error in background script", error);
