@@ -362,6 +362,27 @@ async function initializeSettings() {
       .getElementById("end-time")
       .addEventListener("change", saveSchedule);
 
+    // Add event listeners for preset buttons
+    document.getElementById("set-weekdays").addEventListener("click", () => {
+      // Set weekdays only
+      days.forEach((day) => {
+        const checkbox = document.getElementById(`day-${day}`);
+        checkbox.checked = ["mon", "tue", "wed", "thu", "fri"].includes(day);
+      });
+      saveSchedule();
+      addLogEntry("Schedule updated: Weekdays only");
+    });
+
+    document
+      .getElementById("set-business-hours")
+      .addEventListener("click", () => {
+        // Set business hours (8 AM - 5 PM)
+        document.getElementById("start-time").value = "08:00";
+        document.getElementById("end-time").value = "17:00";
+        saveSchedule();
+        addLogEntry("Schedule updated: Business hours (8 AM - 5 PM)");
+      });
+
     function saveSchedule() {
       const schedule = {
         days: days.reduce((acc, day) => {
