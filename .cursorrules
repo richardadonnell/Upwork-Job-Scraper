@@ -5,6 +5,8 @@
 - DO NOT modify any files outside of ./upwork-job-scraper
 - DO NOT modify the "sentry.js" file (as previously noted)
 
+---
+
 1. Code Style & Structure:
 
 - Use camelCase for variable and function names
