@@ -34,31 +34,120 @@ function sendMessageToBackground(message) {
 
 let countdownInterval;
 
+// Add this function to calculate the next valid check time
+function calculateNextValidCheckTime(currentSchedule, baseNextCheck) {
+  const now = new Date();
+  const nextCheck = new Date(baseNextCheck);
+
+  // Get day of week for the next check
+  const days = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
+  const nextCheckDay = days[nextCheck.getDay()];
+
+  // Convert times to minutes since midnight
+  const nextCheckMinutes = nextCheck.getHours() * 60 + nextCheck.getMinutes();
+  const [startHour, startMinute] = currentSchedule.startTime
+    .split(":")
+    .map(Number);
+  const [endHour, endMinute] = currentSchedule.endTime.split(":").map(Number);
+  const startMinutes = startHour * 60 + startMinute;
+  const endMinutes = endHour * 60 + endMinute;
+
+  // If the next check falls on a disabled day or outside active hours
+  if (
+    !currentSchedule.days[nextCheckDay] ||
+    nextCheckMinutes < startMinutes ||
+    nextCheckMinutes > endMinutes
+  ) {
+    // Find the next enabled day
+    let daysToAdd = 1;
+    let nextValidDay = new Date(nextCheck);
+    let foundValidDay = false;
+
+    while (!foundValidDay && daysToAdd <= 7) {
+      nextValidDay = new Date(
+        nextCheck.getTime() + daysToAdd * 24 * 60 * 60 * 1000
+      );
+      const dayIndex = nextValidDay.getDay();
+      const dayKey = days[dayIndex];
+
+      if (currentSchedule.days[dayKey]) {
+        foundValidDay = true;
+        // Set time to start of active hours
+        nextValidDay.setHours(startHour, startMinute, 0, 0);
+      } else {
+        daysToAdd++;
+      }
+    }
+
+    if (!foundValidDay) {
+      // No valid days found in the next week
+      return null;
+    }
+
+    return nextValidDay.getTime();
+  }
+
+  return nextCheck.getTime();
+}
+
 function updateCountdown() {
-  chrome.alarms.get("checkJobs", (alarm) => {
-    if (alarm) {
-      const now = new Date().getTime();
-      const nextAlarm = alarm.scheduledTime;
-      const timeLeft = nextAlarm - now;
+  chrome.storage.sync.get(["schedule"], (data) => {
+    const currentSchedule = data.schedule || {
+      days: ["sun", "mon", "tue", "wed", "thu", "fri", "sat"].reduce(
+        (acc, day) => ({ ...acc, [day]: true }),
+        {}
+      ),
+      startTime: "00:00",
+      endTime: "23:59",
+    };
 
-      if (timeLeft > 0) {
-        const hours = Math.floor(
-          (timeLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)
+    chrome.alarms.get("checkJobs", (alarm) => {
+      if (alarm) {
+        const now = new Date().getTime();
+        const nextValidCheck = calculateNextValidCheckTime(
+          currentSchedule,
+          alarm.scheduledTime
         );
-        const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
-        const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
 
-        document.getElementById(
-          "next-check-countdown"
-        ).textContent = `⏲️ Next check in: ${hours}h ${minutes}m ${seconds}s`;
+        if (!nextValidCheck) {
+          document.getElementById("next-check-countdown").textContent =
+            "No valid check times in the next week";
+          return;
+        }
+
+        const timeLeft = nextValidCheck - now;
+
+        if (timeLeft > 0) {
+          const days = Math.floor(timeLeft / (1000 * 60 * 60 * 24));
+          const hours = Math.floor(
+            (timeLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)
+          );
+          const minutes = Math.floor(
+            (timeLeft % (1000 * 60 * 60)) / (1000 * 60)
+          );
+          const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
+
+          let countdownText = "⏲️ Next check in: ";
+          if (days > 0) {
+            countdownText += `${days}d `;
+          }
+          countdownText += `${hours}h ${minutes}m ${seconds}s`;
+
+          if (nextValidCheck > alarm.scheduledTime) {
+            countdownText += " (adjusted for schedule)";
+          }
+
+          document.getElementById("next-check-countdown").textContent =
+            countdownText;
+        } else {
+          document.getElementById("next-check-countdown").textContent =
+            "Check imminent...";
+        }
       } else {
         document.getElementById("next-check-countdown").textContent =
-          "Check imminent...";
+          "Countdown not available";
       }
-    } else {
-      document.getElementById("next-check-countdown").textContent =
-        "Countdown not available";
-    }
+    });
   });
 }
 
