@@ -312,22 +312,24 @@ input:checked + .slider:before {
 }
 
 .days-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   margin: 0;
 }
 
 .day-checkbox {
-  display: flex;
+  display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
-  padding: 8px;
+  padding: 8px 12px;
   background: #181818;
   border: 1px solid #333;
   border-radius: 4px;
   cursor: pointer;
   transition: background-color 0.2s;
+  min-width: fit-content;
 }
 
 .day-checkbox:hover {
@@ -340,6 +342,8 @@ input:checked + .slider:before {
 
 .day-checkbox span {
   color: #e0e0e0;
+  white-space: nowrap;
+  display: inline-block;
 }
 
 .time-inputs {
