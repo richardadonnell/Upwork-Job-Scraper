@@ -19,6 +19,14 @@ try {
   let notificationsEnabled = true; // Default state
   let newJobsCount = 0;
   let lastViewedTimestamp = 0;
+  let schedule = {
+    days: ["sun", "mon", "tue", "wed", "thu", "fri", "sat"].reduce(
+      (acc, day) => ({ ...acc, [day]: true }),
+      {}
+    ),
+    startTime: "00:00",
+    endTime: "23:59",
+  };
 
   // Modify the existing chrome.runtime.onStartup and chrome.runtime.onInstalled listeners
   chrome.runtime.onStartup.addListener(initializeExtension);
@@ -33,24 +41,26 @@ try {
         "notificationsEnabled",
         "checkFrequency",
         "lastViewedTimestamp",
+        "schedule",
       ],
       (data) => {
-        jobScrapingEnabled = data.jobScrapingEnabled !== false; // Default to true if not set
+        jobScrapingEnabled = data.jobScrapingEnabled !== false;
         webhookEnabled = data.webhookEnabled !== false;
-        notificationsEnabled = data.notificationsEnabled !== false; // Default to true if not set
-        checkFrequency = data.checkFrequency || 5; // Default to 5 minutes if not set
-        lastViewedTimestamp = data.lastViewedTimestamp || Date.now(); // Initialize lastViewedTimestamp
+        notificationsEnabled = data.notificationsEnabled !== false;
+        checkFrequency = data.checkFrequency || 5;
+        lastViewedTimestamp = data.lastViewedTimestamp || Date.now();
+        schedule = data.schedule || schedule; // Load saved schedule or use default
 
-        // Load the persisted newJobsCount
         chrome.storage.local.get(["newJobsCount"], (result) => {
           newJobsCount = result.newJobsCount || 0;
-          updateBadge(); // Update badge with loaded count
+          updateBadge();
         });
 
         console.log(
           "Extension initialized. Job scraping enabled:",
           jobScrapingEnabled
         );
+        console.log("Schedule loaded:", schedule);
 
         if (jobScrapingEnabled) {
           updateAlarm();
@@ -61,7 +71,6 @@ try {
         loadFeedSourceSettings();
         initializeLastViewedTimestamp();
 
-        // Update the notifications module with the current state
         if (typeof updateNotificationsEnabled === "function") {
           updateNotificationsEnabled(notificationsEnabled);
         }
@@ -102,7 +111,12 @@ try {
   chrome.alarms.onAlarm.addListener((alarm) => {
     try {
       if (alarm.name === "checkJobs" && jobScrapingEnabled) {
-        checkForNewJobs(jobScrapingEnabled);
+        if (isWithinSchedule()) {
+          checkForNewJobs(jobScrapingEnabled);
+        } else {
+          console.log("Skipping job check - outside of scheduled hours");
+          addToActivityLog("Skipping job check - outside of scheduled hours");
+        }
       }
     } catch (error) {
       logAndReportError("Error in onAlarm listener", error);
@@ -140,16 +154,22 @@ try {
         return true; // Will respond asynchronously
       } else if (message.type === "manualScrape") {
         if (jobScrapingEnabled) {
-          checkForNewJobs(jobScrapingEnabled).then(() => {
-            sendResponse({ success: true });
-          });
+          if (isWithinSchedule()) {
+            checkForNewJobs(jobScrapingEnabled).then(() => {
+              sendResponse({ success: true });
+            });
+          } else {
+            const msg = "Manual scrape skipped - outside of scheduled hours";
+            addToActivityLog(msg);
+            sendResponse({ success: false, reason: msg });
+          }
         } else {
           addToActivityLog(
             "Job scraping is disabled. Manual scrape not performed."
           );
           sendResponse({ success: false, reason: "Job scraping is disabled" });
         }
-        return true; // Will respond asynchronously
+        return true;
       } else if (message.type === "ping") {
         sendResponse({ status: "ready" });
         return false; // Responded synchronously
@@ -192,6 +212,11 @@ try {
           notificationsEnabled
         );
         sendResponse({ success: true });
+      } else if (message.type === "updateSchedule") {
+        schedule = message.schedule;
+        console.log("Schedule updated:", schedule);
+        updateAlarm(); // Restart alarm with new schedule
+        handled = true;
       }
 
       if (handled) {
@@ -216,6 +241,30 @@ try {
       lastViewedTimestamp = data.lastViewedTimestamp || Date.now();
       chrome.storage.local.set({ lastViewedTimestamp: lastViewedTimestamp });
     });
+  }
+
+  // Add function to check if current time is within schedule
+  function isWithinSchedule() {
+    const now = new Date();
+    const currentDay = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"][
+      now.getDay()
+    ];
+
+    // Check if current day is enabled
+    if (!schedule.days[currentDay]) {
+      return false;
+    }
+
+    // Convert current time to minutes since midnight
+    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+    // Convert schedule times to minutes since midnight
+    const [startHour, startMinute] = schedule.startTime.split(":").map(Number);
+    const [endHour, endMinute] = schedule.endTime.split(":").map(Number);
+    const startMinutes = startHour * 60 + startMinute;
+    const endMinutes = endHour * 60 + endMinute;
+
+    return currentMinutes >= startMinutes && currentMinutes <= endMinutes;
   }
 
   // Import the functions from the new files

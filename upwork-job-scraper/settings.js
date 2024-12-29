@@ -258,6 +258,50 @@ async function initializeSettings() {
     // Update the check frequency input event listeners
     document.getElementById("minutes").addEventListener("input", saveFrequency);
 
+    // Add event listeners for days and time range
+    const days = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
+    days.forEach((day) => {
+      document
+        .getElementById(`day-${day}`)
+        .addEventListener("change", saveSchedule);
+    });
+
+    document
+      .getElementById("start-time")
+      .addEventListener("change", saveSchedule);
+    document
+      .getElementById("end-time")
+      .addEventListener("change", saveSchedule);
+
+    function saveSchedule() {
+      const schedule = {
+        days: days.reduce((acc, day) => {
+          acc[day] = document.getElementById(`day-${day}`).checked;
+          return acc;
+        }, {}),
+        startTime: document.getElementById("start-time").value,
+        endTime: document.getElementById("end-time").value,
+      };
+
+      chrome.storage.sync.set({ schedule }, () => {
+        console.log("Schedule saved:", schedule);
+        addLogEntry(`Schedule updated: ${formatSchedule(schedule)}`);
+        chrome.runtime.sendMessage({
+          type: "updateSchedule",
+          schedule: schedule,
+        });
+        trackEvent("schedule_changed", schedule);
+      });
+    }
+
+    function formatSchedule(schedule) {
+      const activeDays = Object.entries(schedule.days)
+        .filter(([_, enabled]) => enabled)
+        .map(([day]) => day.charAt(0).toUpperCase() + day.slice(1))
+        .join(", ");
+      return `Active on: ${activeDays} between ${schedule.startTime} and ${schedule.endTime}`;
+    }
+
     function saveFrequency() {
       const minutes = parseInt(document.getElementById("minutes").value) || 5;
 
@@ -282,6 +326,26 @@ async function initializeSettings() {
       });
     }
 
+    // Load saved schedule when the page opens
+    chrome.storage.sync.get(["schedule"], (data) => {
+      const defaultSchedule = {
+        days: days.reduce((acc, day) => ({ ...acc, [day]: true }), {}),
+        startTime: "00:00",
+        endTime: "23:59",
+      };
+
+      const schedule = data.schedule || defaultSchedule;
+
+      // Set the days checkboxes
+      days.forEach((day) => {
+        document.getElementById(`day-${day}`).checked = schedule.days[day];
+      });
+
+      // Set the time inputs
+      document.getElementById("start-time").value = schedule.startTime;
+      document.getElementById("end-time").value = schedule.endTime;
+    });
+
     // Load saved check frequency when the page opens
     chrome.storage.sync.get("checkFrequency", (data) => {
       if (data.checkFrequency) {
@@ -291,6 +355,32 @@ async function initializeSettings() {
       }
       startCountdown(); // Start the countdown after loading the frequency
     });
+
+    // Add function to check if current time is within schedule
+    function isWithinSchedule(schedule) {
+      const now = new Date();
+      const currentDay = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"][
+        now.getDay()
+      ];
+
+      // Check if current day is enabled
+      if (!schedule.days[currentDay]) {
+        return false;
+      }
+
+      // Convert current time to minutes since midnight
+      const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+      // Convert schedule times to minutes since midnight
+      const [startHour, startMinute] = schedule.startTime
+        .split(":")
+        .map(Number);
+      const [endHour, endMinute] = schedule.endTime.split(":").map(Number);
+      const startMinutes = startHour * 60 + startMinute;
+      const endMinutes = endHour * 60 + endMinute;
+
+      return currentMinutes >= startMinutes && currentMinutes <= endMinutes;
+    }
 
     // Add function to get randomized check interval
     function getRandomizedCheckInterval(baseMinutes) {

@@ -121,6 +121,54 @@
           <label for="minutes">Minutes:</label>
           <input type="number" id="minutes" min="5" max="59" placeholder="5" />
         </div>
+
+        <div class="days-selection">
+          <h3>Active Days</h3>
+          <div class="days-grid">
+            <label class="day-checkbox">
+              <input type="checkbox" id="day-sun" checked />
+              <span>Sunday</span>
+            </label>
+            <label class="day-checkbox">
+              <input type="checkbox" id="day-mon" checked />
+              <span>Monday</span>
+            </label>
+            <label class="day-checkbox">
+              <input type="checkbox" id="day-tue" checked />
+              <span>Tuesday</span>
+            </label>
+            <label class="day-checkbox">
+              <input type="checkbox" id="day-wed" checked />
+              <span>Wednesday</span>
+            </label>
+            <label class="day-checkbox">
+              <input type="checkbox" id="day-thu" checked />
+              <span>Thursday</span>
+            </label>
+            <label class="day-checkbox">
+              <input type="checkbox" id="day-fri" checked />
+              <span>Friday</span>
+            </label>
+            <label class="day-checkbox">
+              <input type="checkbox" id="day-sat" checked />
+              <span>Saturday</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="time-range">
+          <h3>Active Hours</h3>
+          <div class="time-inputs">
+            <div class="time-input-group">
+              <label for="start-time">Start Time:</label>
+              <input type="time" id="start-time" value="00:00" />
+            </div>
+            <div class="time-input-group">
+              <label for="end-time">End Time:</label>
+              <input type="time" id="end-time" value="23:59" />
+            </div>
+          </div>
+        </div>
       </div>
 
       <h2>Feed Sources</h2>

@@ -293,31 +293,84 @@ input:checked + .slider:before {
 }
 
 .frequency-container {
+  margin: 20px 0;
+  padding: 20px;
+  background: var(--background-secondary);
+  border-radius: 8px;
+}
+
+.days-selection,
+.time-range {
+  margin-top: 20px;
+}
+
+.days-selection h3,
+.time-range h3 {
+  font-size: 1.1em;
+  margin-bottom: 10px;
+  color: var(--text-primary);
+}
+
+.days-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.day-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  background: var(--background-primary);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.day-checkbox:hover {
+  background: var(--background-hover);
+}
+
+.day-checkbox input[type="checkbox"] {
+  margin: 0;
+}
+
+.time-inputs {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.time-input-group {
   display: flex;
   flex-direction: column;
-  gap: 0.9375em;
-  margin-bottom: 1.25em;
-  background-color: #181818;
-  padding: 0.9375em;
-  border-radius: 0.25em;
+  gap: 5px;
+}
+
+.time-input-group label {
+  font-size: 0.9em;
+  color: var(--text-secondary);
+}
+
+input[type="time"] {
+  padding: 8px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background: var(--background-primary);
+  color: var(--text-primary);
+  font-size: 14px;
+}
+
+input[type="time"]:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px var(--primary-color-alpha);
 }
 
 .frequency-input {
-  display: flex;
-  flex-direction: column;
-}
-
-.frequency-input label {
-  margin-bottom: 0.3125em;
-  font-weight: bold;
-}
-
-.frequency-input input {
-  padding: 0.5em;
-  background-color: #181818;
-  border: 0.0625em solid #333;
-  color: #e0e0e0;
-  border-radius: 0.25em;
+  margin-bottom: 15px;
 }
 
 #save-frequency {
