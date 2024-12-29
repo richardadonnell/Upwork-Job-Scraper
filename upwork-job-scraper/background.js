@@ -28,6 +28,108 @@ try {
     endTime: "23:59",
   };
 
+  // Initialize settings when extension starts
+  chrome.storage.sync.get(
+    ["jobScrapingEnabled", "checkFrequency", "schedule"],
+    (data) => {
+      jobScrapingEnabled =
+        data.jobScrapingEnabled !== undefined ? data.jobScrapingEnabled : true;
+      checkFrequency = data.checkFrequency || 5;
+      schedule = data.schedule || schedule;
+      updateAlarm();
+    }
+  );
+
+  // Function to calculate next valid check time
+  function calculateNextCheckTime() {
+    const now = new Date();
+    const days = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
+    const currentDay = days[now.getDay()];
+    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+    // Convert schedule times to minutes
+    const [startHour, startMinute] = schedule.startTime.split(":").map(Number);
+    const [endHour, endMinute] = schedule.endTime.split(":").map(Number);
+    const startMinutes = startHour * 60 + startMinute;
+    const endMinutes = endHour * 60 + endMinute;
+
+    let nextCheckTime = new Date();
+
+    // If current day is not enabled or we're outside active hours
+    if (
+      !schedule.days[currentDay] ||
+      currentMinutes < startMinutes ||
+      currentMinutes > endMinutes
+    ) {
+      // Find next valid day
+      let daysToAdd = 1;
+      let foundValidDay = false;
+
+      while (!foundValidDay && daysToAdd <= 7) {
+        const nextDay = new Date(
+          now.getTime() + daysToAdd * 24 * 60 * 60 * 1000
+        );
+        const nextDayKey = days[nextDay.getDay()];
+
+        if (schedule.days[nextDayKey]) {
+          foundValidDay = true;
+          nextCheckTime = nextDay;
+          nextCheckTime.setHours(startHour, startMinute, 0, 0);
+        } else {
+          daysToAdd++;
+        }
+      }
+
+      if (!foundValidDay) {
+        return null;
+      }
+    } else if (currentMinutes < startMinutes) {
+      // Same day, but before start time
+      nextCheckTime.setHours(startHour, startMinute, 0, 0);
+    } else if (currentMinutes > endMinutes) {
+      // Move to next valid day
+      nextCheckTime = calculateNextCheckTime(
+        new Date(now.getTime() + 24 * 60 * 60 * 1000)
+      );
+    }
+
+    return nextCheckTime;
+  }
+
+  function updateAlarm() {
+    if (jobScrapingEnabled) {
+      chrome.alarms.clear("checkJobs");
+
+      const nextCheckTime = calculateNextCheckTime();
+      if (!nextCheckTime) {
+        console.log("No valid check times found in the next week");
+        addToActivityLog("No valid check times found in the next week");
+        return;
+      }
+
+      const now = new Date();
+      const delayInMinutes = (nextCheckTime.getTime() - now.getTime()) / 60000;
+
+      // Add random variation to the check frequency (±15 seconds)
+      const randomVariationMs = Math.floor(Math.random() * 31 - 15) * 1000;
+      const totalDelayMinutes =
+        (delayInMinutes * 60000 + randomVariationMs) / 60000;
+
+      chrome.alarms.create("checkJobs", {
+        delayInMinutes: totalDelayMinutes,
+        periodInMinutes: checkFrequency,
+      });
+
+      console.log("Alarm updated. Next check at:", nextCheckTime);
+      addToActivityLog(
+        `Job check scheduled for ${nextCheckTime.toLocaleString()}`
+      );
+    } else {
+      chrome.alarms.clear("checkJobs");
+      console.log("Alarm cleared because job scraping is disabled");
+    }
+  }
+
   // Modify the existing chrome.runtime.onStartup and chrome.runtime.onInstalled listeners
   chrome.runtime.onStartup.addListener(initializeExtension);
   chrome.runtime.onInstalled.addListener(initializeExtension);
@@ -76,33 +178,6 @@ try {
         }
       }
     );
-  }
-
-  function updateAlarm() {
-    if (jobScrapingEnabled) {
-      chrome.alarms.clear("checkJobs");
-
-      // Add random variation to the check frequency (±15 seconds)
-      const randomVariationMs = Math.floor(Math.random() * 31 - 15) * 1000; // Random between -15 and +15 seconds
-      const baseDelayMinutes = checkFrequency;
-      const totalDelayMinutes =
-        (baseDelayMinutes * 60000 + randomVariationMs) / 60000;
-
-      chrome.alarms.create("checkJobs", {
-        delayInMinutes: totalDelayMinutes,
-        periodInMinutes: checkFrequency,
-      });
-
-      console.log(
-        "Alarm updated. Base frequency:",
-        checkFrequency,
-        "minutes, with random variation"
-      );
-      addToActivityLog(`Job check scheduled (every ${checkFrequency}m)`);
-    } else {
-      chrome.alarms.clear("checkJobs");
-      console.log("Alarm cleared because job scraping is disabled");
-    }
   }
 
   // Modify the chrome.alarms.onAlarm listener
@@ -212,8 +287,8 @@ try {
         sendResponse({ success: true });
       } else if (message.type === "updateSchedule") {
         schedule = message.schedule;
-        console.log("Schedule updated:", schedule);
-        updateAlarm(); // Restart alarm with new schedule
+        updateAlarm(); // Recreate alarm with new schedule
+        addToActivityLog("Schedule updated, next check time recalculated");
         handled = true;
       }
 

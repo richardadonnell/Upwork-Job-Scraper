@@ -396,11 +396,25 @@ async function initializeSettings() {
       chrome.storage.sync.set({ schedule }, () => {
         console.log("Schedule saved:", schedule);
         addLogEntry(`Schedule updated: ${formatSchedule(schedule)}`);
-        chrome.runtime.sendMessage({
-          type: "updateSchedule",
-          schedule: schedule,
-        });
-        trackEvent("schedule_changed", schedule);
+
+        // Send message to background script to update schedule
+        chrome.runtime.sendMessage(
+          {
+            type: "updateSchedule",
+            schedule: schedule,
+          },
+          (response) => {
+            if (chrome.runtime.lastError) {
+              console.error(
+                "Error updating schedule:",
+                chrome.runtime.lastError
+              );
+              addLogEntry(
+                "Error: Failed to update schedule in background script"
+              );
+            }
+          }
+        );
       });
     }
 
