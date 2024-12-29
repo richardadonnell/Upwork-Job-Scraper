@@ -98,9 +98,7 @@ try {
         checkFrequency,
         "minutes, with random variation"
       );
-      addToActivityLog(
-        `Job check scheduled with random variation (base: ${checkFrequency}m)`
-      );
+      addToActivityLog(`Job check scheduled (every ${checkFrequency}m)`);
     } else {
       chrome.alarms.clear("checkJobs");
       console.log("Alarm cleared because job scraping is disabled");
