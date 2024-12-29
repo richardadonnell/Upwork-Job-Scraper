@@ -148,6 +148,7 @@ button:hover {
   font-size: 0.7em;
   color: #868686;
   margin-top: 1.25em;
+  margin-bottom: 1.25em;
   border: 0.0625em solid #333;
   padding: 0.9375em;
   height: auto;
@@ -677,4 +678,9 @@ option {
   font-size: 0.9em;
   margin-top: 1em;
   text-align: center;
+}
+
+.button-group {
+  margin-top: 1.25em;
+  margin-bottom: 1.875em;
 }
