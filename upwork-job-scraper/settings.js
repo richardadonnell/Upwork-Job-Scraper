@@ -34,31 +34,120 @@ function sendMessageToBackground(message) {
 
 let countdownInterval;
 
+// Add this function to calculate the next valid check time
+function calculateNextValidCheckTime(currentSchedule, baseNextCheck) {
+  const now = new Date();
+  const nextCheck = new Date(baseNextCheck);
+
+  // Get day of week for the next check
+  const days = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
+  const nextCheckDay = days[nextCheck.getDay()];
+
+  // Convert times to minutes since midnight
+  const nextCheckMinutes = nextCheck.getHours() * 60 + nextCheck.getMinutes();
+  const [startHour, startMinute] = currentSchedule.startTime
+    .split(":")
+    .map(Number);
+  const [endHour, endMinute] = currentSchedule.endTime.split(":").map(Number);
+  const startMinutes = startHour * 60 + startMinute;
+  const endMinutes = endHour * 60 + endMinute;
+
+  // If the next check falls on a disabled day or outside active hours
+  if (
+    !currentSchedule.days[nextCheckDay] ||
+    nextCheckMinutes < startMinutes ||
+    nextCheckMinutes > endMinutes
+  ) {
+    // Find the next enabled day
+    let daysToAdd = 1;
+    let nextValidDay = new Date(nextCheck);
+    let foundValidDay = false;
+
+    while (!foundValidDay && daysToAdd <= 7) {
+      nextValidDay = new Date(
+        nextCheck.getTime() + daysToAdd * 24 * 60 * 60 * 1000
+      );
+      const dayIndex = nextValidDay.getDay();
+      const dayKey = days[dayIndex];
+
+      if (currentSchedule.days[dayKey]) {
+        foundValidDay = true;
+        // Set time to start of active hours
+        nextValidDay.setHours(startHour, startMinute, 0, 0);
+      } else {
+        daysToAdd++;
+      }
+    }
+
+    if (!foundValidDay) {
+      // No valid days found in the next week
+      return null;
+    }
+
+    return nextValidDay.getTime();
+  }
+
+  return nextCheck.getTime();
+}
+
 function updateCountdown() {
-  chrome.alarms.get("checkJobs", (alarm) => {
-    if (alarm) {
-      const now = new Date().getTime();
-      const nextAlarm = alarm.scheduledTime;
-      const timeLeft = nextAlarm - now;
+  chrome.storage.sync.get(["schedule"], (data) => {
+    const currentSchedule = data.schedule || {
+      days: ["sun", "mon", "tue", "wed", "thu", "fri", "sat"].reduce(
+        (acc, day) => ({ ...acc, [day]: true }),
+        {}
+      ),
+      startTime: "00:00",
+      endTime: "23:59",
+    };
 
-      if (timeLeft > 0) {
-        const hours = Math.floor(
-          (timeLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)
+    chrome.alarms.get("checkJobs", (alarm) => {
+      if (alarm) {
+        const now = new Date().getTime();
+        const nextValidCheck = calculateNextValidCheckTime(
+          currentSchedule,
+          alarm.scheduledTime
         );
-        const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
-        const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
 
-        document.getElementById(
-          "next-check-countdown"
-        ).textContent = `⏲️ Next check in: ${hours}h ${minutes}m ${seconds}s`;
+        if (!nextValidCheck) {
+          document.getElementById("next-check-countdown").textContent =
+            "No valid check times in the next week";
+          return;
+        }
+
+        const timeLeft = nextValidCheck - now;
+
+        if (timeLeft > 0) {
+          const days = Math.floor(timeLeft / (1000 * 60 * 60 * 24));
+          const hours = Math.floor(
+            (timeLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)
+          );
+          const minutes = Math.floor(
+            (timeLeft % (1000 * 60 * 60)) / (1000 * 60)
+          );
+          const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
+
+          let countdownText = "⏲️ Next check in: ";
+          if (days > 0) {
+            countdownText += `${days}d `;
+          }
+          countdownText += `${hours}h ${minutes}m ${seconds}s`;
+
+          if (nextValidCheck > alarm.scheduledTime) {
+            countdownText += " (adjusted for schedule)";
+          }
+
+          document.getElementById("next-check-countdown").textContent =
+            countdownText;
+        } else {
+          document.getElementById("next-check-countdown").textContent =
+            "Check imminent...";
+        }
       } else {
         document.getElementById("next-check-countdown").textContent =
-          "Check imminent...";
+          "Countdown not available";
       }
-    } else {
-      document.getElementById("next-check-countdown").textContent =
-        "Countdown not available";
-    }
+    });
   });
 }
 
@@ -95,7 +184,7 @@ async function initializeSettings() {
     document.getElementById("webhook-url").addEventListener("input", () => {
       const webhookUrl = document.getElementById("webhook-url").value;
       const webhookEnabled = document.getElementById("webhook-toggle").checked;
-      
+
       if (webhookUrl === "") {
         // If the URL is empty, clear the saved webhook URL
         chrome.storage.sync.remove("webhookUrl", () => {
@@ -122,11 +211,17 @@ async function initializeSettings() {
       const webhookUrl = document.getElementById("webhook-url").value;
       const webhookEnabled = document.getElementById("webhook-toggle").checked;
       if (!webhookEnabled) {
-        showAlert("Please enable the webhook before testing.", "webhook-alert-container");
+        showAlert(
+          "Please enable the webhook before testing.",
+          "webhook-alert-container"
+        );
         return;
       }
       if (!webhookUrl) {
-        showAlert("Please enter a webhook URL before testing.", "webhook-alert-container");
+        showAlert(
+          "Please enter a webhook URL before testing.",
+          "webhook-alert-container"
+        );
         return;
       }
 
@@ -138,21 +233,25 @@ async function initializeSettings() {
         budget: "$500",
         hourlyRange: "N/A",
         estimatedTime: "N/A",
-        description: "This is a test job posting to verify webhook functionality.",
+        description:
+          "This is a test job posting to verify webhook functionality.",
         skills: ["Test Skill 1", "Test Skill 2", "Test Skill 3"],
         paymentVerified: true,
         clientRating: 4.9,
         clientSpent: "$10k+",
         clientCountry: "Test Country",
         attachments: [
-          { name: "Test Document", url: "https://www.upwork.com/test-document" }
+          {
+            name: "Test Document",
+            url: "https://www.upwork.com/test-document",
+          },
         ],
         questions: [
           "What is your experience with this type of project?",
-          "How soon can you start?"
+          "How soon can you start?",
         ],
         scrapedAt: Date.now(),
-        scrapedAtHuman: new Date().toLocaleString()
+        scrapedAtHuman: new Date().toLocaleString(),
       };
 
       fetch(webhookUrl, {
@@ -175,7 +274,10 @@ async function initializeSettings() {
         .catch((error) => {
           console.error("Error:", error);
           addLogEntry("Error sending test webhook");
-          showAlert("Error sending test webhook. Check the console for details.", "webhook-alert-container");
+          showAlert(
+            "Error sending test webhook. Check the console for details.",
+            "webhook-alert-container"
+          );
           trackEvent("test_webhook_sent", {
             success: false,
             error: error.message,
@@ -220,9 +322,9 @@ async function initializeSettings() {
           console.log("Notification setting saved:", isEnabled);
           addLogEntry(`Notifications ${isEnabled ? "enabled" : "disabled"}`);
           // Send message to background script to update notification state
-          chrome.runtime.sendMessage({ 
-            type: "updateNotificationSettings", 
-            enabled: isEnabled 
+          chrome.runtime.sendMessage({
+            type: "updateNotificationSettings",
+            enabled: isEnabled,
           });
           trackEvent("notification_setting_changed", { enabled: isEnabled });
         });
@@ -243,57 +345,190 @@ async function initializeSettings() {
       });
 
     // Update the check frequency input event listeners
-    document.getElementById("days").addEventListener("input", saveFrequency);
-    document.getElementById("hours").addEventListener("input", saveFrequency);
     document.getElementById("minutes").addEventListener("input", saveFrequency);
 
+    // Add event listeners for days and time range
+    const days = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
+    days.forEach((day) => {
+      document
+        .getElementById(`day-${day}`)
+        .addEventListener("change", saveSchedule);
+    });
+
+    document
+      .getElementById("start-time")
+      .addEventListener("change", saveSchedule);
+    document
+      .getElementById("end-time")
+      .addEventListener("change", saveSchedule);
+
+    // Add event listeners for preset buttons
+    document.getElementById("set-weekdays").addEventListener("click", () => {
+      // Set weekdays only
+      days.forEach((day) => {
+        const checkbox = document.getElementById(`day-${day}`);
+        checkbox.checked = ["mon", "tue", "wed", "thu", "fri"].includes(day);
+      });
+      saveSchedule();
+      addLogEntry("Schedule updated: Weekdays only");
+    });
+
+    document
+      .getElementById("set-business-hours")
+      .addEventListener("click", () => {
+        // Set business hours (8 AM - 5 PM)
+        document.getElementById("start-time").value = "08:00";
+        document.getElementById("end-time").value = "17:00";
+        saveSchedule();
+        addLogEntry("Schedule updated: Business hours (8 AM - 5 PM)");
+      });
+
+    function saveSchedule() {
+      const schedule = {
+        days: days.reduce((acc, day) => {
+          acc[day] = document.getElementById(`day-${day}`).checked;
+          return acc;
+        }, {}),
+        startTime: document.getElementById("start-time").value,
+        endTime: document.getElementById("end-time").value,
+      };
+
+      chrome.storage.sync.set({ schedule }, () => {
+        console.log("Schedule saved:", schedule);
+        addLogEntry(`Schedule updated: ${formatSchedule(schedule)}`);
+
+        // Send message to background script to update schedule
+        chrome.runtime.sendMessage(
+          {
+            type: "updateSchedule",
+            schedule: schedule,
+          },
+          (response) => {
+            if (chrome.runtime.lastError) {
+              console.error(
+                "Error updating schedule:",
+                chrome.runtime.lastError
+              );
+              addLogEntry(
+                "Error: Failed to update schedule in background script"
+              );
+            }
+          }
+        );
+      });
+    }
+
+    function formatSchedule(schedule) {
+      const activeDays = Object.entries(schedule.days)
+        .filter(([_, enabled]) => enabled)
+        .map(([day]) => day.charAt(0).toUpperCase() + day.slice(1))
+        .join(", ");
+      return `Active on: ${activeDays} between ${schedule.startTime} and ${schedule.endTime}`;
+    }
+
     function saveFrequency() {
-      const days = parseInt(document.getElementById("days").value) || 0;
-      const hours = parseInt(document.getElementById("hours").value) || 0;
-      const minutes = parseInt(document.getElementById("minutes").value) || 1;
+      const minutes = parseInt(document.getElementById("minutes").value) || 5;
 
-      const totalMinutes = days * 1440 + hours * 60 + minutes;
-
-      if (totalMinutes < 1) {
-        showAlert("Please set a frequency of at least 1 minute.", "frequency-alert-container");
+      if (minutes < 5) {
+        showAlert(
+          "Please set a frequency of at least 5 minutes.",
+          "frequency-alert-container"
+        );
+        document.getElementById("minutes").value = 5;
         return;
       }
 
-      chrome.storage.sync.set({ checkFrequency: totalMinutes }, () => {
+      chrome.storage.sync.set({ checkFrequency: minutes }, () => {
         console.log("Check frequency saved");
-        addLogEntry(`Check frequency saved: ${days}d ${hours}h ${minutes}m`);
+        addLogEntry(`Check frequency saved: ${minutes}m`);
         chrome.runtime.sendMessage({
           type: "updateCheckFrequency",
-          frequency: totalMinutes,
+          frequency: minutes,
         });
         startCountdown(); // Restart the countdown with the new frequency
-        trackEvent("check_frequency_changed", { days, hours, minutes });
+        trackEvent("check_frequency_changed", { minutes });
       });
     }
+
+    // Load saved schedule when the page opens
+    chrome.storage.sync.get(["schedule"], (data) => {
+      const defaultSchedule = {
+        days: days.reduce((acc, day) => ({ ...acc, [day]: true }), {}),
+        startTime: "00:00",
+        endTime: "23:59",
+      };
+
+      const schedule = data.schedule || defaultSchedule;
+
+      // Set the days checkboxes
+      days.forEach((day) => {
+        document.getElementById(`day-${day}`).checked = schedule.days[day];
+      });
+
+      // Set the time inputs
+      document.getElementById("start-time").value = schedule.startTime;
+      document.getElementById("end-time").value = schedule.endTime;
+    });
 
     // Load saved check frequency when the page opens
     chrome.storage.sync.get("checkFrequency", (data) => {
       if (data.checkFrequency) {
-        document.getElementById("days").value =
-          Math.floor(data.checkFrequency / 1440) || "";
-        document.getElementById("hours").value =
-          Math.floor((data.checkFrequency % 1440) / 60) || "";
+        const savedFrequency = data.checkFrequency || 5;
         document.getElementById("minutes").value =
-          data.checkFrequency % 60 || 1;
+          savedFrequency < 5 ? 5 : savedFrequency;
       }
       startCountdown(); // Start the countdown after loading the frequency
     });
 
+    // Add function to check if current time is within schedule
+    function isWithinSchedule(schedule) {
+      const now = new Date();
+      const currentDay = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"][
+        now.getDay()
+      ];
+
+      // Check if current day is enabled
+      if (!schedule.days[currentDay]) {
+        return false;
+      }
+
+      // Convert current time to minutes since midnight
+      const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+      // Convert schedule times to minutes since midnight
+      const [startHour, startMinute] = schedule.startTime
+        .split(":")
+        .map(Number);
+      const [endHour, endMinute] = schedule.endTime.split(":").map(Number);
+      const startMinutes = startHour * 60 + startMinute;
+      const endMinutes = endHour * 60 + endMinute;
+
+      return currentMinutes >= startMinutes && currentMinutes <= endMinutes;
+    }
+
+    // Add function to get randomized check interval
+    function getRandomizedCheckInterval(baseMinutes) {
+      // Convert minutes to milliseconds and add random seconds (±15 max)
+      const baseMs = baseMinutes * 60 * 1000;
+      const randomMs = Math.floor(Math.random() * 31 - 15) * 1000; // Random between -15 and +15 seconds
+      return (baseMs + randomMs) / 60000; // Convert back to minutes
+    }
+
     // Function to add log entries
     function addLogEntry(message) {
       const logContainer = document.getElementById("log-container");
-      
+
       // Remove any existing timestamp from the message if it exists
-      const cleanMessage = message.replace(/^\d{1,2}\/\d{1,2}\/\d{4},\s\d{1,2}:\d{2}:\d{2}\s[AP]M:\s/, '');
-      
+      const cleanMessage = message.replace(
+        /^\d{1,2}\/\d{1,2}\/\d{4},\s\d{1,2}:\d{2}:\d{2}\s[AP]M:\s/,
+        ""
+      );
+
       // Only add timestamp if message doesn't already have one
-      const logEntry = message.includes(":") ? message : `${new Date().toLocaleString()}: ${cleanMessage}`;
-      
+      const logEntry = message.includes(":")
+        ? message
+        : `${new Date().toLocaleString()}: ${cleanMessage}`;
+
       // Check if this exact message already exists at the top
       const existingTopEntry = logContainer.firstChild?.textContent;
       if (existingTopEntry !== logEntry) {
@@ -312,8 +547,8 @@ async function initializeSettings() {
     chrome.storage.local.get("activityLog", (data) => {
       if (data.activityLog) {
         const logContainer = document.getElementById("log-container");
-        logContainer.innerHTML = ''; // Clear existing entries
-        
+        logContainer.innerHTML = ""; // Clear existing entries
+
         // Add entries in reverse order (newest first)
         data.activityLog.forEach((entry) => {
           const logElement = document.createElement("div");
@@ -338,7 +573,7 @@ async function initializeSettings() {
 
         const jobItem = document.createElement("div");
         jobItem.className = "job-item";
-        jobItem.dataset.jobId = job.url || '';
+        jobItem.dataset.jobId = job.url || "";
 
         const jobHeader = document.createElement("div");
         jobHeader.className = "job-header";
@@ -351,11 +586,11 @@ async function initializeSettings() {
         timeSpan.dataset.timestamp = job.scrapedAt || Date.now();
         updateTimeDifference(job.scrapedAt || Date.now(), timeSpan);
 
-        jobTitle.textContent = job.title || 'Untitled Job';
+        jobTitle.textContent = job.title || "Untitled Job";
         jobTitle.appendChild(document.createElement("br"));
         jobTitle.appendChild(timeSpan);
 
-        jobTitle.onclick = () => toggleJobDetails(job.url || '');
+        jobTitle.onclick = () => toggleJobDetails(job.url || "");
 
         const openButton = document.createElement("button");
         openButton.className = "open-job-button button-secondary";
@@ -370,22 +605,56 @@ async function initializeSettings() {
 
         const jobDetails = document.createElement("div");
         jobDetails.className = "job-details";
-        jobDetails.id = `job-details-${job.url || ''}`;
+        jobDetails.id = `job-details-${job.url || ""}`;
         jobDetails.innerHTML = `
-          <p><strong>URL:</strong> ${job.url ? `<a href="${job.url}" target="_blank">${job.url}</a>` : 'N/A'}</p>
-          <p><strong>Job Type:</strong> ${job.jobType || 'N/A'}</p>
-          <p><strong>Skill Level:</strong> ${job.skillLevel || 'N/A'}</p>
-          <p><strong>${job.jobType === 'Fixed price' ? 'Budget' : 'Hourly Range'}:</strong> ${job.jobType === 'Fixed price' ? (job.budget || 'N/A') : (job.hourlyRange || 'N/A')}</p>
-          ${job.jobType === 'Hourly' ? `<p><strong>Estimated Time:</strong> ${job.estimatedTime || 'N/A'}</p>` : ''}
-          <p><strong>Description:</strong> ${job.description || 'N/A'}</p>
-          <p><strong>Skills:</strong> ${Array.isArray(job.skills) ? job.skills.join(", ") : 'N/A'}</p>
-          <p><strong>Payment Verified:</strong> ${job.paymentVerified ? "Yes" : "No"}</p>
-          <p><strong>Client Rating:</strong> ${job.clientRating || 'N/A'}</p>
-          <p><strong>Client Spent:</strong> ${job.clientSpent || 'N/A'}</p>
-          <p><strong>Client Country:</strong> ${job.clientCountry || 'N/A'}</p>
-          ${Array.isArray(job.attachments) && job.attachments.length > 0 ? `<p><strong>Attachments:</strong> ${job.attachments.map(a => `<a href="${a.url}" target="_blank">${a.name}</a>`).join(", ")}</p>` : ''}
-          ${Array.isArray(job.questions) && job.questions.length > 0 ? `<p><strong>Questions:</strong><ul>${job.questions.map(q => `<li>${q}</li>`).join("")}</ul></p>` : ''}
-          <p><strong>Scraped At:</strong> ${job.scrapedAtHuman || 'N/A'}</p>
+          <p><strong>URL:</strong> ${
+            job.url
+              ? `<a href="${job.url}" target="_blank">${job.url}</a>`
+              : "N/A"
+          }</p>
+          <p><strong>Job Type:</strong> ${job.jobType || "N/A"}</p>
+          <p><strong>Skill Level:</strong> ${job.skillLevel || "N/A"}</p>
+          <p><strong>${
+            job.jobType === "Fixed price" ? "Budget" : "Hourly Range"
+          }:</strong> ${
+          job.jobType === "Fixed price"
+            ? job.budget || "N/A"
+            : job.hourlyRange || "N/A"
+        }</p>
+          ${
+            job.jobType === "Hourly"
+              ? `<p><strong>Estimated Time:</strong> ${
+                  job.estimatedTime || "N/A"
+                }</p>`
+              : ""
+          }
+          <p><strong>Description:</strong> ${job.description || "N/A"}</p>
+          <p><strong>Skills:</strong> ${
+            Array.isArray(job.skills) ? job.skills.join(", ") : "N/A"
+          }</p>
+          <p><strong>Payment Verified:</strong> ${
+            job.paymentVerified ? "Yes" : "No"
+          }</p>
+          <p><strong>Client Rating:</strong> ${job.clientRating || "N/A"}</p>
+          <p><strong>Client Spent:</strong> ${job.clientSpent || "N/A"}</p>
+          <p><strong>Client Country:</strong> ${job.clientCountry || "N/A"}</p>
+          ${
+            Array.isArray(job.attachments) && job.attachments.length > 0
+              ? `<p><strong>Attachments:</strong> ${job.attachments
+                  .map(
+                    (a) => `<a href="${a.url}" target="_blank">${a.name}</a>`
+                  )
+                  .join(", ")}</p>`
+              : ""
+          }
+          ${
+            Array.isArray(job.questions) && job.questions.length > 0
+              ? `<p><strong>Questions:</strong><ul>${job.questions
+                  .map((q) => `<li>${q}</li>`)
+                  .join("")}</ul></p>`
+              : ""
+          }
+          <p><strong>Scraped At:</strong> ${job.scrapedAtHuman || "N/A"}</p>
         `;
 
         jobItem.appendChild(jobHeader);
@@ -440,7 +709,10 @@ async function initializeSettings() {
       `;
 
       const settingsContainer = document.querySelector(".settings-container");
-      settingsContainer.insertBefore(warningElement, settingsContainer.firstChild);
+      settingsContainer.insertBefore(
+        warningElement,
+        settingsContainer.firstChild
+      );
     }
 
     function updateTimeDifference(timestamp, element) {
@@ -504,47 +776,56 @@ async function initializeSettings() {
     }
 
     // Update the custom search URL input event listener
-    document.getElementById("custom-search-url").addEventListener("input", () => {
-      const customSearchUrl = document.getElementById("custom-search-url").value;
+    document
+      .getElementById("custom-search-url")
+      .addEventListener("input", () => {
+        const customSearchUrl =
+          document.getElementById("custom-search-url").value;
 
-      if (customSearchUrl === "") {
-        // If the URL is empty, clear the saved custom search URL
-        chrome.storage.sync.remove(["customSearchUrl", "selectedFeedSource"], () => {
-          console.log("Custom search URL cleared");
-          addLogEntry("Custom search URL cleared");
-          chrome.runtime.sendMessage({ type: "updateFeedSources" });
-          trackEvent("custom_search_url_cleared", {});
-        });
-      } else if (!customSearchUrl.startsWith("https://www.upwork.com/nx/search/jobs/?")) {
-        showCustomUrlError("Custom Search URL must start with https://www.upwork.com/nx/search/jobs/?");
-      } else {
-        // Clear any existing error message
-        showCustomUrlError("");
+        if (customSearchUrl === "") {
+          // If the URL is empty, clear the saved custom search URL
+          chrome.storage.sync.remove(
+            ["customSearchUrl", "selectedFeedSource"],
+            () => {
+              console.log("Custom search URL cleared");
+              addLogEntry("Custom search URL cleared");
+              chrome.runtime.sendMessage({ type: "updateFeedSources" });
+              trackEvent("custom_search_url_cleared", {});
+            }
+          );
+        } else if (
+          !customSearchUrl.startsWith("https://www.upwork.com/nx/search/jobs/?")
+        ) {
+          showCustomUrlError(
+            "Custom Search URL must start with https://www.upwork.com/nx/search/jobs/?"
+          );
+        } else {
+          // Clear any existing error message
+          showCustomUrlError("");
 
-        // Save the new custom search URL
-        chrome.storage.sync.set(
-          {
-            selectedFeedSource: "custom-search",
-            customSearchUrl: customSearchUrl,
-          },
-          () => {
-            console.log("Feed sources saved");
-            addLogEntry(`Feed source saved: custom-search`);
-            chrome.runtime.sendMessage({ type: "updateFeedSources" });
-            trackEvent("feed_sources_changed", {
+          // Save the new custom search URL
+          chrome.storage.sync.set(
+            {
               selectedFeedSource: "custom-search",
-              customSearchUrl,
-            });
-          }
-        );
-      }
-    });
+              customSearchUrl: customSearchUrl,
+            },
+            () => {
+              console.log("Feed sources saved");
+              addLogEntry(`Feed source saved: custom-search`);
+              chrome.runtime.sendMessage({ type: "updateFeedSources" });
+              trackEvent("feed_sources_changed", {
+                selectedFeedSource: "custom-search",
+                customSearchUrl,
+              });
+            }
+          );
+        }
+      });
 
     // Load saved feed source settings when the page opens
     chrome.storage.sync.get(["customSearchUrl"], (data) => {
       const customSearchUrl = data.customSearchUrl || "";
-      const customSearchUrlInput =
-        document.getElementById("custom-search-url");
+      const customSearchUrlInput = document.getElementById("custom-search-url");
       customSearchUrlInput.value = customSearchUrl;
     });
 
@@ -650,54 +931,65 @@ async function initializeSettings() {
 
     // Add this new event listener for the "Open Custom URL" button
     document.getElementById("open-custom-url").addEventListener("click", () => {
-      const customSearchUrl = document.getElementById("custom-search-url").value;
+      const customSearchUrl =
+        document.getElementById("custom-search-url").value;
       if (customSearchUrl) {
         window.open(customSearchUrl, "_blank");
         trackEvent("open_custom_url", { url: customSearchUrl });
       } else {
-        showAlert("Please enter a custom search URL first.", "feed-sources-alert-container");
+        showAlert(
+          "Please enter a custom search URL first.",
+          "feed-sources-alert-container"
+        );
       }
     });
 
     // Add this code to handle the accordion functionality
-    document.querySelector('.setup-instructions .accordion-header').addEventListener('click', () => {
-      const content = document.querySelector('.setup-instructions .accordion-content');
-      content.style.display = content.style.display === 'block' ? 'none' : 'block';
-    });
+    document
+      .querySelector(".setup-instructions .accordion-header")
+      .addEventListener("click", () => {
+        const content = document.querySelector(
+          ".setup-instructions .accordion-content"
+        );
+        content.style.display =
+          content.style.display === "block" ? "none" : "block";
+      });
 
     // Check if the user has previously dismissed the setup instructions
-    chrome.storage.sync.get('setupInstructionsDismissed', (data) => {
+    chrome.storage.sync.get("setupInstructionsDismissed", (data) => {
       if (!data.setupInstructionsDismissed) {
-        document.getElementById('setup-instructions').classList.add('show');
+        document.getElementById("setup-instructions").classList.add("show");
       }
     });
 
     // Add this to where you handle the webhook toggle and URL changes
-    document.getElementById("webhook-toggle").addEventListener("change", (e) => {
-      const enabled = e.target.checked;
-      console.log('Saving webhook enabled:', enabled);
-      chrome.storage.sync.set({ webhookEnabled: enabled }, () => {
-        console.log('Webhook enabled saved:', enabled);
-        addToActivityLog(`Webhook ${enabled ? 'enabled' : 'disabled'}`);
+    document
+      .getElementById("webhook-toggle")
+      .addEventListener("change", (e) => {
+        const enabled = e.target.checked;
+        console.log("Saving webhook enabled:", enabled);
+        chrome.storage.sync.set({ webhookEnabled: enabled }, () => {
+          console.log("Webhook enabled saved:", enabled);
+          addToActivityLog(`Webhook ${enabled ? "enabled" : "disabled"}`);
+        });
       });
-    });
 
     document.getElementById("webhook-url").addEventListener("change", (e) => {
       const url = e.target.value.trim();
-      console.log('Saving webhook URL:', url);
+      console.log("Saving webhook URL:", url);
       chrome.storage.sync.set({ webhookUrl: url }, () => {
-        console.log('Webhook URL saved:', url);
+        console.log("Webhook URL saved:", url);
         addToActivityLog(`Webhook URL updated: ${url}`);
       });
     });
 
     // Add this function to initialize webhook settings
     function loadWebhookSettings() {
-      chrome.storage.sync.get(['webhookUrl', 'webhookEnabled'], (settings) => {
-        console.log('Loading webhook settings:', settings);
+      chrome.storage.sync.get(["webhookUrl", "webhookEnabled"], (settings) => {
+        console.log("Loading webhook settings:", settings);
         const webhookToggle = document.getElementById("webhook-toggle");
         const webhookUrl = document.getElementById("webhook-url");
-        
+
         if (webhookToggle) {
           webhookToggle.checked = settings.webhookEnabled !== false;
         }
@@ -708,18 +1000,69 @@ async function initializeSettings() {
     }
 
     // Call this when the settings page loads
-    document.addEventListener('DOMContentLoaded', () => {
+    document.addEventListener("DOMContentLoaded", () => {
       loadWebhookSettings();
       // ... other initialization code
     });
 
     // Add this inside the initializeSettings function
-    document.getElementById("notification-toggle").addEventListener("change", (e) => {
-      const enabled = e.target.checked;
-      chrome.storage.sync.set({ notificationsEnabled: enabled }, () => {
-        console.log('Notifications enabled:', enabled);
-        addToActivityLog(`Push notifications ${enabled ? 'enabled' : 'disabled'}`);
+    document
+      .getElementById("notification-toggle")
+      .addEventListener("change", (e) => {
+        const enabled = e.target.checked;
+        chrome.storage.sync.set({ notificationsEnabled: enabled }, () => {
+          console.log("Notifications enabled:", enabled);
+          addToActivityLog(
+            `Push notifications ${enabled ? "enabled" : "disabled"}`
+          );
+        });
       });
+
+    // Add event listener for copy log and open GitHub issue button
+    document
+      .getElementById("copy-log-github")
+      .addEventListener("click", async () => {
+        const logContainer = document.getElementById("log-container");
+        const logText = logContainer.innerText;
+        const formattedLog = `\`\`\`\n${logText}\n\`\`\``;
+
+        try {
+          await navigator.clipboard.writeText(formattedLog);
+          showAlert(
+            "Activity log copied to clipboard with markdown formatting!",
+            "alert-container"
+          );
+          window.open(
+            "https://github.com/richardadonnell/Upwork-Job-Scraper/issues/new",
+            "_blank"
+          );
+        } catch (err) {
+          console.error("Failed to copy text: ", err);
+          showAlert(
+            "Failed to copy activity log. Please try again.",
+            "alert-container"
+          );
+        }
+      });
+
+    // Reset days button handler
+    document.getElementById("reset-days").addEventListener("click", () => {
+      const days = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
+      days.forEach((day) => {
+        document.getElementById(`day-${day}`).checked = true;
+      });
+      saveSchedule();
+      addLogEntry("Reset to all days enabled");
+      trackEvent("reset_days", {});
+    });
+
+    // Reset hours button handler
+    document.getElementById("reset-hours").addEventListener("click", () => {
+      document.getElementById("start-time").value = "00:00";
+      document.getElementById("end-time").value = "23:59";
+      saveSchedule();
+      addLogEntry("Reset to all hours enabled");
+      trackEvent("reset_hours", {});
     });
   } catch (error) {
     console.error("Error initializing settings:", error);
@@ -851,4 +1194,3 @@ function addToActivityLog(message) {
     }
   );
 }
-

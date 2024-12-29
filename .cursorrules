@@ -1,0 +1,98 @@
+** Think carefully, step by step. **
+** IMPORTANT: CODE LOCATION RESTRICTIONS BELOW**
+
+- All code changes must be made ONLY within the ./upwork-job-scraper sub-directory
+- DO NOT modify any files outside of ./upwork-job-scraper
+- DO NOT modify the "sentry.js" file (as previously noted)
+
+---
+
+1. Code Style & Structure:
+
+- Use camelCase for variable and function names
+- Use PascalCase for class names
+- Keep functions focused and single-purpose
+- Add error handling with try/catch blocks
+- Include detailed console logging for debugging
+- Use async/await for asynchronous operations
+
+2. Chrome Extension Guidelines:
+
+- Follow Chrome Extension Manifest V3 requirements
+- Handle background script lifecycle properly
+- Use chrome.storage.sync for settings
+- Use chrome.storage.local for job data
+- Implement proper cleanup in event listeners
+- Handle extension context invalidation
+
+3. Error Handling:
+
+- Wrap background operations in try/catch
+- Log errors to console and activity log
+- Use Sentry for error reporting
+- Include contextual information in error messages
+- Handle network failures gracefully
+- Implement fallback behaviors
+
+4. Job Scraping Rules:
+
+- Respect Upwork's rate limits
+- Handle logged-out scenarios
+- Validate scraped data structure
+- Implement retry logic for failed scrapes
+- Store only essential job data
+- Limit stored jobs to prevent memory issues
+
+5. Webhook Integration:
+
+- Validate webhook URLs
+- Handle webhook failures gracefully
+- Implement retry logic for failed webhooks
+- Include relevant job data in payload
+- Add timeout for webhook requests
+- Log webhook success/failure
+
+6. UI/UX Guidelines:
+
+- Follow dark theme color scheme
+- Use consistent spacing (em-based)
+- Implement responsive design patterns
+- Show loading states during operations
+- Provide clear feedback for user actions
+- Keep interface clean and minimal
+
+7. Performance:
+
+- Minimize DOM operations
+- Use efficient selectors
+- Implement proper cleanup
+- Cache frequently accessed data
+- Use debounce for frequent operations
+- Clear unused data periodically
+
+8. Security:
+
+- Sanitize user inputs
+- Validate webhook URLs
+- Handle sensitive data carefully
+- Use secure communication
+- Implement proper CORS handling
+- Follow content security policies
+
+9. Testing:
+
+- Test login detection logic
+- Verify webhook functionality
+- Test job scraping accuracy
+- Validate storage operations
+- Check notification system
+- Test error handling paths
+
+10. Documentation:
+
+- Add JSDoc comments for functions
+- Document complex logic
+- Include usage examples
+- Maintain README updates
+- Document configuration options
+- Add inline comments for clarity

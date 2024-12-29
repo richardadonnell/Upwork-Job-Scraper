@@ -1,3 +1,7 @@
+html {
+  scroll-behavior: smooth;
+}
+
 body {
   font-family: "DM Sans", sans-serif;
   background-color: #0e0e0e;
@@ -90,7 +94,7 @@ input[type="number"] {
   width: 100%;
   box-sizing: border-box;
   padding: 0.625em;
-  margin: 0.625em 0;
+  margin: 0 0;
   background-color: #181818;
   border: 0.0625em solid #333;
   color: #e0e0e0;
@@ -141,13 +145,14 @@ button:hover {
   border-radius: 0.25em;
   scrollbar-width: thin;
   scrollbar-color: #108a00 #2a2a2a;
-  margin-bottom: 0.625em;
+  /* margin-bottom: 0.625em; */
 }
 
 #log-container {
   font-size: 0.7em;
   color: #868686;
   margin-top: 1.25em;
+  margin-bottom: 1.25em;
   border: 0.0625em solid #333;
   padding: 0.9375em;
   height: auto;
@@ -293,42 +298,103 @@ input:checked + .slider:before {
 }
 
 .frequency-container {
+  margin: 0;
+  padding: 0;
+  background: transparent;
+}
+
+.days-selection,
+.time-range {
+  margin-top: 15px;
+}
+
+.days-selection h3,
+.time-range h3 {
+  font-size: 1em;
+  margin: 0 0 10px 0;
+  color: #e0e0e0;
+  font-weight: normal;
+}
+
+.days-grid {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 8px;
+  margin: 0;
+  width: 100%;
+}
+
+.day-checkbox {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 20px;
+  background: #181818;
+  border: 1px solid #333;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  flex: 0 0 auto;
+}
+
+.day-checkbox:hover {
+  background: #222;
+}
+
+.day-checkbox input[type="checkbox"] {
+  margin: 0;
+}
+
+.day-checkbox span {
+  color: #e0e0e0;
+  white-space: nowrap;
+  display: inline-block;
+  text-align: center;
+  font-size: 0.9em;
+}
+
+.time-inputs {
+  display: flex;
+  gap: 15px;
+  flex-wrap: wrap;
+}
+
+.time-input-group {
   display: flex;
   flex-direction: column;
-  gap: 0.9375em;
-  margin-bottom: 1.25em;
-  background-color: #181818;
-  padding: 0.9375em;
-  border-radius: 0.25em;
+  gap: 5px;
+}
+
+.time-input-group label {
+  font-size: 1em;
+  color: #e0e0e0;
+}
+
+input[type="time"] {
+  padding: 8px;
+  border: 1px solid #333;
+  border-radius: 4px;
+  background: #181818;
+  color: #e0e0e0;
+  font-size: 1em;
+  width: 150px;
+}
+
+input[type="time"]:focus {
+  outline: none;
+  border-color: #108a00;
+  box-shadow: 0 0 0 1px rgba(16, 138, 0, 0.2);
 }
 
 .frequency-input {
-  display: flex;
-  flex-direction: column;
-}
-
-.frequency-input label {
-  margin-bottom: 0.3125em;
-  font-weight: bold;
-}
-
-.frequency-input input {
-  padding: 0.5em;
-  background-color: #181818;
-  border: 0.0625em solid #333;
-  color: #e0e0e0;
-  border-radius: 0.25em;
-}
-
-#save-frequency {
-  align-self: flex-start;
-  margin-top: 0.625em;
+  margin-bottom: 15px;
 }
 
 #next-check-countdown {
-  margin-bottom: 0.9375em;
-  font-weight: bold;
-  color: #1f57c3;
+  margin: 10px 0;
+  font-weight: normal;
+  color: #108a00;
 }
 
 .buy-me-coffee {
@@ -601,4 +667,34 @@ option {
   font-size: 0.9em;
   margin-top: 1em;
   text-align: center;
+}
+
+.button-group {
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+}
+
+.mt-2 {
+  margin-top: 0.5rem;
+}
+
+#copy-log-github {
+  /* color: black; */
+  margin-top: 0.5em;
+}
+
+.button-reset {
+  background-color: transparent;
+  color: #666;
+  border: none;
+  padding: 0.625em;
+  margin: 0;
+  font-size: 0.9em;
+  font-family: "DM Sans", sans-serif;
+}
+
+.button-reset:hover {
+  color: #108a00;
+  background-color: transparent;
+  box-shadow: none;
 }

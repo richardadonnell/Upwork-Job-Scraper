@@ -58,11 +58,8 @@
         <p>
           <strong>ℹ️ Note:</strong> This Chrome extension is under development.
           If you encounter any issues or have any feedback, please
-          <a
-            href="https://github.com/richardadonnell/Upwork-Job-Scraper"
-            target="_blank"
-            >open a ticket on Github</a
-          >! Suggestions are welcome!
+          <a href="#help-section">open a ticket on Github</a>! Suggestions are
+          welcome!
         </p>
       </div>
       <div class="master-toggle-container">
@@ -118,18 +115,69 @@
       <div id="next-check-countdown"></div>
       <div class="frequency-container">
         <div class="frequency-input">
-          <label for="days">Days:</label>
-          <input type="number" id="days" min="0" max="365" placeholder="0" />
-        </div>
-        <div class="frequency-input">
-          <label for="hours">Hours:</label>
-          <input type="number" id="hours" min="0" max="23" placeholder="0" />
-        </div>
-        <div class="frequency-input">
           <label for="minutes">Minutes:</label>
-          <input type="number" id="minutes" min="1" max="59" placeholder="5" />
+          <input type="number" id="minutes" min="5" max="59" placeholder="5" />
         </div>
-        <!-- Remove the "Save Frequency" button -->
+
+        <div class="days-selection">
+          <h3>Active Days</h3>
+          <div class="days-grid">
+            <label class="day-checkbox">
+              <input type="checkbox" id="day-sun" checked />
+              <span>Sunday</span>
+            </label>
+            <label class="day-checkbox">
+              <input type="checkbox" id="day-mon" checked />
+              <span>Monday</span>
+            </label>
+            <label class="day-checkbox">
+              <input type="checkbox" id="day-tue" checked />
+              <span>Tuesday</span>
+            </label>
+            <label class="day-checkbox">
+              <input type="checkbox" id="day-wed" checked />
+              <span>Wednesday</span>
+            </label>
+            <label class="day-checkbox">
+              <input type="checkbox" id="day-thu" checked />
+              <span>Thursday</span>
+            </label>
+            <label class="day-checkbox">
+              <input type="checkbox" id="day-fri" checked />
+              <span>Friday</span>
+            </label>
+            <label class="day-checkbox">
+              <input type="checkbox" id="day-sat" checked />
+              <span>Saturday</span>
+            </label>
+          </div>
+          <button id="set-weekdays" class="button-secondary mt-2">
+            Set Weekdays Only (Mon-Fri)
+          </button>
+          <button id="reset-days" class="button-reset">
+            Reset to All Days
+          </button>
+        </div>
+
+        <div class="time-range">
+          <h3>Active Hours</h3>
+          <div class="time-inputs">
+            <div class="time-input-group">
+              <label for="start-time">Start Time:</label>
+              <input type="time" id="start-time" value="00:00" />
+            </div>
+            <div class="time-input-group">
+              <label for="end-time">End Time:</label>
+              <input type="time" id="end-time" value="23:59" />
+            </div>
+          </div>
+          <button id="set-business-hours" class="button-secondary mt-2">
+            Set Business Hours (8 AM - 5 PM)
+          </button>
+          <button id="reset-hours" class="button-reset">
+            Reset to All Hours
+          </button>
+        </div>
       </div>
 
       <h2>Feed Sources</h2>
@@ -203,6 +251,29 @@
 
       <h2>Activity Log</h2>
       <div id="log-container"></div>
+      <div class="alert" id="help-section">
+        <p><strong>Need help or having issues?</strong></p>
+        <p>When you click the button below:</p>
+        <ul>
+          <li>
+            Your Activity Log will be copied to your clipboard and formatted as
+            a GitHub code block
+          </li>
+          <li>A new GitHub issue page will open</li>
+          <li>Describe your issue in the GitHub form</li>
+          <li>
+            <em
+              ><strong>Paste your clipboard contents (Ctrl+V/Cmd+V)</strong>
+              into the description on GitHub! </em
+            >😄
+          </li>
+        </ul>
+        <p>
+          This helps us quickly understand and fix any problems you're
+          experiencing!
+        </p>
+        <button id="copy-log-github">Copy Log & Open GitHub Issue</button>
+      </div>
 
       <div class="buy-me-coffee">
         <h3>Support My Work</h3>
