@@ -1030,6 +1030,26 @@ async function initializeSettings() {
           );
         }
       });
+
+    // Reset days button handler
+    document.getElementById("reset-days").addEventListener("click", () => {
+      const days = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
+      days.forEach((day) => {
+        document.getElementById(`day-${day}`).checked = true;
+      });
+      saveSchedule();
+      addLogEntry("Reset to all days enabled");
+      trackEvent("reset_days", {});
+    });
+
+    // Reset hours button handler
+    document.getElementById("reset-hours").addEventListener("click", () => {
+      document.getElementById("start-time").value = "00:00";
+      document.getElementById("end-time").value = "23:59";
+      saveSchedule();
+      addLogEntry("Reset to all hours enabled");
+      trackEvent("reset_hours", {});
+    });
   } catch (error) {
     console.error("Error initializing settings:", error);
     window.logAndReportError("Error initializing settings", error);

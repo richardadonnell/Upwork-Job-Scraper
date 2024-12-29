@@ -679,6 +679,22 @@ option {
 }
 
 #copy-log-github {
-  color: black;
+  /* color: black; */
   margin-top: 0.5em;
+}
+
+.button-reset {
+  background-color: transparent;
+  color: #666;
+  border: none;
+  padding: 0.625em;
+  margin: 0;
+  font-size: 0.9em;
+  font-family: "DM Sans", sans-serif;
+}
+
+.button-reset:hover {
+  color: #108a00;
+  background-color: transparent;
+  box-shadow: none;
 }
