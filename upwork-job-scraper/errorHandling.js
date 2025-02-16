@@ -1,4 +1,4 @@
-const APP_VERSION = "1.51"; // Update this when you change your extension version
+const APP_VERSION = chrome.runtime.getManifest().version; // Get version from manifest.json
 
 // Initialize Sentry
 if (typeof Sentry !== "undefined") {
