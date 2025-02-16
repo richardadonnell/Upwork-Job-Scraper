@@ -1,5 +1,5 @@
 // Wrap your main functions with try-catch blocks
-let jobScrapingEnabled = true; // or load the value from storage
+const jobScrapingEnabled = true; // or load the value from storage
 
 async function checkForNewJobs(jobScrapingEnabled) {
   try {
@@ -38,7 +38,7 @@ async function checkForNewJobs(jobScrapingEnabled) {
             function: isUserLoggedOut,
           },
           async (results) => {
-            if (results && results[0] && results[0].result) {
+            if (results?.result) {
               // User is "fake" logged out, click the "Log In" link
               await chrome.scripting.executeScript({
                 target: { tabId: tab.id },
@@ -71,9 +71,10 @@ async function checkForNewJobs(jobScrapingEnabled) {
                   function: isUserLoggedOut,
                 },
                 (results) => {
-                  if (results && results[0] && results[0].result) {
+                  if (results?.result) {
                     // User is still "fake" logged out, show a warning and send a notification
-                    const warningMessage = "Warning: You need to log in to Upwork to ensure all available jobs are being scraped. Click the notification to log in.";
+                    const warningMessage =
+                      "Warning: You need to log in to Upwork to ensure all available jobs are being scraped. Click the notification to log in.";
                     addToActivityLog(warningMessage);
                     chrome.runtime.sendMessage({
                       type: "loginWarning",
@@ -92,26 +93,37 @@ async function checkForNewJobs(jobScrapingEnabled) {
                         target: { tabId: tab.id },
                         function: scrapeJobs,
                       },
-                      (results) => {
-                        if (chrome.runtime.lastError) {
-                          addToActivityLog(
-                            "Error: " + chrome.runtime.lastError.message
+                      async (results) => {
+                        try {
+                          if (results?.[0]?.result) {
+                            const jobs = await results[0].result;
+                            if (jobs.length > 0) {
+                              addToActivityLog(
+                                `Scraped ${jobs.length} jobs from ${url}`
+                              );
+                              processJobs(jobs);
+                            } else {
+                              addToActivityLog("No jobs found on the page");
+                            }
+                          } else {
+                            addToActivityLog(
+                              "No jobs scraped or unexpected result"
+                            );
+                          }
+                          chrome.tabs.remove(tab.id);
+                          addToActivityLog(`Job check completed for ${url}`);
+                          resolve();
+                        } catch (error) {
+                          console.error(
+                            "Error processing scrape results:",
+                            error
                           );
-                          reject(chrome.runtime.lastError);
-                        } else if (results && results[0] && results[0].result) {
-                          const jobs = results[0].result;
                           addToActivityLog(
-                            `Scraped ${jobs.length} jobs from ${url}`
+                            `Error processing scrape results: ${error.message}`
                           );
-                          processJobs(jobs);
-                        } else {
-                          addToActivityLog(
-                            "No jobs scraped or unexpected result"
-                          );
+                          chrome.tabs.remove(tab.id);
+                          reject(error);
                         }
-                        chrome.tabs.remove(tab.id);
-                        addToActivityLog(`Job check completed for ${url}`);
-                        resolve();
                       }
                     );
                   }
@@ -124,22 +136,32 @@ async function checkForNewJobs(jobScrapingEnabled) {
                   target: { tabId: tab.id },
                   function: scrapeJobs,
                 },
-                (results) => {
-                  if (chrome.runtime.lastError) {
+                async (results) => {
+                  try {
+                    if (results?.[0]?.result) {
+                      const jobs = await results[0].result;
+                      if (jobs.length > 0) {
+                        addToActivityLog(
+                          `Scraped ${jobs.length} jobs from ${url}`
+                        );
+                        processJobs(jobs);
+                      } else {
+                        addToActivityLog("No jobs found on the page");
+                      }
+                    } else {
+                      addToActivityLog("No jobs scraped or unexpected result");
+                    }
+                    chrome.tabs.remove(tab.id);
+                    addToActivityLog(`Job check completed for ${url}`);
+                    resolve();
+                  } catch (error) {
+                    console.error("Error processing scrape results:", error);
                     addToActivityLog(
-                      "Error: " + chrome.runtime.lastError.message
+                      `Error processing scrape results: ${error.message}`
                     );
-                    reject(chrome.runtime.lastError);
-                  } else if (results && results[0] && results[0].result) {
-                    const jobs = results[0].result;
-                    addToActivityLog(`Scraped ${jobs.length} jobs from ${url}`);
-                    processJobs(jobs);
-                  } else {
-                    addToActivityLog("No jobs scraped or unexpected result");
+                    chrome.tabs.remove(tab.id);
+                    reject(error);
                   }
-                  chrome.tabs.remove(tab.id);
-                  addToActivityLog(`Job check completed for ${url}`);
-                  resolve();
                 }
               );
             }
@@ -153,208 +175,270 @@ async function checkForNewJobs(jobScrapingEnabled) {
 }
 
 function scrapeJobs() {
-  const jobElements = document.querySelectorAll(
-    'article.job-tile, [data-test="JobTile"]'
-  );
-  const jobs = Array.from(jobElements).map((jobElement) => {
-    const titleElement = jobElement.querySelector(
-      '.job-tile-title a, [data-test="job-tile-title-link"]'
-    );
-    const descriptionElement = jobElement.querySelector(
-      '[data-test="job-description-text"], [data-test="UpCLineClamp JobDescription"]'
-    );
-    const jobInfoList = jobElement.querySelector('ul[data-test="JobInfo"]');
-    const skillsElements = jobElement.querySelectorAll(
-      '.air3-token-container .air3-token, [data-test="TokenClamp JobAttrs"] .air3-token'
-    );
-    const paymentVerifiedElement = jobElement.querySelector(
-      '[data-test="payment-verified"], [data-test="payment-verification-status"]'
-    );
-    const clientRatingElement = jobElement.querySelector(
-      ".air3-rating-value-text"
-    );
-    const clientSpendingElement = jobElement.querySelector(
-      '[data-test="client-spendings"] strong, [data-test="client-spend"]'
-    );
-    const clientCountryElement = jobElement.querySelector(
-      '[data-test="client-country"], [data-test="location"] .air3-badge-tagline'
-    );
-    const attachmentsElement = jobElement.querySelector(
-      '[data-test="attachments"]'
-    );
-    const questionsElement = jobElement.querySelector(
-      '[data-test="additional-questions"]'
-    );
+  console.log("Starting job scraping...");
+  console.log("Current URL:", window.location.href);
 
-    let jobType, budget, hourlyRange, estimatedTime, skillLevel;
+  // Wait for job elements to appear
+  return new Promise((resolve) => {
+    let attempts = 0;
+    const maxAttempts = 10;
+    const checkInterval = 1000; // 1 second
 
-    if (jobInfoList) {
-      const jobInfoItems = jobInfoList.querySelectorAll("li");
-      jobInfoItems.forEach((item) => {
-        if (item.getAttribute("data-test") === "job-type-label") {
-          jobType = item.textContent.trim();
-        } else if (item.getAttribute("data-test") === "experience-level") {
-          skillLevel = item.textContent.trim();
-        } else if (item.getAttribute("data-test") === "is-fixed-price") {
-          const strongElement = item.querySelector("strong:last-child");
-          budget = strongElement ? strongElement.textContent.trim() : "N/A";
-        } else if (item.getAttribute("data-test") === "duration-label") {
-          const strongElement = item.querySelector("strong:last-child");
-          estimatedTime = strongElement ? strongElement.textContent.trim() : "N/A";
-        }
-      });
-
-      if (jobType && jobType.includes("Hourly")) {
-        const parts = jobType.split(":");
-        hourlyRange = parts.length > 1 ? parts[1].trim() : "N/A";
-        jobType = "Hourly";
-      } else if (jobType) {
-        jobType = "Fixed price";
-      }
-    } else {
-      // Fallback for Most Recent job feed structure
-      const jobTypeElement = jobElement.querySelector('[data-test="job-type"]');
-      if (jobTypeElement) {
-        const jobTypeText = jobTypeElement.textContent || "";
-        if (jobTypeText.includes("Fixed-price")) {
-          jobType = "Fixed price";
-          const budgetElement = jobElement.querySelector(
-            '[data-test="budget"]'
-          );
-          budget = budgetElement ? budgetElement.textContent.trim() : "N/A";
-        } else if (jobTypeText.includes("Hourly")) {
-          jobType = "Hourly";
-          const hourlyRangeElement = jobElement.querySelector(
-            '[data-test="hourly-rate"]'
-          );
-          hourlyRange = hourlyRangeElement
-            ? hourlyRangeElement.textContent.trim()
-            : "N/A";
-        }
-      }
-
-      const skillLevelElement = jobElement.querySelector(
-        '[data-test="contractor-tier"]'
+    function checkForJobs() {
+      const jobElements = document.querySelectorAll(
+        'article.job-tile, [data-test="JobTile"]'
       );
-      if (skillLevelElement) {
-        skillLevel = skillLevelElement.textContent.trim();
-      }
-
-      const estimatedTimeElement = jobElement.querySelector(
-        '[data-test="duration"]'
+      console.log(
+        `Attempt ${attempts + 1}: Found ${jobElements.length} job elements`
       );
-      if (estimatedTimeElement) {
-        estimatedTime = estimatedTimeElement.textContent.trim();
-      }
-    }
 
-    const attachments = attachmentsElement
-      ? Array.from(attachmentsElement.querySelectorAll("a")).map((a) => ({
-          name: a.textContent.trim(),
-          url: a.href,
-        }))
-      : [];
+      if (jobElements.length > 0) {
+        // Jobs found, proceed with scraping
+        const jobs = Array.from(jobElements).map((jobElement, index) => {
+          console.log(`Processing job ${index + 1}/${jobElements.length}`);
 
-    const questions = questionsElement
-      ? Array.from(questionsElement.querySelectorAll("li")).map((li) =>
-          li.textContent.trim()
-        )
-      : [];
-
-    const scrapedAt = Date.now();
-    const humanReadableTime = new Date(scrapedAt).toLocaleString();
-
-    let clientRating = "N/A";
-
-    if (clientRatingElement) {
-      if (clientRatingElement.classList.contains("air3-rating-value-text")) {
-        // Custom Search URL feed
-        clientRating = clientRatingElement.textContent.trim();
-      } else {
-        // Most Recent feed
-        const ratingText = jobElement.querySelector(".sr-only");
-        if (ratingText) {
-          const match = ratingText.textContent.match(
-            /Rating is (\d+(\.\d+)?) out of 5/
+          const titleElement = jobElement.querySelector(
+            '.job-tile-title a, [data-test="job-tile-title-link"]'
           );
-          if (match) {
-            clientRating = match[1];
+          console.log("Title element found:", Boolean(titleElement));
+
+          const descriptionElement = jobElement.querySelector(
+            '[data-test="job-description-text"], [data-test="UpCLineClamp JobDescription"]'
+          );
+          const jobInfoList = jobElement.querySelector(
+            'ul[data-test="JobInfo"]'
+          );
+          const skillsElements = jobElement.querySelectorAll(
+            '.air3-token-container .air3-token, [data-test="TokenClamp JobAttrs"] .air3-token'
+          );
+          const paymentVerifiedElement = jobElement.querySelector(
+            '[data-test="payment-verified"], [data-test="payment-verification-status"]'
+          );
+          const clientRatingElement = jobElement.querySelector(
+            ".air3-rating-value-text"
+          );
+          const clientSpendingElement = jobElement.querySelector(
+            '[data-test="client-spendings"] strong, [data-test="client-spend"]'
+          );
+          const clientCountryElement = jobElement.querySelector(
+            '[data-test="client-country"], [data-test="location"] .air3-badge-tagline'
+          );
+          const attachmentsElement = jobElement.querySelector(
+            '[data-test="attachments"]'
+          );
+          const questionsElement = jobElement.querySelector(
+            '[data-test="additional-questions"]'
+          );
+
+          let jobType;
+          let budget;
+          let hourlyRange;
+          let estimatedTime;
+          let skillLevel;
+
+          if (jobInfoList) {
+            const jobInfoItems = jobInfoList.querySelectorAll("li");
+            for (const item of jobInfoItems) {
+              if (item.getAttribute("data-test") === "job-type-label") {
+                jobType = item.textContent.trim();
+              } else if (
+                item.getAttribute("data-test") === "experience-level"
+              ) {
+                skillLevel = item.textContent.trim();
+              } else if (item.getAttribute("data-test") === "is-fixed-price") {
+                const strongElement = item.querySelector("strong:last-child");
+                budget = strongElement?.textContent.trim() ?? "N/A";
+              } else if (item.getAttribute("data-test") === "duration-label") {
+                const strongElement = item.querySelector("strong:last-child");
+                estimatedTime = strongElement?.textContent.trim() ?? "N/A";
+              }
+            }
+
+            if (jobType?.includes("Hourly")) {
+              const parts = jobType.split(":");
+              hourlyRange = parts.length > 1 ? parts[1].trim() : "N/A";
+              jobType = "Hourly";
+            } else if (jobType) {
+              jobType = "Fixed price";
+            }
+          } else {
+            // Fallback for Most Recent job feed structure
+            const jobTypeElement = jobElement.querySelector(
+              '[data-test="job-type"]'
+            );
+            if (jobTypeElement) {
+              const jobTypeText = jobTypeElement.textContent || "";
+              if (jobTypeText.includes("Fixed-price")) {
+                jobType = "Fixed price";
+                const budgetElement = jobElement.querySelector(
+                  '[data-test="budget"]'
+                );
+                budget = budgetElement
+                  ? budgetElement.textContent.trim()
+                  : "N/A";
+              } else if (jobTypeText.includes("Hourly")) {
+                jobType = "Hourly";
+                const hourlyRangeElement = jobElement.querySelector(
+                  '[data-test="hourly-rate"]'
+                );
+                hourlyRange = hourlyRangeElement
+                  ? hourlyRangeElement.textContent.trim()
+                  : "N/A";
+              }
+            }
+
+            const skillLevelElement = jobElement.querySelector(
+              '[data-test="contractor-tier"]'
+            );
+            if (skillLevelElement) {
+              skillLevel = skillLevelElement.textContent.trim();
+            }
+
+            const estimatedTimeElement = jobElement.querySelector(
+              '[data-test="duration"]'
+            );
+            if (estimatedTimeElement) {
+              estimatedTime = estimatedTimeElement.textContent.trim();
+            }
           }
-        }
+
+          const attachments = attachmentsElement
+            ? Array.from(attachmentsElement.querySelectorAll("a")).map((a) => ({
+                name: a.textContent.trim(),
+                url: a.href,
+              }))
+            : [];
+
+          const questions = questionsElement
+            ? Array.from(questionsElement.querySelectorAll("li")).map((li) =>
+                li.textContent.trim()
+              )
+            : [];
+
+          const scrapedAt = Date.now();
+          const humanReadableTime = new Date(scrapedAt).toLocaleString();
+
+          let clientRating = "N/A";
+
+          if (clientRatingElement) {
+            if (
+              clientRatingElement.classList.contains("air3-rating-value-text")
+            ) {
+              // Custom Search URL feed
+              clientRating = clientRatingElement.textContent.trim();
+            } else {
+              // Most Recent feed
+              const ratingText = jobElement.querySelector(".sr-only");
+              if (ratingText) {
+                const match = ratingText.textContent.match(
+                  /Rating is (\d+(\.\d+)?) out of 5/
+                );
+                if (match) {
+                  clientRating = match[1];
+                }
+              }
+            }
+          }
+
+          let clientCountry = "N/A";
+          if (clientCountryElement) {
+            // Remove any child elements (like the icon) and get only the text content
+            const clone = clientCountryElement.cloneNode(true);
+            for (const child of clone.children) {
+              child.remove();
+            }
+            clientCountry = clone.textContent.trim().replace(/\s+/g, " ");
+          }
+
+          let paymentVerified = false;
+          if (paymentVerifiedElement) {
+            // Custom Search URL feed
+            if (
+              paymentVerifiedElement.textContent.includes("Payment verified")
+            ) {
+              paymentVerified = true;
+            }
+            // Most Recent feed
+            else if (
+              paymentVerifiedElement.textContent.includes("Payment unverified")
+            ) {
+              paymentVerified = false;
+            }
+            // If neither text is found, we keep the default false value
+          }
+
+          let clientSpent = "N/A";
+          const clientSpendingElementMostRecent = jobElement?.querySelector(
+            ".client-spent-tier-badge"
+          );
+          const clientSpendingElementCustomSearch =
+            jobElement?.querySelector(".client-spent");
+
+          if (clientSpendingElementMostRecent) {
+            clientSpent = `${clientSpendingElementMostRecent.textContent.trim()} spent`;
+          } else if (clientSpendingElementCustomSearch) {
+            clientSpent = `${clientSpendingElementCustomSearch.textContent.trim()} spent`;
+          }
+
+          const jobPostingTime =
+            jobElement
+              ?.querySelector(".job-tile-timestamp")
+              ?.textContent?.trim() ?? "N/A";
+          const clientLocation =
+            jobElement
+              ?.querySelector(".client-location")
+              ?.textContent?.trim() ?? "N/A";
+
+          return {
+            title: titleElement?.textContent?.trim() ?? "N/A",
+            url: titleElement?.href ?? "N/A",
+            jobType: jobType ?? "N/A",
+            skillLevel: skillLevel ?? "N/A",
+            budget: budget ?? "N/A",
+            hourlyRange: hourlyRange ?? "N/A",
+            estimatedTime: estimatedTime ?? "N/A",
+            description: descriptionElement?.textContent?.trim() ?? "N/A",
+            skills: Array.from(skillsElements).map(
+              (skill) => skill?.textContent?.trim() ?? ""
+            ),
+            paymentVerified: paymentVerified,
+            clientRating: clientRating,
+            clientSpent: clientSpent,
+            clientCountry: clientCountry,
+            attachments: attachments,
+            questions: questions,
+            scrapedAt: scrapedAt,
+            scrapedAtHuman: humanReadableTime,
+            jobPostingTime: jobPostingTime,
+            clientLocation: clientLocation,
+          };
+        });
+        console.log(`Successfully processed ${jobs.length} jobs`);
+        resolve(jobs);
+      } else if (attempts < maxAttempts) {
+        // No jobs found yet, try again
+        attempts++;
+        console.log("Waiting for job elements to load...");
+        console.log(
+          "Job feed container:",
+          document.querySelector('[data-test="JobsList"]')?.innerHTML ||
+            "No job feed found"
+        );
+        setTimeout(checkForJobs, checkInterval);
+      } else {
+        // Max attempts reached, return empty array
+        console.log("Max attempts reached. No jobs found.");
+        console.log("Page title:", document.title);
+        console.log(
+          "Main content area:",
+          document.querySelector("main")?.innerHTML || "No main content found"
+        );
+        resolve([]);
       }
     }
 
-    let clientCountry = "N/A";
-    if (clientCountryElement) {
-      // Remove any child elements (like the icon) and get only the text content
-      const clone = clientCountryElement.cloneNode(true);
-      for (const child of clone.children) {
-        child.remove();
-      }
-      clientCountry = clone.textContent.trim().replace(/\s+/g, " ");
-    }
-
-    let paymentVerified = false;
-    if (paymentVerifiedElement) {
-      // Custom Search URL feed
-      if (paymentVerifiedElement.textContent.includes("Payment verified")) {
-        paymentVerified = true;
-      }
-      // Most Recent feed
-      else if (
-        paymentVerifiedElement.textContent.includes("Payment unverified")
-      ) {
-        paymentVerified = false;
-      }
-      // If neither text is found, we keep the default false value
-    }
-
-    let clientSpent = "N/A";
-    const clientSpendingElementMostRecent = jobElement.querySelector(
-      '[data-test="client-spendings"] strong'
-    );
-    const clientSpendingElementCustomSearch = jobElement.querySelector(
-      '[data-test="total-spent"] strong'
-    );
-
-    if (clientSpendingElementMostRecent) {
-      clientSpent =
-        clientSpendingElementMostRecent.textContent.trim() + " spent";
-    } else if (clientSpendingElementCustomSearch) {
-      clientSpent =
-        clientSpendingElementCustomSearch.textContent.trim() + " spent";
-    }
-
-    return {
-      title:
-        titleElement && titleElement.textContent
-          ? titleElement.textContent.trim()
-          : "N/A",
-      url: titleElement ? titleElement.href : "N/A",
-      jobType: jobType || "N/A",
-      skillLevel: skillLevel || "N/A",
-      budget: budget || "N/A",
-      hourlyRange: hourlyRange || "N/A",
-      estimatedTime: estimatedTime || "N/A",
-      description:
-        descriptionElement && descriptionElement.textContent
-          ? descriptionElement.textContent.trim()
-          : "N/A",
-      skills: Array.from(skillsElements).map((skill) =>
-        skill && skill.textContent ? skill.textContent.trim() : ""
-      ),
-      paymentVerified: paymentVerified,
-      clientRating: clientRating,
-      clientSpent: clientSpent,
-      clientCountry: clientCountry,
-      attachments: attachments,
-      questions: questions,
-      scrapedAt: scrapedAt,
-      scrapedAtHuman: humanReadableTime,
-    };
+    checkForJobs();
   });
-
-  return jobs;
 }
 
 // Wrap other important functions similarly
@@ -376,8 +460,8 @@ function processJobs(newJobs) {
         }
 
         chrome.storage.local.get(["scrapedJobs"], async (data) => {
-          let existingJobs = data.scrapedJobs || [];
-          let updatedJobs = [];
+          const existingJobs = data.scrapedJobs || [];
+          const updatedJobs = [];
           let addedJobsCount = 0;
 
           // Sort new jobs by scraped time, newest first
@@ -385,14 +469,14 @@ function processJobs(newJobs) {
 
           // Process each new job
           for (const newJob of newJobs) {
-            if (!existingJobs.some((job) => job.url === newJob.url)) {
+            if (!existingJobs.some((job) => job?.url === newJob?.url)) {
               updatedJobs.push(newJob);
               addedJobsCount++;
 
               // Send to webhook if enabled and URL is set
               if (
-                webhookSettings.webhookEnabled &&
-                webhookSettings.webhookUrl
+                webhookSettings?.webhookEnabled &&
+                webhookSettings?.webhookUrl
               ) {
                 console.log("Sending job to webhook:", {
                   jobTitle: newJob.title,
@@ -415,7 +499,7 @@ function processJobs(newJobs) {
           }
 
           // Combine and store jobs
-          let allJobs = [...updatedJobs, ...existingJobs].slice(0, 100);
+          const allJobs = [...updatedJobs, ...existingJobs].slice(0, 100);
 
           chrome.storage.local.set({ scrapedJobs: allJobs }, () => {
             addToActivityLog(

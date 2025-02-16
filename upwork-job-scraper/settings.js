@@ -94,7 +94,7 @@ function updateCountdown() {
   chrome.storage.sync.get(["schedule"], (data) => {
     const currentSchedule = data.schedule || {
       days: ["sun", "mon", "tue", "wed", "thu", "fri", "sat"].reduce(
-        (acc, day) => ({ ...acc, [day]: true }),
+        (acc, day) => Object.assign(acc, { [day]: true }),
         {}
       ),
       startTime: "00:00",
@@ -171,7 +171,7 @@ async function initializeSettings() {
     Sentry.init({
       dsn: "https://5394268fe023ea7d082781a6ea85f4ce@o4507890797379584.ingest.us.sentry.io/4507891889471488",
       tracesSampleRate: 1.0,
-      release: "upwork-job-scraper@" + chrome.runtime.getManifest().version,
+      release: `upwork-job-scraper@${chrome.runtime.getManifest().version}`,
       environment: "production",
     });
   }
@@ -207,82 +207,99 @@ async function initializeSettings() {
       }
     });
 
+    // Update webhook test handler with better error handling
     document.getElementById("test-webhook").addEventListener("click", () => {
       const webhookUrl = document.getElementById("webhook-url").value;
       const webhookEnabled = document.getElementById("webhook-toggle").checked;
-      if (!webhookEnabled) {
-        showAlert(
-          "Please enable the webhook before testing.",
-          "webhook-alert-container"
-        );
-        return;
-      }
-      if (!webhookUrl) {
-        showAlert(
-          "Please enter a webhook URL before testing.",
-          "webhook-alert-container"
-        );
-        return;
-      }
 
-      const testPayload = {
-        title: "Test Job",
-        url: "https://www.upwork.com/test-job",
-        jobType: "Fixed price",
-        skillLevel: "Intermediate",
-        budget: "$500",
-        hourlyRange: "N/A",
-        estimatedTime: "N/A",
-        description:
-          "This is a test job posting to verify webhook functionality.",
-        skills: ["Test Skill 1", "Test Skill 2", "Test Skill 3"],
-        paymentVerified: true,
-        clientRating: 4.9,
-        clientSpent: "$10k+",
-        clientCountry: "Test Country",
-        attachments: [
-          {
-            name: "Test Document",
-            url: "https://www.upwork.com/test-document",
+      try {
+        if (!webhookEnabled) {
+          showAlert(
+            "Please enable the webhook before testing.",
+            "webhook-alert-container"
+          );
+          return;
+        }
+        if (!webhookUrl) {
+          showAlert(
+            "Please enter a webhook URL before testing.",
+            "webhook-alert-container"
+          );
+          return;
+        }
+
+        const testPayload = {
+          title: "Test Job",
+          url: "https://www.upwork.com/test-job",
+          jobType: "Fixed price",
+          skillLevel: "Intermediate",
+          budget: "$500",
+          hourlyRange: "N/A",
+          estimatedTime: "N/A",
+          description:
+            "This is a test job posting to verify webhook functionality.",
+          skills: ["Test Skill 1", "Test Skill 2", "Test Skill 3"],
+          paymentVerified: true,
+          clientRating: 4.9,
+          clientSpent: "$10k+",
+          clientCountry: "Test Country",
+          attachments: [
+            {
+              name: "Test Document",
+              url: "https://www.upwork.com/test-document",
+            },
+          ],
+          questions: [
+            "What is your experience with this type of project?",
+            "How soon can you start?",
+          ],
+          scrapedAt: Date.now(),
+          scrapedAtHuman: new Date().toLocaleString(),
+        };
+
+        showAlert("Sending test webhook...", "webhook-alert-container");
+
+        fetch(webhookUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
           },
-        ],
-        questions: [
-          "What is your experience with this type of project?",
-          "How soon can you start?",
-        ],
-        scrapedAt: Date.now(),
-        scrapedAtHuman: new Date().toLocaleString(),
-      };
-
-      fetch(webhookUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify([testPayload]),
-      })
-        .then((response) => response.text())
-        .then((result) => {
-          console.log("Test webhook response:", result);
-          addLogEntry("Test webhook sent successfully");
-          showAlert(
-            "Test webhook sent successfully. Check your webhook endpoint for the received data.",
-            "webhook-alert-container"
-          );
-          trackEvent("test_webhook_sent", { success: true });
+          body: JSON.stringify([testPayload]),
         })
-        .catch((error) => {
-          console.error("Error:", error);
-          addLogEntry("Error sending test webhook");
-          showAlert(
-            "Error sending test webhook. Check the console for details.",
-            "webhook-alert-container"
-          );
-          trackEvent("test_webhook_sent", {
-            success: false,
-            error: error.message,
+          .then(async (response) => {
+            if (!response.ok) {
+              throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const result = await response.text();
+            console.log("Test webhook response:", result);
+            addLogEntry("Test webhook sent successfully");
+            showAlert(
+              "Test webhook sent successfully. Check your webhook endpoint for the received data.",
+              "webhook-alert-container"
+            );
+            trackEvent("test_webhook_sent", { success: true });
+          })
+          .catch((error) => {
+            console.error("Error:", error);
+            addLogEntry(`Error sending test webhook: ${error.message}`);
+            showAlert(
+              `Error sending test webhook: ${error.message}`,
+              "webhook-alert-container"
+            );
+            trackEvent("test_webhook_sent", {
+              success: false,
+              error: error.message,
+            });
           });
-        });
+      } catch (error) {
+        console.error("Error in webhook test:", error);
+        addLogEntry(`Error in webhook test: ${error.message}`);
+        showAlert(
+          `Error in webhook test: ${error.message}`,
+          "webhook-alert-container"
+        );
+        trackEvent("test_webhook_error", { error: error.message });
+      }
     });
 
     // Load saved webhook settings when the page opens
@@ -336,7 +353,7 @@ async function initializeSettings() {
       .addEventListener("change", (event) => {
         const webhookEnabled = event.target.checked;
         chrome.storage.sync.set({ webhookEnabled: webhookEnabled }, () => {
-          console.log("Webhook " + (webhookEnabled ? "enabled" : "disabled"));
+          console.log(`Webhook ${webhookEnabled ? "enabled" : "disabled"}`);
           addLogEntry(`Webhook ${webhookEnabled ? "enabled" : "disabled"}`);
           updateWebhookInputState();
           chrome.runtime.sendMessage({ type: "updateWebhookSettings" });
@@ -349,11 +366,11 @@ async function initializeSettings() {
 
     // Add event listeners for days and time range
     const days = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
-    days.forEach((day) => {
+    for (const day of days) {
       document
         .getElementById(`day-${day}`)
         .addEventListener("change", saveSchedule);
-    });
+    }
 
     document
       .getElementById("start-time")
@@ -365,10 +382,10 @@ async function initializeSettings() {
     // Add event listeners for preset buttons
     document.getElementById("set-weekdays").addEventListener("click", () => {
       // Set weekdays only
-      days.forEach((day) => {
+      for (const day of days) {
         const checkbox = document.getElementById(`day-${day}`);
         checkbox.checked = ["mon", "tue", "wed", "thu", "fri"].includes(day);
-      });
+      }
       saveSchedule();
       addLogEntry("Schedule updated: Weekdays only");
     });
@@ -427,7 +444,8 @@ async function initializeSettings() {
     }
 
     function saveFrequency() {
-      const minutes = parseInt(document.getElementById("minutes").value) || 5;
+      const minutes =
+        Number.parseInt(document.getElementById("minutes").value, 10) || 5;
 
       if (minutes < 5) {
         showAlert(
@@ -453,7 +471,10 @@ async function initializeSettings() {
     // Load saved schedule when the page opens
     chrome.storage.sync.get(["schedule"], (data) => {
       const defaultSchedule = {
-        days: days.reduce((acc, day) => ({ ...acc, [day]: true }), {}),
+        days: days.reduce(
+          (acc, day) => Object.assign(acc, { [day]: true }),
+          {}
+        ),
         startTime: "00:00",
         endTime: "23:59",
       };
@@ -461,9 +482,9 @@ async function initializeSettings() {
       const schedule = data.schedule || defaultSchedule;
 
       // Set the days checkboxes
-      days.forEach((day) => {
+      for (const day of days) {
         document.getElementById(`day-${day}`).checked = schedule.days[day];
-      });
+      }
 
       // Set the time inputs
       document.getElementById("start-time").value = schedule.startTime;
@@ -550,11 +571,11 @@ async function initializeSettings() {
         logContainer.innerHTML = ""; // Clear existing entries
 
         // Add entries in reverse order (newest first)
-        data.activityLog.forEach((entry) => {
+        for (const entry of data.activityLog) {
           const logElement = document.createElement("div");
           logElement.textContent = entry;
           logContainer.appendChild(logElement);
-        });
+        }
       }
     });
 
@@ -568,8 +589,8 @@ async function initializeSettings() {
         return;
       }
 
-      jobs.forEach((job) => {
-        if (!job) return; // Skip if job is undefined
+      for (const job of jobs) {
+        if (!job) continue; // Skip if job is undefined
 
         const jobItem = document.createElement("div");
         jobItem.className = "job-item";
@@ -660,7 +681,7 @@ async function initializeSettings() {
         jobItem.appendChild(jobHeader);
         jobItem.appendChild(jobDetails);
         jobsContainer.appendChild(jobItem);
-      });
+      }
 
       // Start updating time differences
       if (!window.timeUpdateInterval) {
@@ -687,12 +708,9 @@ async function initializeSettings() {
     // Listen for log updates, job updates, and login warnings from the background script
     chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       if (message.type === "logUpdate") {
-        // Prevent duplicate messages by checking if the exact same message exists
-        const logContainer = document.getElementById("log-container");
-        const existingTopEntry = logContainer.firstChild?.textContent;
-        if (existingTopEntry !== message.content) {
-          addLogEntry(message.content);
-        }
+        addLogEntry(message.content);
+        sendResponse({ received: true });
+        return true; // Keep the message channel open
       } else if (message.type === "jobsUpdate") {
         addJobEntries(message.jobs);
       } else if (message.type === "loginWarning") {
@@ -744,10 +762,10 @@ async function initializeSettings() {
 
     function updateAllTimeDifferences() {
       const timeElements = document.querySelectorAll(".job-time");
-      timeElements.forEach((element) => {
-        const timestamp = parseInt(element.dataset.timestamp);
+      for (const element of timeElements) {
+        const timestamp = Number.parseInt(element.dataset.timestamp, 10);
         updateTimeDifference(timestamp, element);
-      });
+      }
     }
 
     // Function to update webhook input state
@@ -775,50 +793,62 @@ async function initializeSettings() {
       errorElement.textContent = message;
     }
 
-    // Update the custom search URL input event listener
+    // Update custom search URL handler with better error handling
     document
       .getElementById("custom-search-url")
       .addEventListener("input", () => {
-        const customSearchUrl =
-          document.getElementById("custom-search-url").value;
+        try {
+          const customSearchUrl =
+            document.getElementById("custom-search-url").value;
 
-        if (customSearchUrl === "") {
-          // If the URL is empty, clear the saved custom search URL
-          chrome.storage.sync.remove(
-            ["customSearchUrl", "selectedFeedSource"],
-            () => {
-              console.log("Custom search URL cleared");
-              addLogEntry("Custom search URL cleared");
-              chrome.runtime.sendMessage({ type: "updateFeedSources" });
-              trackEvent("custom_search_url_cleared", {});
-            }
-          );
-        } else if (
-          !customSearchUrl.startsWith("https://www.upwork.com/nx/search/jobs/?")
-        ) {
-          showCustomUrlError(
-            "Custom Search URL must start with https://www.upwork.com/nx/search/jobs/?"
-          );
-        } else {
-          // Clear any existing error message
-          showCustomUrlError("");
+          if (customSearchUrl === "") {
+            chrome.storage.sync.remove(
+              ["customSearchUrl", "selectedFeedSource"],
+              () => {
+                if (chrome.runtime.lastError) {
+                  throw new Error(chrome.runtime.lastError.message);
+                }
+                console.log("Custom search URL cleared");
+                addLogEntry("Custom search URL cleared");
+                chrome.runtime.sendMessage({ type: "updateFeedSources" });
+                trackEvent("custom_search_url_cleared", {});
+              }
+            );
+          } else if (
+            !customSearchUrl.startsWith(
+              "https://www.upwork.com/nx/search/jobs/?"
+            )
+          ) {
+            showCustomUrlError(
+              "Custom Search URL must start with https://www.upwork.com/nx/search/jobs/?"
+            );
+          } else {
+            showCustomUrlError("");
 
-          // Save the new custom search URL
-          chrome.storage.sync.set(
-            {
-              selectedFeedSource: "custom-search",
-              customSearchUrl: customSearchUrl,
-            },
-            () => {
-              console.log("Feed sources saved");
-              addLogEntry(`Feed source saved: custom-search`);
-              chrome.runtime.sendMessage({ type: "updateFeedSources" });
-              trackEvent("feed_sources_changed", {
+            chrome.storage.sync.set(
+              {
                 selectedFeedSource: "custom-search",
-                customSearchUrl,
-              });
-            }
-          );
+                customSearchUrl: customSearchUrl,
+              },
+              () => {
+                if (chrome.runtime.lastError) {
+                  throw new Error(chrome.runtime.lastError.message);
+                }
+                console.log("Feed sources saved");
+                addLogEntry("Feed source saved: custom-search");
+                chrome.runtime.sendMessage({ type: "updateFeedSources" });
+                trackEvent("feed_sources_changed", {
+                  selectedFeedSource: "custom-search",
+                  customSearchUrl,
+                });
+              }
+            );
+          }
+        } catch (error) {
+          console.error("Error handling custom search URL:", error);
+          addLogEntry(`Error handling custom search URL: ${error.message}`);
+          showCustomUrlError(`Error: ${error.message}`);
+          trackEvent("custom_search_url_error", { error: error.message });
         }
       });
 
@@ -832,18 +862,23 @@ async function initializeSettings() {
     document.getElementById("manual-scrape").addEventListener("click", () => {
       sendMessageToBackground({ type: "manualScrape" })
         .then((response) => {
-          if (response && response.success) {
+          if (!response) {
+            throw new Error("No response received from background script");
+          }
+          if (response.success) {
             addLogEntry("Manual scrape initiated");
             trackEvent("manual_scrape_initiated", {});
           } else {
-            addLogEntry("Failed to initiate manual scrape");
-            trackEvent("manual_scrape_failed", {});
+            throw new Error(
+              response.error || "Failed to initiate manual scrape"
+            );
           }
         })
         .catch((error) => {
           console.error("Error sending message:", error);
-          addLogEntry("Error initiating manual scrape");
+          addLogEntry(`Error initiating manual scrape: ${error.message}`);
           trackEvent("manual_scrape_error", { error: error.message });
+          showAlert("Failed to initiate manual scrape. Please try again.");
         });
     });
 
@@ -874,9 +909,11 @@ async function initializeSettings() {
     webhookToggle.addEventListener("change", (event) => {
       const isEnabled = event.target.checked;
       chrome.storage.sync.set({ webhookEnabled: isEnabled }, () => {
+        console.log(`Webhook ${isEnabled ? "enabled" : "disabled"}`);
         addLogEntry(`Webhook ${isEnabled ? "enabled" : "disabled"}`);
+        updateWebhookInputState();
         chrome.runtime.sendMessage({ type: "updateWebhookSettings" });
-        trackEvent("webhook_toggle_changed", { enabled: isEnabled });
+        trackEvent("webhook_setting_changed", { enabled: isEnabled });
       });
     });
 
@@ -1048,9 +1085,9 @@ async function initializeSettings() {
     // Reset days button handler
     document.getElementById("reset-days").addEventListener("click", () => {
       const days = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
-      days.forEach((day) => {
+      for (const day of days) {
         document.getElementById(`day-${day}`).checked = true;
-      });
+      }
       saveSchedule();
       addLogEntry("Reset to all days enabled");
       trackEvent("reset_days", {});
@@ -1070,14 +1107,20 @@ async function initializeSettings() {
   }
 }
 
-// Use this to initialize the settings page:
+// Update the initialization process with better error handling
 waitForBackgroundScript()
   .then(() => {
     console.log("Starting initialization...");
-    initializeSettings();
+    return initializeSettings();
   })
   .catch((error) => {
     console.error("Error during initialization:", error);
+    addLogEntry(`Initialization error: ${error.message}`);
+    trackEvent("initialization_error", { error: error.message });
+    showAlert(
+      "Error initializing settings. Please refresh the page and try again.",
+      "alert-container"
+    );
   });
 
 // Add this to your initialization function or at the end of the file
@@ -1086,28 +1129,6 @@ window.addEventListener("beforeunload", () => {
     clearInterval(window.timeUpdateInterval);
   }
 });
-
-// Add this function near the top of the file, after the waitForBackgroundScript function
-function sendMessageToBackground(message) {
-  return new Promise((resolve, reject) => {
-    chrome.runtime.sendMessage(message, (response) => {
-      if (chrome.runtime.lastError) {
-        reject(chrome.runtime.lastError);
-      } else {
-        resolve(response);
-      }
-    });
-  });
-}
-
-// Add this inside the initializeSettings function
-sendMessageToBackground({ type: "settingsPageOpened" })
-  .then(() => {
-    console.log("Notified background script that settings page is open");
-  })
-  .catch((error) => {
-    console.error("Error sending message to background script:", error);
-  });
 
 function showAlert(message, timeout = "15000") {
   const alertContainer = document.getElementById("alert-container");
@@ -1130,8 +1151,8 @@ function showAlert(message, timeout = "15000") {
   countdownElement.classList.add("countdown");
   alertElement.appendChild(countdownElement);
 
-  const parsedTimeout = parseInt(timeout, 10);
-  let remainingTime = isNaN(parsedTimeout) ? 15000 : parsedTimeout;
+  const parsedTimeout = Number.parseInt(timeout, 10);
+  let remainingTime = Number.isNaN(parsedTimeout) ? 15000 : parsedTimeout;
 
   // Update the countdown immediately
   const seconds = Math.ceil(remainingTime / 1000);

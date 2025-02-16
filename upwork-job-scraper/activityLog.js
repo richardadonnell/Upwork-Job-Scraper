@@ -1,7 +1,10 @@
 function addToActivityLog(message) {
   // Remove any existing timestamp from the message
-  const cleanMessage = message.replace(/^\d{1,2}\/\d{1,2}\/\d{4},\s\d{1,2}:\d{2}:\d{2}\s[AP]M:\s/, '');
-  
+  const cleanMessage = message.replace(
+    /^\d{1,2}\/\d{1,2}\/\d{4},\s\d{1,2}:\d{2}:\d{2}\s[AP]M:\s/,
+    ""
+  );
+
   const timestamp = new Date().toLocaleString();
   const logEntry = `${timestamp}: ${cleanMessage}`;
   console.log(logEntry); // Log to console for debugging
@@ -9,10 +12,10 @@ function addToActivityLog(message) {
   // Store in chrome.storage
   chrome.storage.local.get("activityLog", (data) => {
     const log = data.activityLog || [];
-    
+
     // Check if this exact message was logged in the last second (prevent duplicates)
     const isDuplicate = log[0] === logEntry;
-    
+
     if (!isDuplicate) {
       log.unshift(logEntry);
       // Keep only the last 100 entries
@@ -25,8 +28,11 @@ function addToActivityLog(message) {
   chrome.runtime.sendMessage(
     { type: "logUpdate", content: logEntry },
     (response) => {
-      if (chrome.runtime.lastError) {
-        console.log("No settings pages available for log update");
+      const error = chrome.runtime.lastError;
+      if (error) {
+        console.debug(`Message passing error: ${error.message}`);
+      } else if (!response) {
+        console.debug("No response from settings page");
       }
     }
   );

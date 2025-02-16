@@ -21,12 +21,19 @@ try {
   let lastViewedTimestamp = 0;
   let schedule = {
     days: ["sun", "mon", "tue", "wed", "thu", "fri", "sat"].reduce(
-      (acc, day) => ({ ...acc, [day]: true }),
+      (acc, day) => {
+        acc[day] = true;
+        return acc;
+      },
       {}
     ),
     startTime: "00:00",
     endTime: "23:59",
   };
+
+  let isInitializing = false;
+  let lastInitializationTime = 0;
+  const MIN_INITIALIZATION_INTERVAL = 5000; // 5 seconds minimum between initializations
 
   // Initialize settings when extension starts
   chrome.storage.sync.get(
@@ -131,53 +138,90 @@ try {
   }
 
   // Modify the existing chrome.runtime.onStartup and chrome.runtime.onInstalled listeners
-  chrome.runtime.onStartup.addListener(initializeExtension);
-  chrome.runtime.onInstalled.addListener(initializeExtension);
+  chrome.runtime.onStartup.addListener(() => {
+    tryInitializeExtension("onStartup");
+  });
+
+  chrome.runtime.onInstalled.addListener(() => {
+    tryInitializeExtension("onInstalled");
+  });
+
+  // Add this new function to handle initialization attempts
+  function tryInitializeExtension(source) {
+    const now = Date.now();
+    if (isInitializing) {
+      console.log(
+        `Skipping duplicate initialization from ${source} - already initializing`
+      );
+      return;
+    }
+    if (now - lastInitializationTime < MIN_INITIALIZATION_INTERVAL) {
+      console.log(
+        `Skipping duplicate initialization from ${source} - too soon after last initialization`
+      );
+      return;
+    }
+
+    initializeExtension(source);
+  }
 
   // Add this new function to initialize the extension state
-  function initializeExtension() {
-    chrome.storage.sync.get(
-      [
+  async function initializeExtension(source) {
+    if (isInitializing) {
+      console.log(`Skipping duplicate initialization from ${source}`);
+      return;
+    }
+
+    isInitializing = true;
+    lastInitializationTime = Date.now();
+    console.log(`Starting initialization from ${source}`);
+
+    try {
+      // Clear any existing alarms first
+      await chrome.alarms.clear("checkJobs");
+
+      const data = await chrome.storage.sync.get([
         "jobScrapingEnabled",
         "webhookEnabled",
         "notificationsEnabled",
         "checkFrequency",
         "lastViewedTimestamp",
         "schedule",
-      ],
-      (data) => {
-        jobScrapingEnabled = data.jobScrapingEnabled !== false;
-        webhookEnabled = data.webhookEnabled !== false;
-        notificationsEnabled = data.notificationsEnabled !== false;
-        checkFrequency = data.checkFrequency || 5;
-        lastViewedTimestamp = data.lastViewedTimestamp || Date.now();
-        schedule = data.schedule || schedule; // Load saved schedule or use default
+      ]);
 
-        chrome.storage.local.get(["newJobsCount"], (result) => {
-          newJobsCount = result.newJobsCount || 0;
-          updateBadge();
-        });
+      jobScrapingEnabled = data.jobScrapingEnabled !== false;
+      webhookEnabled = data.webhookEnabled !== false;
+      notificationsEnabled = data.notificationsEnabled !== false;
+      checkFrequency = data.checkFrequency || 5;
+      lastViewedTimestamp = data.lastViewedTimestamp || Date.now();
+      schedule = data.schedule || schedule;
 
-        console.log(
-          "Extension initialized. Job scraping enabled:",
-          jobScrapingEnabled
-        );
-        console.log("Schedule loaded:", schedule);
+      const result = await chrome.storage.local.get(["newJobsCount"]);
+      newJobsCount = result.newJobsCount || 0;
+      updateBadge();
 
-        if (jobScrapingEnabled) {
-          updateAlarm();
-        } else {
-          chrome.alarms.clear("checkJobs");
-        }
+      console.log(
+        "Extension initialized. Job scraping enabled:",
+        jobScrapingEnabled
+      );
+      console.log("Schedule loaded:", schedule);
 
-        loadFeedSourceSettings();
-        initializeLastViewedTimestamp();
-
-        if (typeof updateNotificationsEnabled === "function") {
-          updateNotificationsEnabled(notificationsEnabled);
-        }
+      if (jobScrapingEnabled) {
+        updateAlarm();
       }
-    );
+
+      await loadFeedSourceSettings();
+      initializeLastViewedTimestamp();
+
+      if (typeof updateNotificationsEnabled === "function") {
+        updateNotificationsEnabled(notificationsEnabled);
+      }
+    } catch (error) {
+      console.error("Error during initialization:", error);
+      logAndReportError("Error during initialization", error);
+    } finally {
+      isInitializing = false;
+    }
   }
 
   // Modify the chrome.alarms.onAlarm listener
@@ -364,8 +408,8 @@ try {
 
       // Get existing jobs
       const data = await chrome.storage.local.get(["scrapedJobs"]);
-      let existingJobs = data.scrapedJobs || [];
-      let updatedJobs = [];
+      const existingJobs = data.scrapedJobs || [];
+      const updatedJobs = [];
       let addedJobsCount = 0;
 
       // Sort new jobs by scraped time, newest first
@@ -402,7 +446,7 @@ try {
       }
 
       // Combine and store jobs
-      let allJobs = [...updatedJobs, ...existingJobs].slice(0, 100);
+      const allJobs = [...updatedJobs, ...existingJobs].slice(0, 100);
 
       await chrome.storage.local.set({ scrapedJobs: allJobs });
       addToActivityLog(

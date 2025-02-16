@@ -1,19 +1,19 @@
+const APP_VERSION = "1.51"; // Update this when you change your extension version
+
 // Initialize Sentry
 if (typeof Sentry !== "undefined") {
   Sentry.init({
     dsn: "https://5394268fe023ea7d082781a6ea85f4ce@o4507890797379584.ingest.us.sentry.io/4507891889471488",
     tracesSampleRate: 1.0,
-    release: "upwork-job-scraper@" + chrome.runtime.getManifest().version,
+    release: `upwork-job-scraper@${chrome.runtime.getManifest().version}`,
     environment: "production",
   });
 }
 
-const APP_VERSION = "1.40"; // Update this when you change your extension version
-
 // Function to log and report errors
 function logAndReportError(context, error) {
   const errorInfo = {
-    context: context,
+    context,
     message: error.message,
     stack: error.stack,
     timestamp: new Date().toISOString(),
