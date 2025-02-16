@@ -137,7 +137,7 @@ jobs:
           fi
 
       - name: Upload zip file as artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: "upwork-job-scraper-${{ env.version_tag }}"
           path: "releases/upwork-job-scraper-${{ env.version_tag }}.zip"
