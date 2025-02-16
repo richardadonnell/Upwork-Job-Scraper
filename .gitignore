@@ -44,3 +44,4 @@ misc/helpful_commands.md
 releases/
 *.attrs
 *.Identifier
+.specstory/
