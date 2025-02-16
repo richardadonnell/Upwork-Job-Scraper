@@ -1,5 +1,5 @@
 // Wrap your main functions with try-catch blocks
-let jobScrapingEnabled = true; // or load the value from storage
+const jobScrapingEnabled = true; // or load the value from storage
 
 async function checkForNewJobs(jobScrapingEnabled) {
   try {
@@ -38,7 +38,7 @@ async function checkForNewJobs(jobScrapingEnabled) {
             function: isUserLoggedOut,
           },
           async (results) => {
-            if (results && results[0] && results[0].result) {
+            if (results?.result) {
               // User is "fake" logged out, click the "Log In" link
               await chrome.scripting.executeScript({
                 target: { tabId: tab.id },
@@ -71,9 +71,10 @@ async function checkForNewJobs(jobScrapingEnabled) {
                   function: isUserLoggedOut,
                 },
                 (results) => {
-                  if (results && results[0] && results[0].result) {
+                  if (results?.result) {
                     // User is still "fake" logged out, show a warning and send a notification
-                    const warningMessage = "Warning: You need to log in to Upwork to ensure all available jobs are being scraped. Click the notification to log in.";
+                    const warningMessage =
+                      "Warning: You need to log in to Upwork to ensure all available jobs are being scraped. Click the notification to log in.";
                     addToActivityLog(warningMessage);
                     chrome.runtime.sendMessage({
                       type: "loginWarning",
@@ -93,12 +94,7 @@ async function checkForNewJobs(jobScrapingEnabled) {
                         function: scrapeJobs,
                       },
                       (results) => {
-                        if (chrome.runtime.lastError) {
-                          addToActivityLog(
-                            "Error: " + chrome.runtime.lastError.message
-                          );
-                          reject(chrome.runtime.lastError);
-                        } else if (results && results[0] && results[0].result) {
+                        if (results?.result) {
                           const jobs = results[0].result;
                           addToActivityLog(
                             `Scraped ${jobs.length} jobs from ${url}`
@@ -125,12 +121,7 @@ async function checkForNewJobs(jobScrapingEnabled) {
                   function: scrapeJobs,
                 },
                 (results) => {
-                  if (chrome.runtime.lastError) {
-                    addToActivityLog(
-                      "Error: " + chrome.runtime.lastError.message
-                    );
-                    reject(chrome.runtime.lastError);
-                  } else if (results && results[0] && results[0].result) {
+                  if (results?.result) {
                     const jobs = results[0].result;
                     addToActivityLog(`Scraped ${jobs.length} jobs from ${url}`);
                     processJobs(jobs);
@@ -186,25 +177,29 @@ function scrapeJobs() {
       '[data-test="additional-questions"]'
     );
 
-    let jobType, budget, hourlyRange, estimatedTime, skillLevel;
+    let jobType;
+    let budget;
+    let hourlyRange;
+    let estimatedTime;
+    let skillLevel;
 
     if (jobInfoList) {
       const jobInfoItems = jobInfoList.querySelectorAll("li");
-      jobInfoItems.forEach((item) => {
+      for (const item of jobInfoItems) {
         if (item.getAttribute("data-test") === "job-type-label") {
           jobType = item.textContent.trim();
         } else if (item.getAttribute("data-test") === "experience-level") {
           skillLevel = item.textContent.trim();
         } else if (item.getAttribute("data-test") === "is-fixed-price") {
           const strongElement = item.querySelector("strong:last-child");
-          budget = strongElement ? strongElement.textContent.trim() : "N/A";
+          budget = strongElement?.textContent.trim() ?? "N/A";
         } else if (item.getAttribute("data-test") === "duration-label") {
           const strongElement = item.querySelector("strong:last-child");
-          estimatedTime = strongElement ? strongElement.textContent.trim() : "N/A";
+          estimatedTime = strongElement?.textContent.trim() ?? "N/A";
         }
-      });
+      }
 
-      if (jobType && jobType.includes("Hourly")) {
+      if (jobType?.includes("Hourly")) {
         const parts = jobType.split(":");
         hourlyRange = parts.length > 1 ? parts[1].trim() : "N/A";
         jobType = "Hourly";
@@ -310,38 +305,36 @@ function scrapeJobs() {
     }
 
     let clientSpent = "N/A";
-    const clientSpendingElementMostRecent = jobElement.querySelector(
-      '[data-test="client-spendings"] strong'
+    const clientSpendingElementMostRecent = jobElement?.querySelector(
+      ".client-spent-tier-badge"
     );
-    const clientSpendingElementCustomSearch = jobElement.querySelector(
-      '[data-test="total-spent"] strong'
-    );
+    const clientSpendingElementCustomSearch =
+      jobElement?.querySelector(".client-spent");
 
     if (clientSpendingElementMostRecent) {
-      clientSpent =
-        clientSpendingElementMostRecent.textContent.trim() + " spent";
+      clientSpent = `${clientSpendingElementMostRecent.textContent.trim()} spent`;
     } else if (clientSpendingElementCustomSearch) {
-      clientSpent =
-        clientSpendingElementCustomSearch.textContent.trim() + " spent";
+      clientSpent = `${clientSpendingElementCustomSearch.textContent.trim()} spent`;
     }
 
+    const jobPostingTime =
+      jobElement?.querySelector(".job-tile-timestamp")?.textContent?.trim() ??
+      "N/A";
+    const clientLocation =
+      jobElement?.querySelector(".client-location")?.textContent?.trim() ??
+      "N/A";
+
     return {
-      title:
-        titleElement && titleElement.textContent
-          ? titleElement.textContent.trim()
-          : "N/A",
-      url: titleElement ? titleElement.href : "N/A",
-      jobType: jobType || "N/A",
-      skillLevel: skillLevel || "N/A",
-      budget: budget || "N/A",
-      hourlyRange: hourlyRange || "N/A",
-      estimatedTime: estimatedTime || "N/A",
-      description:
-        descriptionElement && descriptionElement.textContent
-          ? descriptionElement.textContent.trim()
-          : "N/A",
-      skills: Array.from(skillsElements).map((skill) =>
-        skill && skill.textContent ? skill.textContent.trim() : ""
+      title: titleElement?.textContent?.trim() ?? "N/A",
+      url: titleElement?.href ?? "N/A",
+      jobType: jobType ?? "N/A",
+      skillLevel: skillLevel ?? "N/A",
+      budget: budget ?? "N/A",
+      hourlyRange: hourlyRange ?? "N/A",
+      estimatedTime: estimatedTime ?? "N/A",
+      description: descriptionElement?.textContent?.trim() ?? "N/A",
+      skills: Array.from(skillsElements).map(
+        (skill) => skill?.textContent?.trim() ?? ""
       ),
       paymentVerified: paymentVerified,
       clientRating: clientRating,
@@ -351,6 +344,8 @@ function scrapeJobs() {
       questions: questions,
       scrapedAt: scrapedAt,
       scrapedAtHuman: humanReadableTime,
+      jobPostingTime: jobPostingTime,
+      clientLocation: clientLocation,
     };
   });
 
@@ -376,8 +371,8 @@ function processJobs(newJobs) {
         }
 
         chrome.storage.local.get(["scrapedJobs"], async (data) => {
-          let existingJobs = data.scrapedJobs || [];
-          let updatedJobs = [];
+          const existingJobs = data.scrapedJobs || [];
+          const updatedJobs = [];
           let addedJobsCount = 0;
 
           // Sort new jobs by scraped time, newest first
@@ -385,14 +380,14 @@ function processJobs(newJobs) {
 
           // Process each new job
           for (const newJob of newJobs) {
-            if (!existingJobs.some((job) => job.url === newJob.url)) {
+            if (!existingJobs.some((job) => job?.url === newJob?.url)) {
               updatedJobs.push(newJob);
               addedJobsCount++;
 
               // Send to webhook if enabled and URL is set
               if (
-                webhookSettings.webhookEnabled &&
-                webhookSettings.webhookUrl
+                webhookSettings?.webhookEnabled &&
+                webhookSettings?.webhookUrl
               ) {
                 console.log("Sending job to webhook:", {
                   jobTitle: newJob.title,
@@ -415,7 +410,7 @@ function processJobs(newJobs) {
           }
 
           // Combine and store jobs
-          let allJobs = [...updatedJobs, ...existingJobs].slice(0, 100);
+          const allJobs = [...updatedJobs, ...existingJobs].slice(0, 100);
 
           chrome.storage.local.set({ scrapedJobs: allJobs }, () => {
             addToActivityLog(
