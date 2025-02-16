@@ -708,12 +708,9 @@ async function initializeSettings() {
     // Listen for log updates, job updates, and login warnings from the background script
     chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       if (message.type === "logUpdate") {
-        // Prevent duplicate messages by checking if the exact same message exists
-        const logContainer = document.getElementById("log-container");
-        const existingTopEntry = logContainer.firstChild?.textContent;
-        if (existingTopEntry !== message.content) {
-          addLogEntry(message.content);
-        }
+        addLogEntry(message.content);
+        sendResponse({ received: true });
+        return true; // Keep the message channel open
       } else if (message.type === "jobsUpdate") {
         addJobEntries(message.jobs);
       } else if (message.type === "loginWarning") {
