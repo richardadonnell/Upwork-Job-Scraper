@@ -45,3 +45,4 @@ releases/
 *.attrs
 *.Identifier
 .specstory/
+browser-logs/
