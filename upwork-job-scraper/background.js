@@ -32,6 +32,8 @@ try {
   };
 
   let isInitializing = false;
+  let lastInitializationTime = 0;
+  const MIN_INITIALIZATION_INTERVAL = 5000; // 5 seconds minimum between initializations
 
   // Initialize settings when extension starts
   chrome.storage.sync.get(
@@ -137,16 +139,31 @@ try {
 
   // Modify the existing chrome.runtime.onStartup and chrome.runtime.onInstalled listeners
   chrome.runtime.onStartup.addListener(() => {
-    if (!isInitializing) {
-      initializeExtension("onStartup");
-    }
+    tryInitializeExtension("onStartup");
   });
 
   chrome.runtime.onInstalled.addListener(() => {
-    if (!isInitializing) {
-      initializeExtension("onInstalled");
-    }
+    tryInitializeExtension("onInstalled");
   });
+
+  // Add this new function to handle initialization attempts
+  function tryInitializeExtension(source) {
+    const now = Date.now();
+    if (isInitializing) {
+      console.log(
+        `Skipping duplicate initialization from ${source} - already initializing`
+      );
+      return;
+    }
+    if (now - lastInitializationTime < MIN_INITIALIZATION_INTERVAL) {
+      console.log(
+        `Skipping duplicate initialization from ${source} - too soon after last initialization`
+      );
+      return;
+    }
+
+    initializeExtension(source);
+  }
 
   // Add this new function to initialize the extension state
   async function initializeExtension(source) {
@@ -156,6 +173,7 @@ try {
     }
 
     isInitializing = true;
+    lastInitializationTime = Date.now();
     console.log(`Starting initialization from ${source}`);
 
     try {
