@@ -18,8 +18,8 @@ try {
   });
 
   // Add these variables at the top of the file
-  let selectedFeedSource = "most-recent";
-  let customSearchUrl = "";
+  const selectedFeedSource = "most-recent";
+  const customSearchUrl = "";
   let checkFrequency = 5; // Default to 5 minutes
   let webhookEnabled = false;
   let jobScrapingEnabled = true; // Default to true, but we'll load the actual state
@@ -285,7 +285,7 @@ try {
         });
         return true; // Will respond asynchronously
       }
-      
+
       if (message.type === "updateCheckFrequency") {
         checkFrequency = message.frequency;
         updateAlarm();
@@ -576,6 +576,16 @@ try {
       // Button index 1 is Close, which just dismisses the notification
     }
   );
+
+  // Export functions to the global scope
+  globalThis.calculateNextCheckTime = calculateNextCheckTime;
+  globalThis.updateAlarm = updateAlarm;
+  globalThis.tryInitializeExtension = tryInitializeExtension;
+  globalThis.initializeExtension = initializeExtension;
+  globalThis.initializeLastViewedTimestamp = initializeLastViewedTimestamp;
+  globalThis.isWithinSchedule = isWithinSchedule;
+  globalThis.processJobs = processJobs;
+  globalThis.updateBadge = updateBadge;
 } catch (error) {
   console.error("Uncaught error in background script:", error);
   logAndReportError("Uncaught error in background script", error);
