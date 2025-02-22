@@ -18,15 +18,39 @@ function waitForBackgroundScript() {
 
 // Add this function near the top of the file, after the waitForBackgroundScript function
 
-function sendMessageToBackground(message) {
+function sendMessageToBackground(message, retries = 3) {
   return new Promise((resolve, reject) => {
-    chrome.runtime.sendMessage(message, (response) => {
-      if (chrome.runtime.lastError) {
-        reject(chrome.runtime.lastError);
-      } else {
-        resolve(response);
-      }
-    });
+    const attemptSend = (remainingRetries) => {
+      chrome.runtime.sendMessage(message, (response) => {
+        if (chrome.runtime.lastError) {
+          console.error("Message send error:", chrome.runtime.lastError);
+          if (remainingRetries > 0) {
+            console.log(
+              `Retrying message send, ${remainingRetries} attempts left`
+            );
+            setTimeout(() => attemptSend(remainingRetries - 1), 1000);
+          } else {
+            reject(chrome.runtime.lastError);
+          }
+        } else if (!response) {
+          const error = new Error(
+            "No response received from background script"
+          );
+          if (remainingRetries > 0) {
+            console.log(
+              `Retrying due to no response, ${remainingRetries} attempts left`
+            );
+            setTimeout(() => attemptSend(remainingRetries - 1), 1000);
+          } else {
+            reject(error);
+          }
+        } else {
+          resolve(response);
+        }
+      });
+    };
+
+    attemptSend(retries);
   });
 }
 
@@ -208,99 +232,86 @@ async function initializeSettings() {
     });
 
     // Update webhook test handler with better error handling
-    document.getElementById("test-webhook").addEventListener("click", () => {
-      const webhookUrl = document.getElementById("webhook-url").value;
-      const webhookEnabled = document.getElementById("webhook-toggle").checked;
+    document
+      .getElementById("test-webhook")
+      .addEventListener("click", async () => {
+        const webhookUrl = document.getElementById("webhook-url").value;
+        const webhookEnabled =
+          document.getElementById("webhook-toggle").checked;
 
-      try {
-        if (!webhookEnabled) {
-          showAlert(
-            "Please enable the webhook before testing.",
-            "webhook-alert-container"
-          );
-          return;
-        }
-        if (!webhookUrl) {
-          showAlert(
-            "Please enter a webhook URL before testing.",
-            "webhook-alert-container"
-          );
-          return;
-        }
-
-        const testPayload = {
-          title: "Test Job",
-          url: "https://www.upwork.com/test-job",
-          jobType: "Fixed price",
-          skillLevel: "Intermediate",
-          budget: "$500",
-          hourlyRange: "N/A",
-          estimatedTime: "N/A",
-          description:
-            "This is a test job posting to verify webhook functionality.",
-          skills: ["Test Skill 1", "Test Skill 2", "Test Skill 3"],
-          paymentVerified: true,
-          clientRating: 4.9,
-          clientSpent: "$10k+",
-          clientCountry: "Test Country",
-          attachments: [
-            {
-              name: "Test Document",
-              url: "https://www.upwork.com/test-document",
-            },
-          ],
-          questions: [
-            "What is your experience with this type of project?",
-            "How soon can you start?",
-          ],
-          scrapedAt: Date.now(),
-          scrapedAtHuman: new Date().toLocaleString(),
-        };
-
-        showAlert("Sending test webhook...", "webhook-alert-container");
-
-        fetch(webhookUrl, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify([testPayload]),
-        })
-          .then(async (response) => {
-            if (!response.ok) {
-              throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            const result = await response.text();
-            console.log("Test webhook response:", result);
-            addLogEntry("Test webhook sent successfully");
+        try {
+          if (!webhookEnabled) {
             showAlert(
-              "Test webhook sent successfully. Check your webhook endpoint for the received data.",
+              "Please enable the webhook before testing.",
               "webhook-alert-container"
             );
-            trackEvent("test_webhook_sent", { success: true });
-          })
-          .catch((error) => {
-            console.error("Error:", error);
-            addLogEntry(`Error sending test webhook: ${error.message}`);
+            return;
+          }
+          if (!webhookUrl) {
             showAlert(
-              `Error sending test webhook: ${error.message}`,
+              "Please enter a webhook URL before testing.",
               "webhook-alert-container"
             );
-            trackEvent("test_webhook_sent", {
-              success: false,
-              error: error.message,
+            return;
+          }
+
+          const testPayload = {
+            title: "Test Job",
+            url: "https://www.upwork.com/test-job",
+            jobType: "Fixed price",
+            skillLevel: "Intermediate",
+            budget: "$500",
+            hourlyRange: "N/A",
+            estimatedTime: "N/A",
+            description:
+              "This is a test job posting to verify webhook functionality.",
+            skills: ["Test Skill 1", "Test Skill 2", "Test Skill 3"],
+            paymentVerified: true,
+            clientRating: 4.9,
+            clientSpent: "$10k+",
+            clientCountry: "Test Country",
+            attachments: [
+              {
+                name: "Test Document",
+                url: "https://www.upwork.com/test-document",
+              },
+            ],
+          };
+
+          try {
+            await sendMessageToBackground({
+              type: "testWebhook",
+              webhookUrl,
+              testPayload,
             });
-          });
-      } catch (error) {
-        console.error("Error in webhook test:", error);
-        addLogEntry(`Error in webhook test: ${error.message}`);
-        showAlert(
-          `Error in webhook test: ${error.message}`,
-          "webhook-alert-container"
-        );
-        trackEvent("test_webhook_error", { error: error.message });
-      }
-    });
+            showAlert(
+              "Webhook test successful!",
+              "webhook-alert-container",
+              "success"
+            );
+            addLogEntry("Webhook test successful");
+            trackEvent("webhook_test_success", {});
+          } catch (error) {
+            showAlert(
+              `Webhook test failed: ${error.message}`,
+              "webhook-alert-container",
+              "error"
+            );
+            addLogEntry(`Webhook test failed: ${error.message}`);
+            trackEvent("webhook_test_error", { error: error.message });
+            console.error("Webhook test error:", error);
+          }
+        } catch (error) {
+          showAlert(
+            `Error testing webhook: ${error.message}`,
+            "webhook-alert-container",
+            "error"
+          );
+          addLogEntry(`Error testing webhook: ${error.message}`);
+          trackEvent("webhook_test_error", { error: error.message });
+          console.error("Error testing webhook:", error);
+        }
+      });
 
     // Load saved webhook settings when the page opens
     chrome.storage.sync.get(["webhookUrl", "webhookEnabled"], (data) => {

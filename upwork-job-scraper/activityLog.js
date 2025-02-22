@@ -37,3 +37,6 @@ function addToActivityLog(message) {
     }
   );
 }
+
+// Export the function to the global scope
+globalThis.addToActivityLog = addToActivityLog;

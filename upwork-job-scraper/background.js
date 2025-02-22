@@ -1,3 +1,10 @@
+// Add global unhandled promise rejection handler
+globalThis.addEventListener("unhandledrejection", (event) => {
+  console.error("Unhandled promise rejection:", event.reason);
+  logAndReportError("Unhandled promise rejection", event.reason);
+  event.preventDefault(); // Prevent the default handling
+});
+
 // Wrap the main logic in a try-catch block
 try {
   // Open settings page when extension icon is clicked
@@ -11,8 +18,8 @@ try {
   });
 
   // Add these variables at the top of the file
-  let selectedFeedSource = "most-recent";
-  let customSearchUrl = "";
+  const selectedFeedSource = "most-recent";
+  const customSearchUrl = "";
   let checkFrequency = 5; // Default to 5 minutes
   let webhookEnabled = false;
   let jobScrapingEnabled = true; // Default to true, but we'll load the actual state
@@ -244,74 +251,134 @@ try {
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     let handled = false;
 
+    const handleAsyncOperation = async (operation) => {
+      try {
+        const result = await operation();
+        sendResponse({ success: true, ...result });
+      } catch (error) {
+        console.error("Error in async operation:", error);
+        logAndReportError("Error in async operation", error);
+        sendResponse({ success: false, error: error.message });
+      }
+    };
+
     try {
       if (message.type === "settingsPageOpened") {
         // Update the last viewed timestamp
         lastViewedTimestamp = Date.now();
-        chrome.storage.local.set({ lastViewedTimestamp: lastViewedTimestamp });
-
-        // Reset the newJobsCount and persist it
-        newJobsCount = 0;
-        chrome.storage.local.set({ newJobsCount: 0 }, () => {
+        chrome.storage.sync.set({ lastViewedTimestamp }, () => {
+          if (chrome.runtime.lastError) {
+            console.error(
+              "Error saving lastViewedTimestamp:",
+              chrome.runtime.lastError
+            );
+            sendResponse({
+              success: false,
+              error: chrome.runtime.lastError.message,
+            });
+            return;
+          }
+          newJobsCount = 0;
           updateBadge();
+          handled = true;
+          sendResponse({ success: true });
         });
+        return true; // Will respond asynchronously
+      }
 
-        handled = true;
-      } else if (message.type === "updateCheckFrequency") {
+      if (message.type === "updateCheckFrequency") {
         checkFrequency = message.frequency;
         updateAlarm();
         addToActivityLog(
           `Check frequency updated to ${checkFrequency} minute(s)`
         );
         handled = true;
+        sendResponse({ success: true });
       } else if (message.type === "updateFeedSources") {
-        loadFeedSourceSettings().then(() => {
-          sendResponse({ success: true });
+        handled = true;
+        handleAsyncOperation(async () => {
+          await loadFeedSourceSettings();
+          return {};
         });
-        return true; // Will respond asynchronously
+        return true;
       } else if (message.type === "manualScrape") {
-        if (jobScrapingEnabled) {
-          if (isWithinSchedule()) {
-            checkForNewJobs(jobScrapingEnabled).then(() => {
-              sendResponse({ success: true });
-            });
-          } else {
-            const msg = "Manual scrape skipped - outside of scheduled hours";
-            addToActivityLog(msg);
-            sendResponse({ success: false, reason: msg });
-          }
-        } else {
+        handled = true;
+        if (!jobScrapingEnabled) {
           addToActivityLog(
             "Job scraping is disabled. Manual scrape not performed."
           );
-          sendResponse({ success: false, reason: "Job scraping is disabled" });
+          sendResponse({ success: false, error: "Job scraping is disabled" });
+          return true;
         }
+
+        if (!isWithinSchedule()) {
+          const msg = "Manual scrape skipped - outside of scheduled hours";
+          addToActivityLog(msg);
+          sendResponse({ success: false, error: msg });
+          return true;
+        }
+
+        handleAsyncOperation(async () => {
+          await checkForNewJobs(jobScrapingEnabled);
+          return {};
+        });
         return true;
       } else if (message.type === "ping") {
-        sendResponse({ status: "ready" });
-        return false; // Responded synchronously
+        handled = true;
+        sendResponse({ success: true });
+      } else if (message.type === "testWebhook") {
+        handled = true;
+        handleAsyncOperation(async () => {
+          const response = await fetch(message.webhookUrl, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify([message.testPayload]),
+          });
+
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+
+          const result = await response.text();
+          console.log("Test webhook response:", result);
+          return {};
+        });
+        return true;
       } else if (message.type === "updateWebhookSettings") {
-        loadFeedSourceSettings().then(() => {
+        handled = true;
+        handleAsyncOperation(async () => {
+          await loadFeedSourceSettings();
+          return {};
+        });
+        return true;
+      } else if (message.type === "updateJobScraping") {
+        handled = true;
+        jobScrapingEnabled = message.enabled;
+        chrome.storage.sync.set({ jobScrapingEnabled }, () => {
+          if (chrome.runtime.lastError) {
+            console.error(
+              "Error saving job scraping setting:",
+              chrome.runtime.lastError
+            );
+            sendResponse({
+              success: false,
+              error: chrome.runtime.lastError.message,
+            });
+            return;
+          }
+          addToActivityLog(
+            `Job scraping ${jobScrapingEnabled ? "enabled" : "disabled"}`
+          );
+          if (jobScrapingEnabled) {
+            updateAlarm();
+          } else {
+            chrome.alarms.clear("checkJobs");
+          }
           sendResponse({ success: true });
         });
-        return true; // Will respond asynchronously
-      } else if (message.type === "updateJobScraping") {
-        jobScrapingEnabled = message.enabled;
-        chrome.storage.sync.set(
-          { jobScrapingEnabled: jobScrapingEnabled },
-          () => {
-            addToActivityLog(
-              `Job scraping ${jobScrapingEnabled ? "enabled" : "disabled"}`
-            );
-            if (jobScrapingEnabled) {
-              updateAlarm();
-            } else {
-              chrome.alarms.clear("checkJobs");
-            }
-            sendResponse({ success: true });
-          }
-        );
-        return true; // Will respond asynchronously
+        return true;
       } else if (message.type === "updateNotificationSettings") {
         notificationsEnabled = message.enabled;
         // Save to storage to ensure persistence
@@ -335,16 +402,18 @@ try {
         addToActivityLog("Schedule updated, next check time recalculated");
         handled = true;
       }
-
-      if (handled) {
-        sendResponse({ success: true });
-      }
     } catch (error) {
+      console.error("Error in message listener:", error);
       logAndReportError("Error in message listener", error);
-      sendResponse({ error: "An error occurred" });
+      if (!handled) {
+        sendResponse({ success: false, error: error.message });
+      }
     }
 
-    return handled; // Only keep the message channel open if we handled the message
+    // If we haven't handled the message, send an error response
+    if (!handled) {
+      sendResponse({ success: false, error: "Unknown message type" });
+    }
   });
 
   // Add this new listener for notification clicks
@@ -507,6 +576,16 @@ try {
       // Button index 1 is Close, which just dismisses the notification
     }
   );
+
+  // Export functions to the global scope
+  globalThis.calculateNextCheckTime = calculateNextCheckTime;
+  globalThis.updateAlarm = updateAlarm;
+  globalThis.tryInitializeExtension = tryInitializeExtension;
+  globalThis.initializeExtension = initializeExtension;
+  globalThis.initializeLastViewedTimestamp = initializeLastViewedTimestamp;
+  globalThis.isWithinSchedule = isWithinSchedule;
+  globalThis.processJobs = processJobs;
+  globalThis.updateBadge = updateBadge;
 } catch (error) {
   console.error("Uncaught error in background script:", error);
   logAndReportError("Uncaught error in background script", error);

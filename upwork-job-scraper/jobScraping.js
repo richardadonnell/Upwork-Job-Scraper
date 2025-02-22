@@ -2,175 +2,163 @@
 const jobScrapingEnabled = true; // or load the value from storage
 
 async function checkForNewJobs(jobScrapingEnabled) {
+  const opId = startOperation("checkForNewJobs");
   try {
     if (!jobScrapingEnabled) {
+      addOperationBreadcrumb("Job scraping disabled, skipping check");
       addToActivityLog("Job scraping is disabled. Skipping job check.");
       return;
     }
 
+    addOperationBreadcrumb("Loading feed source settings");
     await loadFeedSourceSettings();
 
     addToActivityLog("Starting job check...");
+    addOperationBreadcrumb("Starting job check");
 
     let url;
     if (selectedFeedSource === "custom-search" && customSearchUrl) {
       url = customSearchUrl;
+      addOperationBreadcrumb("Using custom search URL", { url });
     } else {
       url = "https://www.upwork.com/nx/find-work/most-recent";
+      addOperationBreadcrumb("Using default most recent URL", { url });
     }
 
     await new Promise((resolve, reject) => {
+      addOperationBreadcrumb("Creating new tab for scraping");
       chrome.tabs.create({ url: url, active: false }, async (tab) => {
-        // Wait for the page to load
-        await new Promise((resolve) => {
-          chrome.tabs.onUpdated.addListener(function listener(tabId, info) {
-            if (tabId === tab.id && info.status === "complete") {
-              chrome.tabs.onUpdated.removeListener(listener);
-              resolve();
-            }
-          });
-        });
+        try {
+          // Wait for the page to load
+          addOperationBreadcrumb("Waiting for page to load");
+          await new Promise((resolve, reject) => {
+            const timeout = setTimeout(() => {
+              reject(new Error("Page load timeout after 30 seconds"));
+            }, 30000);
 
-        // Check if the user is "fake" logged out
-        chrome.scripting.executeScript(
-          {
+            chrome.tabs.onUpdated.addListener(function listener(tabId, info) {
+              if (tabId === tab.id && info.status === "complete") {
+                chrome.tabs.onUpdated.removeListener(listener);
+                clearTimeout(timeout);
+                resolve();
+              }
+            });
+          });
+
+          addOperationBreadcrumb("Page loaded, checking login status");
+          // Check if the user is "fake" logged out
+          const loginCheckResults = await chrome.scripting.executeScript({
             target: { tabId: tab.id },
             function: isUserLoggedOut,
-          },
-          async (results) => {
-            if (results?.result) {
-              // User is "fake" logged out, click the "Log In" link
-              await chrome.scripting.executeScript({
-                target: { tabId: tab.id },
-                function: clickLoginLink,
+          });
+
+          if (loginCheckResults?.[0]?.result) {
+            addOperationBreadcrumb("User is logged out, attempting login");
+            // User is "fake" logged out, click the "Log In" link
+            await chrome.scripting.executeScript({
+              target: { tabId: tab.id },
+              function: clickLoginLink,
+            });
+
+            // Wait for the redirect to happen and the user to be logged in
+            addOperationBreadcrumb("Waiting for login redirect");
+            await new Promise((resolve) => setTimeout(resolve, 5000));
+
+            // Navigate back to the custom search URL
+            addOperationBreadcrumb("Navigating back to search URL", { url });
+            await chrome.tabs.update(tab.id, { url: url });
+
+            // Wait for the page to load again
+            addOperationBreadcrumb("Waiting for page to reload");
+            await new Promise((resolve, reject) => {
+              const timeout = setTimeout(() => {
+                reject(new Error("Page reload timeout after 30 seconds"));
+              }, 30000);
+
+              chrome.tabs.onUpdated.addListener(function listener(tabId, info) {
+                if (tabId === tab.id && info.status === "complete") {
+                  chrome.tabs.onUpdated.removeListener(listener);
+                  clearTimeout(timeout);
+                  resolve();
+                }
+              });
+            });
+
+            // Check if the user is still "fake" logged out after the login attempt
+            addOperationBreadcrumb("Verifying login status");
+            const secondLoginCheck = await chrome.scripting.executeScript({
+              target: { tabId: tab.id },
+              function: isUserLoggedOut,
+            });
+
+            if (secondLoginCheck?.[0]?.result) {
+              const warningMessage =
+                "Warning: You need to log in to Upwork to ensure all available jobs are being scraped. Click the notification to log in.";
+              addOperationBreadcrumb("Still logged out after attempt", {
+                warning: warningMessage,
+              });
+              addToActivityLog(warningMessage);
+
+              chrome.runtime.sendMessage({
+                type: "loginWarning",
+                message: warningMessage,
               });
 
-              // Wait for the redirect to happen and the user to be logged in
-              await new Promise((resolve) => setTimeout(resolve, 5000));
-
-              // Navigate back to the custom search URL
-              await chrome.tabs.update(tab.id, { url: url });
-
-              // Wait for the page to load again
-              await new Promise((resolve) => {
-                chrome.tabs.onUpdated.addListener(function listener(
-                  tabId,
-                  info
-                ) {
-                  if (tabId === tab.id && info.status === "complete") {
-                    chrome.tabs.onUpdated.removeListener(listener);
-                    resolve();
-                  }
-                });
-              });
-
-              // Check if the user is still "fake" logged out after the login attempt
-              chrome.scripting.executeScript(
-                {
-                  target: { tabId: tab.id },
-                  function: isUserLoggedOut,
-                },
-                (results) => {
-                  if (results?.result) {
-                    // User is still "fake" logged out, show a warning and send a notification
-                    const warningMessage =
-                      "Warning: You need to log in to Upwork to ensure all available jobs are being scraped. Click the notification to log in.";
-                    addToActivityLog(warningMessage);
-                    chrome.runtime.sendMessage({
-                      type: "loginWarning",
-                      message: warningMessage,
-                    });
-
-                    // Use the new login notification function that bypasses the enabled check
-                    sendLoginNotification(warningMessage);
-
-                    chrome.tabs.remove(tab.id);
-                    reject(new Error(warningMessage));
-                  } else {
-                    // User is logged in, proceed with scraping jobs
-                    chrome.scripting.executeScript(
-                      {
-                        target: { tabId: tab.id },
-                        function: scrapeJobs,
-                      },
-                      async (results) => {
-                        try {
-                          if (results?.[0]?.result) {
-                            const jobs = await results[0].result;
-                            if (jobs.length > 0) {
-                              addToActivityLog(
-                                `Scraped ${jobs.length} jobs from ${url}`
-                              );
-                              processJobs(jobs);
-                            } else {
-                              addToActivityLog("No jobs found on the page");
-                            }
-                          } else {
-                            addToActivityLog(
-                              "No jobs scraped or unexpected result"
-                            );
-                          }
-                          chrome.tabs.remove(tab.id);
-                          addToActivityLog(`Job check completed for ${url}`);
-                          resolve();
-                        } catch (error) {
-                          console.error(
-                            "Error processing scrape results:",
-                            error
-                          );
-                          addToActivityLog(
-                            `Error processing scrape results: ${error.message}`
-                          );
-                          chrome.tabs.remove(tab.id);
-                          reject(error);
-                        }
-                      }
-                    );
-                  }
-                }
-              );
-            } else {
-              // User is logged in, proceed with scraping jobs
-              chrome.scripting.executeScript(
-                {
-                  target: { tabId: tab.id },
-                  function: scrapeJobs,
-                },
-                async (results) => {
-                  try {
-                    if (results?.[0]?.result) {
-                      const jobs = await results[0].result;
-                      if (jobs.length > 0) {
-                        addToActivityLog(
-                          `Scraped ${jobs.length} jobs from ${url}`
-                        );
-                        processJobs(jobs);
-                      } else {
-                        addToActivityLog("No jobs found on the page");
-                      }
-                    } else {
-                      addToActivityLog("No jobs scraped or unexpected result");
-                    }
-                    chrome.tabs.remove(tab.id);
-                    addToActivityLog(`Job check completed for ${url}`);
-                    resolve();
-                  } catch (error) {
-                    console.error("Error processing scrape results:", error);
-                    addToActivityLog(
-                      `Error processing scrape results: ${error.message}`
-                    );
-                    chrome.tabs.remove(tab.id);
-                    reject(error);
-                  }
-                }
-              );
+              sendLoginNotification(warningMessage);
+              await chrome.tabs.remove(tab.id);
+              throw new Error(warningMessage);
             }
           }
-        );
+
+          // User is logged in, proceed with scraping jobs
+          addOperationBreadcrumb("Starting job scraping");
+          const results = await chrome.scripting.executeScript({
+            target: { tabId: tab.id },
+            function: scrapeJobs,
+          });
+
+          if (results?.[0]?.result) {
+            const jobs = await results[0].result;
+            if (jobs.length > 0) {
+              addOperationBreadcrumb("Jobs found", { count: jobs.length });
+              addToActivityLog(`Scraped ${jobs.length} jobs from ${url}`);
+              await processJobs(jobs);
+            } else {
+              addOperationBreadcrumb("No jobs found");
+              addToActivityLog("No jobs found on the page");
+            }
+          } else {
+            addOperationBreadcrumb("No scraping results");
+            addToActivityLog("No jobs scraped or unexpected result");
+          }
+
+          await chrome.tabs.remove(tab.id);
+          addToActivityLog(`Job check completed for ${url}`);
+          addOperationBreadcrumb("Job check completed");
+          resolve();
+        } catch (error) {
+          addOperationBreadcrumb(
+            "Error during job check",
+            { error: error.message },
+            "error"
+          );
+          if (tab?.id) {
+            chrome.tabs.remove(tab.id).catch(console.error);
+          }
+          reject(error);
+        }
       });
     });
   } catch (error) {
-    logAndReportError("Error in checkForNewJobs", error);
+    addOperationBreadcrumb(
+      "Fatal error in checkForNewJobs",
+      { error: error.message },
+      "error"
+    );
+    logAndReportError("Error in checkForNewJobs", error, { url });
+    throw error; // Re-throw to be handled by the caller
+  } finally {
+    endOperation();
   }
 }
 
@@ -441,99 +429,121 @@ function scrapeJobs() {
   });
 }
 
-// Wrap other important functions similarly
-function processJobs(newJobs) {
+async function processJobs(newJobs) {
+  const opId = startOperation("processJobs");
   try {
+    addOperationBreadcrumb("Starting job processing", {
+      jobCount: newJobs.length,
+    });
     console.log("Starting processJobs with", newJobs.length, "new jobs");
 
-    // First get webhook settings
-    chrome.storage.sync.get(
-      ["webhookUrl", "webhookEnabled"],
-      async (webhookSettings) => {
-        console.log("Current webhook settings:", webhookSettings);
+    // Get webhook settings
+    addOperationBreadcrumb("Fetching webhook settings");
+    const webhookSettings = await chrome.storage.sync.get([
+      "webhookUrl",
+      "webhookEnabled",
+    ]);
+    console.log("Current webhook settings:", webhookSettings);
 
-        if (!webhookSettings.webhookUrl || !webhookSettings.webhookEnabled) {
-          console.log("Webhook is disabled or URL not set:", {
-            enabled: webhookSettings.webhookEnabled,
-            hasUrl: Boolean(webhookSettings.webhookUrl),
+    // Get existing jobs
+    addOperationBreadcrumb("Fetching existing jobs");
+    const data = await chrome.storage.local.get(["scrapedJobs"]);
+    const existingJobs = data.scrapedJobs || [];
+    const updatedJobs = [];
+    let addedJobsCount = 0;
+
+    // Sort new jobs by scraped time, newest first
+    newJobs.sort((a, b) => b.scrapedAt - a.scrapedAt);
+    addOperationBreadcrumb("Sorted new jobs by timestamp");
+
+    // Process each new job
+    for (const newJob of newJobs) {
+      if (!existingJobs.some((job) => job.url === newJob.url)) {
+        updatedJobs.push(newJob);
+        addedJobsCount++;
+
+        // Send to webhook if enabled and URL is set
+        if (webhookSettings.webhookEnabled && webhookSettings.webhookUrl) {
+          addOperationBreadcrumb("Sending job to webhook", {
+            jobTitle: newJob.title,
+            jobUrl: newJob.url,
           });
-        }
 
-        chrome.storage.local.get(["scrapedJobs"], async (data) => {
-          const existingJobs = data.scrapedJobs || [];
-          const updatedJobs = [];
-          let addedJobsCount = 0;
-
-          // Sort new jobs by scraped time, newest first
-          newJobs.sort((a, b) => b.scrapedAt - a.scrapedAt);
-
-          // Process each new job
-          for (const newJob of newJobs) {
-            if (!existingJobs.some((job) => job?.url === newJob?.url)) {
-              updatedJobs.push(newJob);
-              addedJobsCount++;
-
-              // Send to webhook if enabled and URL is set
-              if (
-                webhookSettings?.webhookEnabled &&
-                webhookSettings?.webhookUrl
-              ) {
-                console.log("Sending job to webhook:", {
-                  jobTitle: newJob.title,
-                  webhookUrl: webhookSettings.webhookUrl,
-                });
-
-                try {
-                  await sendToWebhook(webhookSettings.webhookUrl, [newJob]);
-                  addToActivityLog(
-                    `Successfully sent job to webhook: ${newJob.title}`
-                  );
-                } catch (error) {
-                  console.error("Failed to send job to webhook:", error);
-                  addToActivityLog(
-                    `Failed to send job to webhook: ${error.message}`
-                  );
-                }
-              }
-            }
-          }
-
-          // Combine and store jobs
-          const allJobs = [...updatedJobs, ...existingJobs].slice(0, 100);
-
-          chrome.storage.local.set({ scrapedJobs: allJobs }, () => {
+          try {
+            await sendToWebhook(webhookSettings.webhookUrl, [newJob]);
+            addOperationBreadcrumb("Successfully sent job to webhook");
             addToActivityLog(
-              `Added ${addedJobsCount} new jobs. Total jobs: ${allJobs.length}`
+              `Successfully sent job to webhook: ${newJob.title}`
             );
-
-            // Update badge and notify
-            updateBadge();
-
-            if (addedJobsCount > 0) {
-              chrome.runtime.sendMessage(
-                { type: "jobsUpdate", jobs: allJobs },
-                (response) => {
-                  if (chrome.runtime.lastError) {
-                    console.log("Settings page not available for job update");
-                  }
-                }
-              );
-
-              if (notificationsEnabled) {
-                sendNotification(
-                  `Found ${addedJobsCount} new job${
-                    addedJobsCount > 1 ? "s" : ""
-                  }!`
-                );
-              }
-            }
-          });
-        });
+          } catch (error) {
+            addOperationBreadcrumb(
+              "Failed to send job to webhook",
+              { error: error.message },
+              "error"
+            );
+            console.error("Failed to send job to webhook:", error);
+            addToActivityLog(`Failed to send job to webhook: ${error.message}`);
+          }
+        } else {
+          addOperationBreadcrumb(
+            "Webhook not enabled or URL not set",
+            webhookSettings
+          );
+        }
       }
+    }
+
+    // Combine and store jobs
+    const allJobs = [...updatedJobs, ...existingJobs].slice(0, 100);
+    addOperationBreadcrumb("Storing updated jobs", {
+      newJobsCount: addedJobsCount,
+      totalJobs: allJobs.length,
+    });
+
+    await chrome.storage.local.set({ scrapedJobs: allJobs });
+    addToActivityLog(
+      `Added ${addedJobsCount} new jobs. Total jobs: ${allJobs.length}`
     );
+
+    // Update badge and notify
+    addOperationBreadcrumb("Updating badge and sending notifications");
+    updateBadge();
+
+    if (addedJobsCount > 0) {
+      try {
+        await chrome.runtime.sendMessage({
+          type: "jobsUpdate",
+          jobs: allJobs,
+        });
+      } catch (error) {
+        addOperationBreadcrumb(
+          "Settings page not available for job update",
+          { error: error.message },
+          "info"
+        );
+      }
+
+      if (notificationsEnabled) {
+        sendNotification(
+          `Found ${addedJobsCount} new job${addedJobsCount > 1 ? "s" : ""}!`
+        );
+      }
+    }
+
+    addOperationBreadcrumb("Job processing completed successfully");
   } catch (error) {
-    console.error("Error in processJobs:", error);
-    logAndReportError("Error in processJobs", error);
+    addOperationBreadcrumb(
+      "Fatal error in processJobs",
+      { error: error.message },
+      "error"
+    );
+    logAndReportError("Error in processJobs", error, {
+      jobCount: newJobs?.length,
+      addedJobsCount,
+    });
+    throw error; // Re-throw to be handled by the caller
+  } finally {
+    endOperation();
   }
 }
 
@@ -572,3 +582,7 @@ function clickLoginLink() {
     loginLink.click();
   }
 }
+
+// Export functions to the global scope
+globalThis.checkForNewJobs = checkForNewJobs;
+globalThis.scrapeJobs = scrapeJobs;
