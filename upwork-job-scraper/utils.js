@@ -22,22 +22,39 @@ function validatePair(pair) {
   if (!pair.name || typeof pair.name !== "string") {
     throw new Error("Pair name is required");
   }
-  if (
-    pair.searchUrl &&
-    !pair.searchUrl.startsWith("https://www.upwork.com/nx/search/jobs/?")
-  ) {
+
+  // Both URLs must be either empty or valid together
+  const hasSearchUrl = Boolean(pair.searchUrl);
+  const hasWebhookUrl = Boolean(pair.webhookUrl);
+
+  // For new pairs, allow both to be empty
+  if (!hasSearchUrl && !hasWebhookUrl) {
+    // This is fine for a new pair
+  }
+  // If one URL is set, the other must also be set
+  else if (hasSearchUrl !== hasWebhookUrl) {
     throw new Error(
-      "Invalid search URL format. Must be an Upwork job search URL."
+      "Search URL and Webhook URL must be set together. Please provide both URLs or leave both empty."
     );
   }
-  if (pair.webhookUrl && !pair.webhookUrl.startsWith("http")) {
-    throw new Error(
-      "Invalid webhook URL format. Must start with http:// or https://"
-    );
+  // If both are set, validate their formats
+  else {
+    if (!pair.searchUrl.startsWith("https://www.upwork.com/nx/search/jobs/?")) {
+      throw new Error(
+        "Invalid search URL format. Must be an Upwork job search URL."
+      );
+    }
+    if (!pair.webhookUrl.startsWith("http")) {
+      throw new Error(
+        "Invalid webhook URL format. Must start with http:// or https://"
+      );
+    }
   }
+
   if (typeof pair.enabled !== "boolean") {
     throw new Error("Invalid enabled state");
   }
+
   return true;
 }
 

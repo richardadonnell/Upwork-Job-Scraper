@@ -105,11 +105,12 @@ async function checkForNewJobs(jobScrapingEnabled) {
 
           if (results?.[0]?.result) {
             const jobs = results[0].result;
-            // Add source information to jobs
+            // Add source information to jobs, including webhookUrl
             for (const job of jobs) {
               job.source = {
                 name: pair.name,
                 searchUrl: pair.searchUrl,
+                webhookUrl: pair.webhookUrl, // Include webhookUrl in source info
               };
             }
 
@@ -194,23 +195,11 @@ async function scrapeJobs() {
 }
 
 async function processJobs(newJobs) {
-  const opId = startOperation("processJobs");
   try {
-    addOperationBreadcrumb("Starting job processing", {
-      jobCount: newJobs.length,
-    });
     console.log("Starting processJobs with", newJobs.length, "new jobs");
-
-    // Get webhook settings
-    addOperationBreadcrumb("Fetching webhook settings");
-    const webhookSettings = await chrome.storage.sync.get([
-      "webhookUrl",
-      "webhookEnabled",
-    ]);
-    console.log("Current webhook settings:", webhookSettings);
+    addToActivityLog(`Processing ${newJobs.length} new jobs`);
 
     // Get existing jobs
-    addOperationBreadcrumb("Fetching existing jobs");
     const data = await chrome.storage.local.get(["scrapedJobs"]);
     const existingJobs = data.scrapedJobs || [];
     const updatedJobs = [];
@@ -218,73 +207,57 @@ async function processJobs(newJobs) {
 
     // Sort new jobs by scraped time, newest first
     newJobs.sort((a, b) => b.scrapedAt - a.scrapedAt);
-    addOperationBreadcrumb("Sorted new jobs by timestamp");
 
     // Process each new job
     for (const newJob of newJobs) {
-      if (!existingJobs.some((job) => job.url === newJob.url)) {
-        updatedJobs.push(newJob);
-        addedJobsCount++;
+      // Skip if job already exists
+      if (existingJobs.some((job) => job.url === newJob.url)) {
+        continue;
+      }
 
-        // Send to webhook if enabled and URL is set
-        if (webhookSettings.webhookEnabled && webhookSettings.webhookUrl) {
-          addOperationBreadcrumb("Sending job to webhook", {
-            jobTitle: newJob.title,
-            jobUrl: newJob.url,
-          });
+      updatedJobs.push(newJob);
+      addedJobsCount++;
 
-          try {
-            await sendToWebhook(webhookSettings.webhookUrl, [newJob]);
-            addOperationBreadcrumb("Successfully sent job to webhook");
-            addToActivityLog(
-              `Successfully sent job to webhook: ${newJob.title}`
-            );
-          } catch (error) {
-            addOperationBreadcrumb(
-              "Failed to send job to webhook",
-              { error: error.message },
-              "error"
-            );
-            console.error("Failed to send job to webhook:", error);
-            addToActivityLog(`Failed to send job to webhook: ${error.message}`);
-          }
-        } else {
-          addOperationBreadcrumb(
-            "Webhook not enabled or URL not set",
-            webhookSettings
+      // Only send to webhook if this job's source pair has a webhook URL
+      if (newJob.source?.webhookUrl) {
+        try {
+          await sendToWebhook(newJob.source.webhookUrl, [newJob]);
+          addToActivityLog(
+            `Successfully sent job to webhook: ${newJob.title} (${newJob.source.name})`
+          );
+        } catch (error) {
+          console.error("Failed to send job to webhook:", error);
+          addToActivityLog(
+            `Failed to send job to webhook for ${newJob.source.name}: ${error.message}`
           );
         }
+      } else {
+        console.log(
+          `No webhook URL configured for job from ${
+            newJob.source?.name || "unknown source"
+          }`
+        );
+        addToActivityLog(
+          `Skipped webhook for job from ${
+            newJob.source?.name || "unknown source"
+          } (no webhook URL configured)`
+        );
       }
     }
 
     // Combine and store jobs
     const allJobs = [...updatedJobs, ...existingJobs].slice(0, 100);
-    addOperationBreadcrumb("Storing updated jobs", {
-      newJobsCount: addedJobsCount,
-      totalJobs: allJobs.length,
-    });
-
     await chrome.storage.local.set({ scrapedJobs: allJobs });
     addToActivityLog(
       `Added ${addedJobsCount} new jobs. Total jobs: ${allJobs.length}`
     );
 
     // Update badge and notify
-    addOperationBreadcrumb("Updating badge and sending notifications");
-    updateBadge();
-
     if (addedJobsCount > 0) {
       try {
-        await chrome.runtime.sendMessage({
-          type: "jobsUpdate",
-          jobs: allJobs,
-        });
+        chrome.runtime.sendMessage({ type: "jobsUpdate", jobs: allJobs });
       } catch (error) {
-        addOperationBreadcrumb(
-          "Settings page not available for job update",
-          { error: error.message },
-          "info"
-        );
+        console.error("Failed to update settings page:", error);
       }
 
       if (notificationsEnabled) {
@@ -293,21 +266,9 @@ async function processJobs(newJobs) {
         );
       }
     }
-
-    addOperationBreadcrumb("Job processing completed successfully");
   } catch (error) {
-    addOperationBreadcrumb(
-      "Fatal error in processJobs",
-      { error: error.message },
-      "error"
-    );
-    logAndReportError("Error in processJobs", error, {
-      jobCount: newJobs?.length,
-      addedJobsCount,
-    });
-    throw error; // Re-throw to be handled by the caller
-  } finally {
-    endOperation();
+    console.error("Error in processJobs:", error);
+    addToActivityLog(`Error processing jobs: ${error.message}`);
   }
 }
 
