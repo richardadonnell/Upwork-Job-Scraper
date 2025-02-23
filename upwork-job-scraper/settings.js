@@ -229,7 +229,9 @@ async function initializeSettings() {
         const isEnabled = event.target.checked;
         chrome.storage.sync.set({ notificationsEnabled: isEnabled }, () => {
           console.log("Notification setting saved:", isEnabled);
-          addLogEntry(`Notifications ${isEnabled ? "enabled" : "disabled"}`);
+          addToActivityLog(
+            `Notifications ${isEnabled ? "enabled" : "disabled"}`
+          );
           // Send message to background script to update notification state
           chrome.runtime.sendMessage({
             type: "updateNotificationSettings",
@@ -335,7 +337,7 @@ async function initializeSettings() {
     // Listen for log updates and job updates from the background script
     chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       if (message.type === "logUpdate") {
-        addLogEntry(message.content);
+        addToActivityLog(message.content);
         sendResponse({ received: true });
         return true; // Keep the message channel open
       } else if (message.type === "jobsUpdate") {
@@ -352,7 +354,7 @@ async function initializeSettings() {
     masterToggle.addEventListener("change", (event) => {
       const isEnabled = event.target.checked;
       chrome.storage.sync.set({ jobScrapingEnabled: isEnabled }, () => {
-        addLogEntry(`Job scraping ${isEnabled ? "enabled" : "disabled"}`);
+        addToActivityLog(`Job scraping ${isEnabled ? "enabled" : "disabled"}`);
         chrome.runtime.sendMessage({
           type: "updateJobScraping",
           enabled: isEnabled,
