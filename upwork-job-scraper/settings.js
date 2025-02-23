@@ -262,18 +262,18 @@ async function initializeSettings() {
 
     // Add event listeners for schedule buttons
     document.getElementById("set-weekdays").addEventListener("click", () => {
-      days.forEach((day) => {
+      for (const day of days) {
         document.getElementById(`day-${day}`).checked =
           day !== "sun" && day !== "sat";
-      });
+      }
       saveSchedule();
       trackEvent("set_weekdays", {});
     });
 
     document.getElementById("reset-days").addEventListener("click", () => {
-      days.forEach((day) => {
+      for (const day of days) {
         document.getElementById(`day-${day}`).checked = true;
-      });
+      }
       saveSchedule();
       trackEvent("reset_days", {});
     });
@@ -340,7 +340,9 @@ async function initializeSettings() {
         addToActivityLog(message.content);
         sendResponse({ received: true });
         return true; // Keep the message channel open
-      } else if (message.type === "jobsUpdate") {
+      }
+
+      if (message.type === "jobsUpdate") {
         addJobEntries(message.jobs);
       }
     });
@@ -375,7 +377,7 @@ async function initializeSettings() {
   } catch (error) {
     console.error("Error initializing settings:", error);
     showAlert(
-      "Error initializing settings: " + error.message,
+      `Error initializing settings: ${error.message}`,
       "alert-container",
       "error"
     );
@@ -683,7 +685,7 @@ function addToActivityLog(message) {
 // Add this before initializeSettings
 function saveFrequency() {
   const minutes = document.getElementById("minutes").value;
-  const frequency = Math.max(5, parseInt(minutes) || 5);
+  const frequency = Math.max(5, Number.parseInt(minutes, 10) || 5);
 
   chrome.storage.sync.set({ checkFrequency: frequency }, () => {
     chrome.runtime.sendMessage({ type: "updateCheckFrequency", frequency });
@@ -716,7 +718,9 @@ function saveSchedule() {
 let timeUpdateIntervals = [];
 
 function clearTimeUpdateIntervals() {
-  timeUpdateIntervals.forEach((interval) => clearInterval(interval));
+  for (const interval of timeUpdateIntervals) {
+    clearInterval(interval);
+  }
   timeUpdateIntervals = [];
 }
 
@@ -865,11 +869,15 @@ function getRelativeTime(timestamp) {
 
   if (days > 0) {
     return `${days} day${days > 1 ? "s" : ""} ago`;
-  } else if (hours > 0) {
-    return `${hours} hour${hours > 1 ? "s" : ""} ago`;
-  } else if (minutes > 0) {
-    return `${minutes} minute${minutes > 1 ? "s" : ""} ago`;
-  } else {
-    return `${seconds} second${seconds !== 1 ? "s" : ""} ago`;
   }
+
+  if (hours > 0) {
+    return `${hours} hour${hours > 1 ? "s" : ""} ago`;
+  }
+
+  if (minutes > 0) {
+    return `${minutes} minute${minutes > 1 ? "s" : ""} ago`;
+  }
+
+  return `${seconds} second${seconds !== 1 ? "s" : ""} ago`;
 }
