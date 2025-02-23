@@ -698,3 +698,126 @@ option {
   background-color: transparent;
   box-shadow: none;
 }
+
+/* Search-Webhook Pairs */
+.pair-item {
+  background: #181818;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  margin-bottom: 1em;
+  padding: 1em;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.pair-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1em;
+}
+
+.pair-title {
+  display: flex;
+  align-items: center;
+  gap: 1em;
+  flex: 1;
+}
+
+.pair-name {
+  font-size: 1.1em;
+  font-weight: 500;
+  padding: 0.5em;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  flex: 1;
+}
+
+.pair-actions {
+  display: flex;
+  gap: 0.5em;
+}
+
+.pair-content {
+  margin-top: 1em;
+}
+
+.pair-urls {
+  display: flex;
+  flex-direction: column;
+  gap: 1em;
+}
+
+.search-url-container,
+.webhook-url-container {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+}
+
+.search-url-container input,
+.webhook-url-container input {
+  flex: 1;
+  padding: 0.5em;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+}
+
+.button-danger {
+  background-color: var(--error-color);
+  color: white;
+  border: none;
+  padding: 0.5em 1em;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.button-danger:hover {
+  background-color: var(--error-color-hover);
+}
+
+.button-primary {
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  padding: 0.5em 1em;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.button-primary:hover {
+  background-color: var(--primary-color-hover);
+}
+
+/* Add these CSS variables at the top of your file */
+:root {
+  --primary-color: #4688f1;
+  --primary-color-hover: #3b77d9;
+  --error-color: #dc3545;
+  --error-color-hover: #c82333;
+  --surface-color: #ffffff;
+  --border-color: #e1e4e8;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .pair-header {
+    flex-direction: column;
+    gap: 1em;
+  }
+
+  .pair-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .search-url-container,
+  .webhook-url-container {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .search-url-container button {
+    align-self: flex-start;
+  }
+}

@@ -26,7 +26,14 @@
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["sentry.js", "sentry-init.js", "activityLog.js", "webhook.js"]
+      "js": [
+        "sentry.js",
+        "sentry-init.js",
+        "activityLog.js",
+        "webhook.js",
+        "utils.js",
+        "storage.js"
+      ]
     }
   ],
   "web_accessible_resources": [
@@ -35,7 +42,9 @@
         "sentry.js",
         "sentry-init.js",
         "activityLog.js",
-        "webhook.js"
+        "webhook.js",
+        "utils.js",
+        "storage.js"
       ],
       "matches": ["<all_urls>"]
     }

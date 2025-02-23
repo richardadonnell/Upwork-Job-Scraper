@@ -46,3 +46,4 @@ releases/
 *.Identifier
 .specstory/
 browser-logs/
+logs/
