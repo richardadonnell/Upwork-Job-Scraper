@@ -200,6 +200,36 @@ async function initializeSettings() {
     });
   }
 
+  // Add copy log and open GitHub issue functionality
+  document
+    .getElementById("copy-log-github")
+    .addEventListener("click", async () => {
+      try {
+        // Get the activity log
+        const data = await new Promise((resolve) => {
+          chrome.storage.local.get("activityLog", resolve);
+        });
+
+        // Format the log entries with markdown code block
+        const formattedLog = `\`\`\`\n${(data.activityLog || []).join(
+          "\n"
+        )}\n\`\`\``;
+
+        // Copy to clipboard
+        await navigator.clipboard.writeText(formattedLog);
+
+        // Open GitHub issue page
+        chrome.tabs.create({
+          url: "https://github.com/richardadonnell/Upwork-Job-Scraper/issues/new",
+        });
+
+        showAlert("Activity log copied to clipboard!", "success");
+      } catch (error) {
+        console.error("Error handling copy log:", error);
+        showAlert(`Failed to copy log: ${error.message}`, "error");
+      }
+    });
+
   // Add setup instructions accordion functionality
   const setupInstructions = document.getElementById("setup-instructions");
   const accordionContent =
