@@ -758,7 +758,7 @@ option {
 .search-url-container,
 .webhook-url-container {
   display: flex;
-  align-items: center;
+  align-items: stretch;
   gap: 1.25em;
 }
 
@@ -768,6 +768,8 @@ option {
   color: #e0e0e0;
   font-size: 1em;
   white-space: nowrap;
+  display: flex;
+  align-items: center;
 }
 
 .search-url-container input,
@@ -776,11 +778,13 @@ option {
   font-size: 1em;
   font-family: "DM Sans", sans-serif;
   padding: 0.625em;
+  margin: 0;
   background-color: #181818;
   border: 0.0625em solid #333;
   color: #e0e0e0;
   border-radius: 0.25em;
-  margin-right: 0.625em;
+  height: 2.5em;
+  box-sizing: border-box;
 }
 
 .pair-toggle {
@@ -821,15 +825,17 @@ option {
 
 /* Open URL button styling */
 .open-url {
-  align-self: stretch;
+  height: 2.5em;
   display: flex;
   align-items: center;
+  justify-content: center;
   background-color: transparent;
   color: #108a00;
   border: 0.0625em solid #333;
   padding: 0 1.25em;
   margin: 0;
   white-space: nowrap;
+  box-sizing: border-box;
 }
 
 .open-url:hover {
