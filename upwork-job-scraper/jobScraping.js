@@ -35,178 +35,111 @@ async function releaseLock() {
 const jobScrapingEnabled = true; // or load the value from storage
 
 async function checkForNewJobs(jobScrapingEnabled) {
-  const opId = startOperation("checkForNewJobs");
-  let lockAcquired = false;
-
   try {
-    // Try to acquire lock
-    lockAcquired = await acquireLock();
-    if (!lockAcquired) {
-      addToActivityLog("Job scraping already in progress, skipping this check");
+    if (!jobScrapingEnabled) {
+      addToActivityLog("Job scraping is disabled. Skipping job check.");
       return;
     }
 
-    try {
-      if (!jobScrapingEnabled) {
-        addOperationBreadcrumb("Job scraping disabled, skipping check");
-        addToActivityLog("Job scraping is disabled. Skipping job check.");
-        return;
-      }
-
-      // Get enabled pairs
-      const enabledPairs = await getEnabledPairs();
-      if (enabledPairs.length === 0) {
-        addToActivityLog(
-          "No enabled search-webhook pairs found. Skipping job check."
-        );
-        return;
-      }
-
-      addToActivityLog("Starting job check...");
-      addOperationBreadcrumb("Starting job check");
-
-      // Process each enabled pair
-      for (const pair of enabledPairs) {
-        try {
-          addOperationBreadcrumb("Processing pair", { name: pair.name });
-          addToActivityLog(`Checking jobs for pair: ${pair.name}`);
-
-          await new Promise((resolve, reject) => {
-            addOperationBreadcrumb("Creating new tab for scraping");
-            chrome.tabs.create(
-              { url: pair.searchUrl, active: false },
-              async (tab) => {
-                try {
-                  // Wait for the page to load
-                  addOperationBreadcrumb("Waiting for page to load");
-                  await new Promise((resolve, reject) => {
-                    const timeout = setTimeout(() => {
-                      reject(new Error("Page load timeout after 30 seconds"));
-                    }, 30000);
-
-                    chrome.tabs.onUpdated.addListener(function listener(
-                      tabId,
-                      info
-                    ) {
-                      if (tabId === tab.id && info.status === "complete") {
-                        chrome.tabs.onUpdated.removeListener(listener);
-                        clearTimeout(timeout);
-                        resolve();
-                      }
-                    });
-                  });
-
-                  addOperationBreadcrumb("Page loaded, checking login status");
-                  // Check if the user is "fake" logged out
-                  const loginCheckResults =
-                    await chrome.scripting.executeScript({
-                      target: { tabId: tab.id },
-                      function: isUserLoggedOut,
-                    });
-
-                  if (loginCheckResults?.[0]?.result) {
-                    addOperationBreadcrumb(
-                      "User is logged out, attempting login"
-                    );
-                    const warningMessage =
-                      "Warning: You need to log in to Upwork to ensure all available jobs are being scraped. Click the notification to log in.";
-                    addToActivityLog(warningMessage);
-                    chrome.runtime.sendMessage({
-                      type: "loginWarning",
-                      message: warningMessage,
-                    });
-                    sendLoginNotification(warningMessage);
-                    await chrome.tabs.remove(tab.id);
-                    throw new Error(warningMessage);
-                  }
-
-                  // User is logged in, proceed with scraping jobs
-                  addOperationBreadcrumb("Starting job scraping");
-                  const results = await chrome.scripting.executeScript({
-                    target: { tabId: tab.id },
-                    function: scrapeJobs,
-                  });
-
-                  if (results?.[0]?.result) {
-                    const jobs = results[0].result;
-                    // Add source information to jobs
-                    for (const job of jobs) {
-                      job.source = {
-                        name: pair.name,
-                        searchUrl: pair.searchUrl,
-                      };
-                    }
-
-                    if (jobs.length > 0) {
-                      addOperationBreadcrumb("Jobs found", {
-                        count: jobs.length,
-                      });
-                      addToActivityLog(
-                        `Scraped ${jobs.length} jobs from ${pair.name}`
-                      );
-                      await processJobs(jobs);
-                    } else {
-                      addOperationBreadcrumb("No jobs found");
-                      addToActivityLog(`No jobs found for ${pair.name}`);
-                    }
-                  } else {
-                    addOperationBreadcrumb("No scraping results");
-                    addToActivityLog(
-                      `No jobs scraped or unexpected result for ${pair.name}`
-                    );
-                  }
-
-                  await chrome.tabs.remove(tab.id);
-                  addToActivityLog(`Job check completed for ${pair.name}`);
-                  addOperationBreadcrumb("Job check completed");
-                  resolve();
-                } catch (error) {
-                  addOperationBreadcrumb(
-                    "Error during job check",
-                    { error: error.message, pair: pair.name },
-                    "error"
-                  );
-                  if (tab?.id) {
-                    chrome.tabs.remove(tab.id).catch(console.error);
-                  }
-                  reject(error);
-                }
-              }
-            );
-          });
-        } catch (error) {
-          // Log error but continue with next pair
-          addOperationBreadcrumb(
-            "Error processing pair",
-            { error: error.message, pair: pair.name },
-            "error"
-          );
-          logAndReportError(
-            `Error checking jobs for pair ${pair.name}`,
-            error,
-            { pair }
-          );
-          addToActivityLog(
-            `Failed to check jobs for ${pair.name}: ${error.message}`
-          );
-        }
-      }
-    } catch (error) {
-      addOperationBreadcrumb(
-        "Fatal error in checkForNewJobs",
-        { error: error.message },
-        "error"
+    // Get enabled pairs
+    const enabledPairs = await getEnabledPairs();
+    if (enabledPairs.length === 0) {
+      addToActivityLog(
+        "No enabled search-webhook pairs found. Skipping job check."
       );
-      logAndReportError("Error in checkForNewJobs", error);
-      throw error; // Re-throw to be handled by the caller
-    } finally {
-      endOperation();
+      return;
     }
-  } finally {
-    // Release the lock in finally block to ensure it's always released
-    if (lockAcquired) {
-      await releaseLock();
+
+    addToActivityLog("Starting job check...");
+
+    // Process each enabled pair
+    for (const pair of enabledPairs) {
+      try {
+        addToActivityLog(`Checking jobs for pair: ${pair.name}`);
+
+        // Create a new tab with the search URL
+        const tab = await chrome.tabs.create({
+          url: pair.searchUrl,
+          active: false,
+        });
+
+        try {
+          // Wait for the page to load
+          await new Promise((resolve, reject) => {
+            const timeout = setTimeout(() => {
+              reject(new Error("Page load timeout after 30 seconds"));
+            }, 30000);
+
+            chrome.tabs.onUpdated.addListener(function listener(tabId, info) {
+              if (tabId === tab.id && info.status === "complete") {
+                chrome.tabs.onUpdated.removeListener(listener);
+                clearTimeout(timeout);
+                resolve();
+              }
+            });
+          });
+
+          // Check if the user is logged out
+          const loginCheckResults = await chrome.scripting.executeScript({
+            target: { tabId: tab.id },
+            function: isUserLoggedOut,
+          });
+
+          if (loginCheckResults?.[0]?.result) {
+            const warningMessage =
+              "Warning: You need to log in to Upwork to ensure all available jobs are being scraped. Click the notification to log in.";
+            addToActivityLog(warningMessage);
+            chrome.runtime.sendMessage({
+              type: "loginWarning",
+              message: warningMessage,
+            });
+            sendLoginNotification(warningMessage);
+            throw new Error(warningMessage);
+          }
+
+          // Execute the scraping script
+          const results = await chrome.scripting.executeScript({
+            target: { tabId: tab.id },
+            function: scrapeJobsFromPage,
+          });
+
+          if (results?.[0]?.result) {
+            const jobs = results[0].result;
+            // Add source information to jobs
+            for (const job of jobs) {
+              job.source = {
+                name: pair.name,
+                searchUrl: pair.searchUrl,
+              };
+            }
+
+            if (jobs.length > 0) {
+              addToActivityLog(`Scraped ${jobs.length} jobs from ${pair.name}`);
+              await processJobs(jobs);
+            } else {
+              addToActivityLog(`No jobs found for ${pair.name}`);
+            }
+          } else {
+            addToActivityLog(
+              `No jobs scraped or unexpected result for ${pair.name}`
+            );
+          }
+        } finally {
+          // Always close the tab
+          await chrome.tabs.remove(tab.id);
+        }
+
+        addToActivityLog(`Job check completed for ${pair.name}`);
+      } catch (error) {
+        console.error(`Error checking jobs for pair ${pair.name}:`, error);
+        addToActivityLog(
+          `Failed to check jobs for ${pair.name}: ${error.message}`
+        );
+      }
     }
+  } catch (error) {
+    console.error("Error in checkForNewJobs:", error);
+    addToActivityLog(`Error in job check: ${error.message}`);
   }
 }
 
@@ -671,6 +604,7 @@ function scrapeJobsFromPage() {
             scrapedAtHuman: humanReadableTime,
             jobPostingTime: jobPostingTime,
             clientLocation: clientLocation,
+            sourceUrl: window.location.href,
           };
         });
 
@@ -695,4 +629,7 @@ function scrapeJobsFromPage() {
 // Export functions using globalThis
 globalThis.scrapeJobs = scrapeJobs;
 globalThis.scrapeJobsFromUrl = scrapeJobsFromUrl;
+globalThis.scrapeJobsFromPage = scrapeJobsFromPage;
 globalThis.checkForNewJobs = checkForNewJobs;
+globalThis.isUserLoggedOut = isUserLoggedOut;
+globalThis.clickLoginLink = clickLoginLink;
