@@ -701,12 +701,13 @@ option {
 
 /* Search-Webhook Pairs */
 .pair-item {
-  background: #181818;
-  border: 1px solid #333;
-  border-radius: 8px;
-  margin-bottom: 1em;
-  padding: 1em;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  font-size: 1em;
+  margin-top: 1.25em;
+  border: 0.0625em solid #313131;
+  padding: 0.9375em;
+  background-color: #181818;
+  border-radius: 0.25em;
+  margin-bottom: 1.25em;
 }
 
 .pair-header {
@@ -724,17 +725,22 @@ option {
 }
 
 .pair-name {
-  font-size: 1.1em;
-  font-weight: 500;
-  padding: 0.5em;
-  border: 1px solid var(--border-color);
-  border-radius: 4px;
+  font-size: 1em;
+  font-family: "DM Sans", sans-serif;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.625em;
+  margin: 0;
+  background-color: #181818;
+  border: 0.0625em solid #333;
+  color: #e0e0e0;
+  border-radius: 0.25em;
   flex: 1;
 }
 
 .pair-actions {
   display: flex;
-  gap: 0.5em;
+  gap: 0.625em;
 }
 
 .pair-content {
@@ -751,52 +757,42 @@ option {
 .webhook-url-container {
   display: flex;
   align-items: center;
-  gap: 0.5em;
+  gap: 0.625em;
+}
+
+.search-url-container label,
+.webhook-url-container label {
+  min-width: 8em;
+  color: #e0e0e0;
 }
 
 .search-url-container input,
 .webhook-url-container input {
   flex: 1;
-  padding: 0.5em;
-  border: 1px solid var(--border-color);
-  border-radius: 4px;
+  font-size: 1em;
+  font-family: "DM Sans", sans-serif;
+  padding: 0.625em;
+  background-color: #181818;
+  border: 0.0625em solid #333;
+  color: #e0e0e0;
+  border-radius: 0.25em;
 }
 
 .button-danger {
-  background-color: var(--error-color);
-  color: white;
+  background-color: #dc3545;
+  color: #fff;
   border: none;
-  padding: 0.5em 1em;
-  border-radius: 4px;
+  padding: 0.625em 1.25em;
   cursor: pointer;
+  border-radius: 0.25em;
+  font-weight: bold;
+  font-family: "DM Serif Display", serif;
+  font-size: 1em;
 }
 
 .button-danger:hover {
-  background-color: var(--error-color-hover);
-}
-
-.button-primary {
-  background-color: var(--primary-color);
-  color: white;
-  border: none;
-  padding: 0.5em 1em;
-  border-radius: 4px;
-  cursor: pointer;
-  font-weight: 500;
-}
-
-.button-primary:hover {
-  background-color: var(--primary-color-hover);
-}
-
-/* Add these CSS variables at the top of your file */
-:root {
-  --primary-color: #4688f1;
-  --primary-color-hover: #3b77d9;
-  --error-color: #dc3545;
-  --error-color-hover: #c82333;
-  --surface-color: #ffffff;
-  --border-color: #e1e4e8;
+  background-color: #c82333;
+  box-shadow: 0 0 30px rgba(220, 53, 69, 0.5);
 }
 
 /* Responsive adjustments */
@@ -808,16 +804,30 @@ option {
 
   .pair-actions {
     width: 100%;
-    justify-content: space-between;
+    justify-content: flex-end;
   }
 
   .search-url-container,
   .webhook-url-container {
     flex-direction: column;
-    align-items: stretch;
+    align-items: flex-start;
   }
 
-  .search-url-container button {
-    align-self: flex-start;
+  .search-url-container label,
+  .webhook-url-container label {
+    margin-bottom: 0.5em;
   }
+
+  .search-url-container input,
+  .webhook-url-container input {
+    width: 100%;
+  }
+}
+
+/* Remove unused CSS variables */
+:root {
+  --primary-color: #108a00;
+  --primary-color-hover: #4ebc2d;
+  --error-color: #dc3545;
+  --error-color-hover: #c82333;
 }

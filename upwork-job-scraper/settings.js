@@ -513,7 +513,7 @@ async function loadPairs() {
     }
   } catch (error) {
     console.error("Error loading pairs:", error);
-    showAlert(
+          showAlert(
       `Error loading pairs: ${error.message}`,
       "pairs-alert-container",
       "error"

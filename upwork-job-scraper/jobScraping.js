@@ -47,10 +47,10 @@ async function checkForNewJobs(jobScrapingEnabled) {
       addToActivityLog(
         "No enabled search-webhook pairs found. Skipping job check."
       );
-      return;
-    }
+        return;
+      }
 
-    addToActivityLog("Starting job check...");
+      addToActivityLog("Starting job check...");
 
     // Process each enabled pair
     for (const pair of enabledPairs) {
@@ -63,47 +63,47 @@ async function checkForNewJobs(jobScrapingEnabled) {
           active: false,
         });
 
-        try {
-          // Wait for the page to load
-          await new Promise((resolve, reject) => {
-            const timeout = setTimeout(() => {
-              reject(new Error("Page load timeout after 30 seconds"));
-            }, 30000);
+          try {
+            // Wait for the page to load
+            await new Promise((resolve, reject) => {
+              const timeout = setTimeout(() => {
+                reject(new Error("Page load timeout after 30 seconds"));
+              }, 30000);
 
-            chrome.tabs.onUpdated.addListener(function listener(tabId, info) {
-              if (tabId === tab.id && info.status === "complete") {
-                chrome.tabs.onUpdated.removeListener(listener);
-                clearTimeout(timeout);
-                resolve();
-              }
+              chrome.tabs.onUpdated.addListener(function listener(tabId, info) {
+                if (tabId === tab.id && info.status === "complete") {
+                  chrome.tabs.onUpdated.removeListener(listener);
+                  clearTimeout(timeout);
+                  resolve();
+                }
+              });
             });
-          });
 
           // Check if the user is logged out
-          const loginCheckResults = await chrome.scripting.executeScript({
-            target: { tabId: tab.id },
-            function: isUserLoggedOut,
-          });
-
-          if (loginCheckResults?.[0]?.result) {
-            const warningMessage =
-              "Warning: You need to log in to Upwork to ensure all available jobs are being scraped. Click the notification to log in.";
-            addToActivityLog(warningMessage);
-            chrome.runtime.sendMessage({
-              type: "loginWarning",
-              message: warningMessage,
+            const loginCheckResults = await chrome.scripting.executeScript({
+              target: { tabId: tab.id },
+              function: isUserLoggedOut,
             });
-            sendLoginNotification(warningMessage);
-            throw new Error(warningMessage);
-          }
+
+            if (loginCheckResults?.[0]?.result) {
+                const warningMessage =
+                  "Warning: You need to log in to Upwork to ensure all available jobs are being scraped. Click the notification to log in.";
+                addToActivityLog(warningMessage);
+                chrome.runtime.sendMessage({
+                  type: "loginWarning",
+                  message: warningMessage,
+                });
+                sendLoginNotification(warningMessage);
+                throw new Error(warningMessage);
+            }
 
           // Execute the scraping script
-          const results = await chrome.scripting.executeScript({
-            target: { tabId: tab.id },
+            const results = await chrome.scripting.executeScript({
+              target: { tabId: tab.id },
             function: scrapeJobsFromPage,
-          });
+            });
 
-          if (results?.[0]?.result) {
+            if (results?.[0]?.result) {
             const jobs = results[0].result;
             // Add source information to jobs, including webhookUrl
             for (const job of jobs) {
@@ -114,9 +114,9 @@ async function checkForNewJobs(jobScrapingEnabled) {
               };
             }
 
-            if (jobs.length > 0) {
+              if (jobs.length > 0) {
               addToActivityLog(`Scraped ${jobs.length} jobs from ${pair.name}`);
-              await processJobs(jobs);
+                await processJobs(jobs);
             } else {
               addToActivityLog(`No jobs found for ${pair.name}`);
             }
@@ -174,7 +174,7 @@ async function scrapeJobs() {
         }
 
         allNewJobs = allNewJobs.concat(jobs);
-      } catch (error) {
+    } catch (error) {
         console.error(`Error scraping jobs for pair ${pair.name}:`, error);
         logAndReportError(`Error scraping jobs for pair ${pair.name}`, error);
         addToActivityLog(
@@ -190,7 +190,7 @@ async function scrapeJobs() {
     console.error("Error in scrapeJobs:", error);
     logAndReportError("Error in scrapeJobs", error);
   } finally {
-    await releaseLock();
+      await releaseLock();
   }
 }
 
