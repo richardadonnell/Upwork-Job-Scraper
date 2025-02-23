@@ -174,8 +174,16 @@ button:hover {
 .job-header {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
   flex-wrap: nowrap;
+  gap: 1em;
+}
+
+.job-header-right {
+  display: flex;
+  align-items: center;
+  gap: 1em;
+  flex-shrink: 0;
 }
 
 .job-title {
@@ -194,6 +202,12 @@ button:hover {
   font-weight: normal;
 }
 
+.job-time {
+  color: #8d8c8c;
+  font-size: 0.9em;
+  white-space: nowrap;
+}
+
 .open-job-button {
   flex-shrink: 0;
   align-self: flex-start;
@@ -205,12 +219,19 @@ button:hover {
 @media (max-width: 480px) {
   .job-header {
     flex-direction: column;
+    gap: 0.625em;
+  }
+
+  .job-header-right {
+    width: 100%;
+    justify-content: space-between;
   }
 
   .job-title {
     width: 100%;
     margin-right: 0;
-    margin-bottom: 0.5em;
+    margin-bottom: 0;
+    padding-right: 0;
   }
 
   .open-job-button {
