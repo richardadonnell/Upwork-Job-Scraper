@@ -662,3 +662,79 @@ function saveSchedule() {
     startCountdown(); // Restart countdown with new schedule
   });
 }
+
+// Add these before initializeSettings
+function clearAllJobs() {
+  if (!confirm("Are you sure you want to clear all scraped jobs?")) {
+    return;
+  }
+
+  chrome.storage.local.remove(["scrapedJobs"], () => {
+    document.getElementById("jobs-container").innerHTML = "";
+    addToActivityLog("All scraped jobs cleared");
+    trackEvent("jobs_cleared", {});
+    showAlert("All jobs cleared successfully", "alert-container", "success");
+  });
+}
+
+function addJobEntries(jobs) {
+  const container = document.getElementById("jobs-container");
+  container.innerHTML = ""; // Clear existing jobs
+
+  // Sort jobs by scraped time, newest first
+  jobs.sort((a, b) => b.scrapedAt - a.scrapedAt);
+
+  for (const job of jobs) {
+    const jobElement = document.createElement("div");
+    jobElement.className = "job-item";
+
+    const header = document.createElement("div");
+    header.className = "job-header";
+
+    const title = document.createElement("div");
+    title.className = "job-title";
+    title.textContent = job.title;
+    if (job.source?.name) {
+      const sourceSpan = document.createElement("span");
+      sourceSpan.textContent = ` (${job.source.name})`;
+      title.appendChild(sourceSpan);
+    }
+    title.addEventListener("click", () => toggleJobDetails(jobElement));
+
+    const openButton = document.createElement("button");
+    openButton.className = "open-job-button button-secondary";
+    openButton.textContent = "Open Job";
+    openButton.addEventListener("click", () => {
+      chrome.tabs.create({ url: job.url });
+    });
+
+    header.appendChild(title);
+    header.appendChild(openButton);
+    jobElement.appendChild(header);
+
+    // Create details section (hidden by default)
+    const details = document.createElement("div");
+    details.className = "job-details";
+    details.innerHTML = `
+      <p><strong>Type:</strong> ${job.jobType} ${
+      job.hourlyRange || job.budget || ""
+    }</p>
+      <p><strong>Skills:</strong> ${job.skills.join(", ")}</p>
+      <p><strong>Posted:</strong> ${job.jobPostingTime}</p>
+      <p><strong>Client:</strong> ${job.clientCountry} (Rating: ${
+      job.clientRating
+    })</p>
+      <p><strong>Description:</strong> ${job.description}</p>
+    `;
+    jobElement.appendChild(details);
+
+    container.appendChild(jobElement);
+  }
+}
+
+function toggleJobDetails(jobElement) {
+  const details = jobElement.querySelector(".job-details");
+  if (details) {
+    details.style.display = details.style.display === "none" ? "block" : "none";
+  }
+}
