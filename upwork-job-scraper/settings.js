@@ -541,12 +541,39 @@ async function testPairWebhook(pairId) {
     if (!pair) throw new Error("Pair not found");
 
     const testPayload = {
-      title: "Test Job",
-      url: "https://www.upwork.com/jobs/test",
-      description: "This is a test job posting.",
+      title: "Example Job Title",
+      url: "https://www.upwork.com/jobs/example",
+      jobType: "Hourly",
+      skillLevel: "Expert",
+      budget: "N/A",
+      hourlyRange: "$30-50",
+      estimatedTime: "Less than 30 hrs/week",
+      description:
+        "This is an example job description that demonstrates all available fields.",
+      skills: ["JavaScript", "React", "Node.js", "API Development"],
+      paymentVerified: true,
+      clientRating: "4.95",
+      clientSpent: "$10K+ spent",
+      clientCountry: "United States",
+      attachments: [
+        {
+          name: "Project Brief.pdf",
+          url: "https://www.upwork.com/jobs/example/attachment1",
+        },
+      ],
+      questions: [
+        "What similar projects have you worked on?",
+        "What is your experience with React?",
+      ],
+      scrapedAt: Date.now(),
+      scrapedAtHuman: new Date().toLocaleString(),
+      jobPostingTime: "4 minutes ago",
+      clientLocation: "San Francisco, CA",
+      sourceUrl: "https://www.upwork.com/nx/search/jobs/?sort=recency",
       source: {
         name: pair.name,
         searchUrl: pair.searchUrl,
+        webhookUrl: pair.webhookUrl,
       },
     };
 
