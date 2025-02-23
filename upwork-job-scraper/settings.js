@@ -710,40 +710,18 @@ function saveSchedule() {
   });
 }
 
-// Add these before initializeSettings
-function clearAllJobs() {
-  if (!confirm("Are you sure you want to clear all scraped jobs?")) {
-    return;
-  }
+// Store intervals for cleanup
+let timeUpdateIntervals = [];
 
-  chrome.storage.local.remove(["scrapedJobs"], () => {
-    document.getElementById("jobs-container").innerHTML = "";
-    addToActivityLog("All scraped jobs cleared");
-    trackEvent("jobs_cleared", {});
-    showAlert("All jobs cleared successfully", "alert-container", "success");
-  });
-}
-
-function getRelativeTime(timestamp) {
-  const now = Date.now();
-  const diff = now - timestamp;
-  const seconds = Math.floor(diff / 1000);
-  const minutes = Math.floor(seconds / 60);
-  const hours = Math.floor(minutes / 60);
-  const days = Math.floor(hours / 24);
-
-  if (days > 0) {
-    return `${days} day${days > 1 ? "s" : ""} ago`;
-  } else if (hours > 0) {
-    return `${hours} hour${hours > 1 ? "s" : ""} ago`;
-  } else if (minutes > 0) {
-    return `${minutes} minute${minutes > 1 ? "s" : ""} ago`;
-  } else {
-    return `${seconds} second${seconds !== 1 ? "s" : ""} ago`;
-  }
+function clearTimeUpdateIntervals() {
+  timeUpdateIntervals.forEach((interval) => clearInterval(interval));
+  timeUpdateIntervals = [];
 }
 
 function addJobEntries(jobs) {
+  // Clear existing intervals before updating the job list
+  clearTimeUpdateIntervals();
+
   const container = document.getElementById("jobs-container");
   container.innerHTML = ""; // Clear existing jobs
 
@@ -780,11 +758,11 @@ function addJobEntries(jobs) {
     timeSpan.style.whiteSpace = "nowrap";
     timeSpan.textContent = getRelativeTime(job.scrapedAt);
 
-    // Update the time every minute
-    const updateTime = () => {
+    // Update the time every second
+    const interval = setInterval(() => {
       timeSpan.textContent = getRelativeTime(job.scrapedAt);
-    };
-    setInterval(updateTime, 60000);
+    }, 1000);
+    timeUpdateIntervals.push(interval);
 
     const openButton = document.createElement("button");
     openButton.className = "open-job-button button-secondary";
@@ -854,5 +832,42 @@ async function manualScrape() {
       "error"
     );
     addToActivityLog(`Manual scrape failed: ${error.message}`);
+  }
+}
+
+// Add cleanup on page unload
+window.addEventListener("beforeunload", clearTimeUpdateIntervals);
+
+// Add cleanup when the jobs container is cleared
+function clearAllJobs() {
+  if (!confirm("Are you sure you want to clear all scraped jobs?")) {
+    return;
+  }
+
+  clearTimeUpdateIntervals();
+  chrome.storage.local.remove(["scrapedJobs"], () => {
+    document.getElementById("jobs-container").innerHTML = "";
+    addToActivityLog("All scraped jobs cleared");
+    trackEvent("jobs_cleared", {});
+    showAlert("All jobs cleared successfully", "alert-container", "success");
+  });
+}
+
+function getRelativeTime(timestamp) {
+  const now = Date.now();
+  const diff = now - timestamp;
+  const seconds = Math.floor(diff / 1000);
+  const minutes = Math.floor(seconds / 60);
+  const hours = Math.floor(minutes / 60);
+  const days = Math.floor(hours / 24);
+
+  if (days > 0) {
+    return `${days} day${days > 1 ? "s" : ""} ago`;
+  } else if (hours > 0) {
+    return `${hours} hour${hours > 1 ? "s" : ""} ago`;
+  } else if (minutes > 0) {
+    return `${minutes} minute${minutes > 1 ? "s" : ""} ago`;
+  } else {
+    return `${seconds} second${seconds !== 1 ? "s" : ""} ago`;
   }
 }
