@@ -642,3 +642,23 @@ function saveFrequency() {
     trackEvent("frequency_updated", { frequency });
   });
 }
+
+// Add this before initializeSettings
+function saveSchedule() {
+  const days = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
+  const schedule = {
+    days: days.reduce((acc, day) => {
+      acc[day] = document.getElementById(`day-${day}`).checked;
+      return acc;
+    }, {}),
+    startTime: document.getElementById("start-time").value,
+    endTime: document.getElementById("end-time").value,
+  };
+
+  chrome.storage.sync.set({ schedule }, () => {
+    chrome.runtime.sendMessage({ type: "updateSchedule", schedule });
+    addToActivityLog("Schedule updated");
+    trackEvent("schedule_updated", schedule);
+    startCountdown(); // Restart countdown with new schedule
+  });
+}
