@@ -47,10 +47,10 @@ async function checkForNewJobs(jobScrapingEnabled) {
       addToActivityLog(
         "No enabled search-webhook pairs found. Skipping job check."
       );
-        return;
-      }
+      return;
+    }
 
-      addToActivityLog("Starting job check...");
+    addToActivityLog("Starting job check...");
 
     // Process each enabled pair
     for (const pair of enabledPairs) {
@@ -63,47 +63,47 @@ async function checkForNewJobs(jobScrapingEnabled) {
           active: false,
         });
 
-          try {
-            // Wait for the page to load
-            await new Promise((resolve, reject) => {
-              const timeout = setTimeout(() => {
-                reject(new Error("Page load timeout after 30 seconds"));
-              }, 30000);
+        try {
+          // Wait for the page to load
+          await new Promise((resolve, reject) => {
+            const timeout = setTimeout(() => {
+              reject(new Error("Page load timeout after 30 seconds"));
+            }, 30000);
 
-              chrome.tabs.onUpdated.addListener(function listener(tabId, info) {
-                if (tabId === tab.id && info.status === "complete") {
-                  chrome.tabs.onUpdated.removeListener(listener);
-                  clearTimeout(timeout);
-                  resolve();
-                }
-              });
+            chrome.tabs.onUpdated.addListener(function listener(tabId, info) {
+              if (tabId === tab.id && info.status === "complete") {
+                chrome.tabs.onUpdated.removeListener(listener);
+                clearTimeout(timeout);
+                resolve();
+              }
             });
+          });
 
           // Check if the user is logged out
-            const loginCheckResults = await chrome.scripting.executeScript({
-              target: { tabId: tab.id },
-              function: isUserLoggedOut,
-            });
+          const loginCheckResults = await chrome.scripting.executeScript({
+            target: { tabId: tab.id },
+            function: isUserLoggedOut,
+          });
 
-            if (loginCheckResults?.[0]?.result) {
-                const warningMessage =
-                  "Warning: You need to log in to Upwork to ensure all available jobs are being scraped. Click the notification to log in.";
-                addToActivityLog(warningMessage);
-                chrome.runtime.sendMessage({
-                  type: "loginWarning",
-                  message: warningMessage,
-                });
-                sendLoginNotification(warningMessage);
-                throw new Error(warningMessage);
-            }
+          if (loginCheckResults?.[0]?.result) {
+            const warningMessage =
+              "Warning: You need to log in to Upwork to ensure all available jobs are being scraped. Click the notification to log in.";
+            addToActivityLog(warningMessage);
+            chrome.runtime.sendMessage({
+              type: "loginWarning",
+              message: warningMessage,
+            });
+            sendLoginNotification(warningMessage);
+            throw new Error(warningMessage);
+          }
 
           // Execute the scraping script
-            const results = await chrome.scripting.executeScript({
-              target: { tabId: tab.id },
+          const results = await chrome.scripting.executeScript({
+            target: { tabId: tab.id },
             function: scrapeJobsFromPage,
-            });
+          });
 
-            if (results?.[0]?.result) {
+          if (results?.[0]?.result) {
             const jobs = results[0].result;
             // Add source information to jobs, including webhookUrl
             for (const job of jobs) {
@@ -114,9 +114,9 @@ async function checkForNewJobs(jobScrapingEnabled) {
               };
             }
 
-              if (jobs.length > 0) {
+            if (jobs.length > 0) {
               addToActivityLog(`Scraped ${jobs.length} jobs from ${pair.name}`);
-                await processJobs(jobs);
+              await processJobs(jobs);
             } else {
               addToActivityLog(`No jobs found for ${pair.name}`);
             }
@@ -165,16 +165,29 @@ async function scrapeJobs() {
     // Process each enabled pair
     for (const pair of enabledPairs) {
       try {
+        // Skip pairs without both URLs configured
+        if (!pair.searchUrl || !pair.webhookUrl) {
+          console.log(`Skipping pair ${pair.name} - URLs not fully configured`);
+          addToActivityLog(
+            `Skipping pair ${pair.name} - URLs not fully configured`
+          );
+          continue;
+        }
+
         console.log(`Scraping jobs for pair: ${pair.name}`);
         const jobs = await scrapeJobsFromUrl(pair.searchUrl);
 
-        // Add source URL to each job
+        // Add complete source information to each job
         for (const job of jobs) {
-          job.sourceUrl = pair.searchUrl;
+          job.source = {
+            name: pair.name,
+            searchUrl: pair.searchUrl,
+            webhookUrl: pair.webhookUrl,
+          };
         }
 
         allNewJobs = allNewJobs.concat(jobs);
-    } catch (error) {
+      } catch (error) {
         console.error(`Error scraping jobs for pair ${pair.name}:`, error);
         logAndReportError(`Error scraping jobs for pair ${pair.name}`, error);
         addToActivityLog(
@@ -190,7 +203,7 @@ async function scrapeJobs() {
     console.error("Error in scrapeJobs:", error);
     logAndReportError("Error in scrapeJobs", error);
   } finally {
-      await releaseLock();
+    await releaseLock();
   }
 }
 
@@ -218,8 +231,8 @@ async function processJobs(newJobs) {
       updatedJobs.push(newJob);
       addedJobsCount++;
 
-      // Only send to webhook if this job's source pair has a webhook URL
-      if (newJob.source?.webhookUrl) {
+      // Strict webhook pairing check
+      if (newJob.source?.searchUrl && newJob.source?.webhookUrl) {
         try {
           await sendToWebhook(newJob.source.webhookUrl, [newJob]);
           addToActivityLog(
@@ -233,9 +246,9 @@ async function processJobs(newJobs) {
         }
       } else {
         console.log(
-          `No webhook URL configured for job from ${
+          `Skipping webhook for job from ${
             newJob.source?.name || "unknown source"
-          }`
+          } - No webhook URL configured`
         );
         addToActivityLog(
           `Skipped webhook for job from ${

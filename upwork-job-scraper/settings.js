@@ -400,21 +400,23 @@ function createPairElement(pair) {
   enabledToggle.addEventListener("change", () => togglePairEnabled(pair.id));
 
   const searchUrlInput = pairElement.querySelector(".search-url");
-  searchUrlInput.value = pair.searchUrl;
-  searchUrlInput.addEventListener("change", (e) =>
-    updatePairField(pair.id, "searchUrl", e.target.value)
-  );
+  searchUrlInput.value = pair.searchUrl || "";
+  searchUrlInput.addEventListener("input", (e) => {
+    // Immediate update on any change
+    updatePairField(pair.id, "searchUrl", e.target.value.trim());
+  });
 
   const webhookUrlInput = pairElement.querySelector(".webhook-url");
-  webhookUrlInput.value = pair.webhookUrl;
-  webhookUrlInput.addEventListener("change", (e) =>
-    updatePairField(pair.id, "webhookUrl", e.target.value)
-  );
+  webhookUrlInput.value = pair.webhookUrl || "";
+  webhookUrlInput.addEventListener("input", (e) => {
+    // Immediate update on any change
+    updatePairField(pair.id, "webhookUrl", e.target.value.trim());
+  });
 
   const openUrlButton = pairElement.querySelector(".open-search-url");
   openUrlButton.addEventListener("click", () => {
-    if (pair.searchUrl) {
-      chrome.tabs.create({ url: pair.searchUrl });
+    if (searchUrlInput.value.trim()) {
+      chrome.tabs.create({ url: searchUrlInput.value.trim() });
     } else {
       alert("Please enter a valid search URL first.");
     }
@@ -432,10 +434,41 @@ function createPairElement(pair) {
 // Function to update a pair field
 async function updatePairField(pairId, field, value) {
   try {
-    await updatePair(pairId, { [field]: value });
-    showAlert("Pair updated successfully", "pairs-alert-container", "success");
+    console.log(`Updating ${field} for pair ${pairId} to:`, value);
+    const pairs = await getAllPairs();
+    const pair = pairs.find((p) => p.id === pairId);
+    if (!pair) {
+      throw new Error("Pair not found");
+    }
+
+    // Create update object with the new value
+    const updates = { [field]: value };
+
+    // If webhook URL is cleared, disable the pair
+    if (field === "webhookUrl" && !value.trim()) {
+      updates.enabled = false;
+      const pairElement = document.querySelector(`[data-pair-id="${pairId}"]`);
+      if (pairElement) {
+        const enabledToggle = pairElement.querySelector(".pair-enabled");
+        if (enabledToggle) {
+          enabledToggle.checked = false;
+        }
+      }
+    }
+
+    await updatePair(pairId, updates);
+    console.log(`Successfully updated ${field} for pair ${pairId}`);
+
+    // Only show success alert for major changes
+    if (field === "name" || field === "enabled") {
+      showAlert(
+        "Pair updated successfully",
+        "pairs-alert-container",
+        "success"
+      );
+    }
   } catch (error) {
-    console.error("Error updating pair:", error);
+    console.error(`Error updating ${field} for pair ${pairId}:`, error);
     showAlert(error.message, "pairs-alert-container", "error");
   }
 }

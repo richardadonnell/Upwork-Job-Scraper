@@ -495,13 +495,15 @@ try {
 
         // Add source information to the job if not already present
         if (!newJob.source) {
+          // Find the exact matching pair by search URL
           const sourcePair = enabledPairs.find(
-            (pair) => pair.searchUrl === newJob.sourceUrl
+            (pair) => pair.searchUrl === newJob.sourceUrl && pair.webhookUrl
           );
           if (sourcePair) {
             newJob.source = {
               name: sourcePair.name,
               searchUrl: sourcePair.searchUrl,
+              webhookUrl: sourcePair.webhookUrl,
             };
           }
         }
@@ -509,34 +511,31 @@ try {
         updatedJobs.push(newJob);
         addedJobsCount++;
 
-        // Send to corresponding webhook
-        const sourcePair = enabledPairs.find(
-          (pair) =>
-            pair.searchUrl === newJob.source?.searchUrl || newJob.sourceUrl
-        );
-
-        if (sourcePair?.webhookUrl) {
+        // Strict webhook pairing check
+        if (newJob.source?.searchUrl && newJob.source?.webhookUrl) {
           try {
-            await sendToWebhook(sourcePair.webhookUrl, [newJob]);
+            await sendToWebhook(newJob.source.webhookUrl, [newJob]);
             addToActivityLog(
-              `Successfully sent job to webhook: ${newJob.title} (${sourcePair.name})`
+              `Successfully sent job to webhook: ${newJob.title} (${newJob.source.name})`
             );
           } catch (error) {
             console.error("Failed to send job to webhook:", error);
             addToActivityLog(
-              `Failed to send job to webhook for ${sourcePair.name}: ${error.message}`
+              `Failed to send job to webhook for ${newJob.source.name}: ${error.message}`
             );
             logAndReportError("Webhook send error", error, {
-              pairName: sourcePair.name,
+              pairName: newJob.source.name,
               jobTitle: newJob.title,
             });
           }
         } else {
-          console.log("No matching webhook found for job:", newJob.title);
+          console.log(
+            `Skipping webhook for job: ${newJob.title} - No webhook URL configured`
+          );
           addToActivityLog(
-            `No matching webhook found for job from ${
+            `Skipped webhook for job from ${
               newJob.source?.name || "unknown source"
-            }`
+            } (no webhook URL configured)`
           );
         }
       }
