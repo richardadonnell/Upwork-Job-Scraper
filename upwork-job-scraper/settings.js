@@ -376,11 +376,7 @@ async function initializeSettings() {
       .addEventListener("click", manualScrape);
   } catch (error) {
     console.error("Error initializing settings:", error);
-    showAlert(
-      `Error initializing settings: ${error.message}`,
-      "alert-container",
-      "error"
-    );
+    showAlert(`Error initializing settings: ${error.message}`, "error");
   }
 }
 
@@ -463,15 +459,11 @@ async function updatePairField(pairId, field, value) {
 
       // Only show success alert for major changes
       if (field === "name" || field === "enabled") {
-        showAlert(
-          "Pair updated successfully",
-          "pairs-alert-container",
-          "success"
-        );
+        showAlert("Pair updated successfully", "success");
       }
     } catch (validationError) {
       console.error(`Validation error for ${field}:`, validationError);
-      showAlert(validationError.message, "pairs-alert-container", "error");
+      showAlert(validationError.message, "error");
 
       // Revert the UI to the last valid state
       const pairElement = document.querySelector(`[data-pair-id="${pairId}"]`);
@@ -482,7 +474,7 @@ async function updatePairField(pairId, field, value) {
     }
   } catch (error) {
     console.error(`Error updating ${field} for pair ${pairId}:`, error);
-    showAlert(error.message, "pairs-alert-container", "error");
+    showAlert(error.message, "error");
   }
 }
 
@@ -490,10 +482,10 @@ async function updatePairField(pairId, field, value) {
 async function togglePairEnabled(pairId) {
   try {
     await togglePair(pairId);
-    showAlert("Pair status updated", "pairs-alert-container", "success");
+    showAlert("Pair status updated", "success");
   } catch (error) {
     console.error("Error toggling pair:", error);
-    showAlert(error.message, "pairs-alert-container", "error");
+    showAlert(error.message, "error");
   }
 }
 
@@ -520,14 +512,10 @@ async function testPairWebhook(pairId) {
       testPayload,
     });
 
-    showAlert("Webhook test successful!", "pairs-alert-container", "success");
+    showAlert("Webhook test successful!", "success");
   } catch (error) {
     console.error("Error testing webhook:", error);
-    showAlert(
-      `Webhook test failed: ${error.message}`,
-      "pairs-alert-container",
-      "error"
-    );
+    showAlert(`Webhook test failed: ${error.message}`, "error");
   }
 }
 
@@ -539,10 +527,10 @@ async function removePairElement(pairId) {
     await removePair(pairId);
     const element = document.querySelector(`[data-pair-id="${pairId}"]`);
     if (element) element.remove();
-    showAlert("Pair removed successfully", "pairs-alert-container", "success");
+    showAlert("Pair removed successfully", "success");
   } catch (error) {
     console.error("Error removing pair:", error);
-    showAlert(error.message, "pairs-alert-container", "error");
+    showAlert(error.message, "error");
   }
 }
 
@@ -559,11 +547,7 @@ async function loadPairs() {
     }
   } catch (error) {
     console.error("Error loading pairs:", error);
-    showAlert(
-      `Error loading pairs: ${error.message}`,
-      "pairs-alert-container",
-      "error"
-    );
+    showAlert(`Error loading pairs: ${error.message}`, "error");
   }
 }
 
@@ -579,10 +563,10 @@ async function addNewPair() {
     console.log("Created pair element");
     document.getElementById("pairs-container").appendChild(pairElement);
     console.log("Pair element added to DOM");
-    showAlert("success", "New pair added successfully!");
+    showAlert("New pair added successfully", "success");
   } catch (error) {
     console.error("Error adding new pair:", error);
-    showAlert("error", error.message);
+    showAlert(error.message, "error");
   }
 }
 
@@ -596,50 +580,64 @@ window.addEventListener("beforeunload", () => {
   }
 });
 
-function showAlert(message, timeout = "15000") {
+function showAlert(message, type = "success", timeout = 5000) {
   const alertContainer = document.getElementById("alert-container");
   const alertElement = document.createElement("div");
-  alertElement.classList.add("alert");
+  alertElement.classList.add("alert", type);
+
+  // Create message paragraph
   const alertMessage = document.createElement("p");
   alertMessage.textContent = message;
   alertElement.appendChild(alertMessage);
 
+  // Create close button
   const closeButton = document.createElement("button");
   closeButton.classList.add("close-btn");
-  closeButton.innerHTML = "&times;";
+  closeButton.innerHTML = "×";
   closeButton.addEventListener("click", () => {
     clearTimeout(alertTimeout);
-    alertElement.remove();
+    alertElement.style.opacity = "0";
+    setTimeout(() => alertElement.remove(), 300);
   });
   alertElement.appendChild(closeButton);
 
+  // Create countdown element
   const countdownElement = document.createElement("span");
   countdownElement.classList.add("countdown");
   alertElement.appendChild(countdownElement);
 
-  const parsedTimeout = Number.parseInt(timeout, 10);
-  let remainingTime = Number.isNaN(parsedTimeout) ? 15000 : parsedTimeout;
-
-  // Update the countdown immediately
-  const seconds = Math.ceil(remainingTime / 1000);
-  countdownElement.textContent = `Closing in ${seconds}s`;
-
-  const countdownInterval = setInterval(() => {
-    remainingTime -= 1000;
-    const seconds = Math.ceil(remainingTime / 1000);
-    countdownElement.textContent = `Closing in ${seconds}s`;
-
-    if (remainingTime <= 0) {
+  // Update countdown
+  const startTime = Date.now();
+  const updateCountdown = () => {
+    const remaining = Math.ceil((timeout - (Date.now() - startTime)) / 1000);
+    if (remaining <= 0) {
       clearInterval(countdownInterval);
-      alertElement.remove();
+      alertElement.style.opacity = "0";
+      setTimeout(() => alertElement.remove(), 300);
+    } else {
+      countdownElement.textContent = `${remaining}s`;
     }
-  }, 1000);
+  };
+  updateCountdown();
+  const countdownInterval = setInterval(updateCountdown, 1000);
 
+  // Add to container
   alertContainer.appendChild(alertElement);
 
+  // Set timeout for removal
   const alertTimeout = setTimeout(() => {
-    alertElement.remove();
-  }, remainingTime);
+    alertElement.style.opacity = "0";
+    setTimeout(() => alertElement.remove(), 300);
+  }, timeout);
+
+  // Limit the number of visible alerts
+  const maxAlerts = 3;
+  const alerts = alertContainer.getElementsByClassName("alert");
+  if (alerts.length > maxAlerts) {
+    for (let i = 0; i < alerts.length - maxAlerts; i++) {
+      alerts[i].remove();
+    }
+  }
 }
 
 // Add this near the top of settings.js, before it's used
@@ -816,27 +814,15 @@ async function manualScrape() {
   try {
     const response = await sendMessageToBackground({ type: "manualScrape" });
     if (response.success) {
-      showAlert(
-        "Manual scrape started successfully",
-        "alert-container",
-        "success"
-      );
+      showAlert("Manual scrape started successfully", "success");
       addToActivityLog("Manual scrape initiated");
     } else {
-      showAlert(
-        `Manual scrape failed: ${response.error}`,
-        "alert-container",
-        "error"
-      );
+      showAlert(`Manual scrape failed: ${response.error}`, "error");
       addToActivityLog(`Manual scrape failed: ${response.error}`);
     }
   } catch (error) {
     console.error("Error during manual scrape:", error);
-    showAlert(
-      `Manual scrape failed: ${error.message}`,
-      "alert-container",
-      "error"
-    );
+    showAlert(`Manual scrape failed: ${error.message}`, "error");
     addToActivityLog(`Manual scrape failed: ${error.message}`);
   }
 }
@@ -855,7 +841,7 @@ function clearAllJobs() {
     document.getElementById("jobs-container").innerHTML = "";
     addToActivityLog("All scraped jobs cleared");
     trackEvent("jobs_cleared", {});
-    showAlert("All jobs cleared successfully", "alert-container", "success");
+    showAlert("All jobs cleared successfully", "success");
   });
 }
 
