@@ -1,209 +1,226 @@
-// Lock management functions
+// Simple lock functions with improved error handling
 async function acquireLock() {
-  const LOCK_TIMEOUT = 5 * 60 * 1000; // 5 minutes timeout
-
-  // Check current lock state
-  const data = await chrome.storage.local.get(["scrapingLock"]);
-  const currentLock = data.scrapingLock;
-
-  if (currentLock) {
-    // Check if lock is stale
-    if (Date.now() - currentLock.timestamp > LOCK_TIMEOUT) {
-      console.log("Found stale lock, releasing it");
-      await releaseLock();
-    } else {
-      return false; // Lock is still valid
+  try {
+    const data = await chrome.storage.local.get(["scrapingLock"]);
+    if (data.scrapingLock) {
+      return false;
     }
+    await chrome.storage.local.set({ scrapingLock: true });
+    return true;
+  } catch (error) {
+    console.error("Error acquiring lock:", error);
+    addToActivityLog(`Failed to acquire job scraping lock: ${error.message}`);
+    return false;
   }
-
-  // Acquire lock
-  await chrome.storage.local.set({
-    scrapingLock: {
-      timestamp: Date.now(),
-      active: true,
-    },
-  });
-
-  return true;
 }
 
 async function releaseLock() {
-  await chrome.storage.local.remove("scrapingLock");
+  try {
+    await chrome.storage.local.remove(["scrapingLock"]);
+    return true;
+  } catch (error) {
+    console.error("Error releasing lock:", error);
+    addToActivityLog(`Failed to release job scraping lock: ${error.message}`);
+    return false;
+  }
 }
 
 // Wrap your main functions with try-catch blocks
 const jobScrapingEnabled = true; // or load the value from storage
 
 async function checkForNewJobs(jobScrapingEnabled) {
+  let activeTab = null;
+
   try {
     if (!jobScrapingEnabled) {
       addToActivityLog("Job scraping is disabled. Skipping job check.");
       return;
     }
 
-    // Get enabled pairs
-    const enabledPairs = await getEnabledPairs();
-    if (enabledPairs.length === 0) {
+    // Try to acquire lock
+    if (!(await acquireLock())) {
       addToActivityLog(
-        "No enabled search-webhook pairs found. Skipping job check."
+        "Another job scraping operation is in progress. Skipping."
       );
       return;
     }
 
-    addToActivityLog("Starting job check...");
+    try {
+      // Get enabled pairs
+      const enabledPairs = await getEnabledPairs();
+      if (enabledPairs.length === 0) {
+        addToActivityLog(
+          "No enabled search-webhook pairs found. Skipping job check."
+        );
+        return;
+      }
 
-    // Process each enabled pair
-    for (const pair of enabledPairs) {
-      try {
-        addToActivityLog(`Checking jobs for pair: ${pair.name}`);
+      addToActivityLog("Starting job check...");
 
-        // Create a new tab with the search URL
-        const tab = await chrome.tabs.create({
-          url: pair.searchUrl,
-          active: false,
-        });
-
+      // Process each enabled pair
+      for (const pair of enabledPairs) {
         try {
-          // Wait for the page to load
-          await new Promise((resolve, reject) => {
-            const timeout = setTimeout(() => {
-              reject(new Error("Page load timeout after 30 seconds"));
-            }, 30000);
-
-            chrome.tabs.onUpdated.addListener(function listener(tabId, info) {
-              if (tabId === tab.id && info.status === "complete") {
-                chrome.tabs.onUpdated.removeListener(listener);
-                clearTimeout(timeout);
-                resolve();
-              }
-            });
-          });
-
-          // Check if the user is logged out
-          const loginCheckResults = await chrome.scripting.executeScript({
-            target: { tabId: tab.id },
-            function: isUserLoggedOut,
-          });
-
-          if (loginCheckResults?.[0]?.result) {
-            const warningMessage =
-              "Warning: You need to log in to Upwork to ensure all available jobs are being scraped. Click the notification to log in.";
-            addToActivityLog(warningMessage);
-            chrome.runtime.sendMessage({
-              type: "loginWarning",
-              message: warningMessage,
-            });
-            sendLoginNotification(warningMessage);
-            throw new Error(warningMessage);
+          if (!pair.searchUrl) {
+            addToActivityLog(
+              `Skipping pair ${pair.name}: No search URL configured`
+            );
+            continue;
           }
 
-          // Execute the scraping script
-          const results = await chrome.scripting.executeScript({
-            target: { tabId: tab.id },
-            function: scrapeJobsFromPage,
-          });
+          addToActivityLog(`Checking jobs for pair: ${pair.name}`);
 
-          if (results?.[0]?.result) {
-            const jobs = results[0].result;
-            // Add source information to jobs, including webhookUrl
-            for (const job of jobs) {
-              job.source = {
-                name: pair.name,
-                searchUrl: pair.searchUrl,
-                webhookUrl: pair.webhookUrl, // Include webhookUrl in source info
-              };
-            }
-
-            if (jobs.length > 0) {
-              addToActivityLog(`Scraped ${jobs.length} jobs from ${pair.name}`);
-              await processJobs(jobs);
-            } else {
-              addToActivityLog(`No jobs found for ${pair.name}`);
-            }
-          } else {
-            addToActivityLog(
-              `No jobs scraped or unexpected result for ${pair.name}`
+          // Create a new tab with the search URL
+          try {
+            activeTab = await chrome.tabs.create({
+              url: pair.searchUrl,
+              active: false,
+            });
+          } catch (error) {
+            throw new Error(
+              `Failed to create tab for ${pair.name}: ${error.message}`
             );
           }
-        } finally {
-          // Always close the tab
-          await chrome.tabs.remove(tab.id);
-        }
 
-        addToActivityLog(`Job check completed for ${pair.name}`);
-      } catch (error) {
-        console.error(`Error checking jobs for pair ${pair.name}:`, error);
-        addToActivityLog(
-          `Failed to check jobs for ${pair.name}: ${error.message}`
-        );
+          try {
+            // Wait for the page to load
+            await new Promise((resolve, reject) => {
+              const timeout = setTimeout(() => {
+                reject(new Error("Page load timeout after 30 seconds"));
+              }, 30000);
+
+              chrome.tabs.onUpdated.addListener(function listener(tabId, info) {
+                if (tabId === activeTab.id && info.status === "complete") {
+                  chrome.tabs.onUpdated.removeListener(listener);
+                  clearTimeout(timeout);
+                  resolve();
+                }
+              });
+            });
+
+            // Check if the user is logged out
+            const loginCheckResults = await chrome.scripting
+              .executeScript({
+                target: { tabId: activeTab.id },
+                function: isUserLoggedOut,
+              })
+              .catch((error) => {
+                throw new Error(
+                  `Failed to check login status: ${error.message}`
+                );
+              });
+
+            if (loginCheckResults?.[0]?.result) {
+              const warningMessage =
+                "Warning: You need to log in to Upwork to ensure all available jobs are being scraped. Click the notification to log in.";
+              addToActivityLog(warningMessage);
+              chrome.runtime.sendMessage({
+                type: "loginWarning",
+                message: warningMessage,
+              });
+              sendLoginNotification(warningMessage);
+              throw new Error(warningMessage);
+            }
+
+            // Execute the scraping script
+            const results = await chrome.scripting
+              .executeScript({
+                target: { tabId: activeTab.id },
+                function: scrapeJobsFromPage,
+              })
+              .catch((error) => {
+                throw new Error(
+                  `Failed to execute scraping script: ${error.message}`
+                );
+              });
+
+            if (results?.[0]?.result) {
+              const jobs = results[0].result;
+              if (!Array.isArray(jobs)) {
+                throw new Error("Unexpected scraping result format");
+              }
+
+              // Add source information to jobs
+              for (const job of jobs) {
+                job.source = {
+                  name: pair.name,
+                  searchUrl: pair.searchUrl,
+                  webhookUrl: pair.webhookUrl,
+                };
+              }
+
+              if (jobs.length > 0) {
+                addToActivityLog(
+                  `Scraped ${jobs.length} jobs from ${pair.name}`
+                );
+                await processJobs(jobs).catch((error) => {
+                  throw new Error(`Failed to process jobs: ${error.message}`);
+                });
+              } else {
+                addToActivityLog(`No jobs found for ${pair.name}`);
+              }
+            } else {
+              addToActivityLog(
+                `No jobs scraped or unexpected result for ${pair.name}`
+              );
+            }
+          } finally {
+            // Always try to close the tab
+            if (activeTab) {
+              try {
+                await chrome.tabs.remove(activeTab.id);
+                activeTab = null;
+              } catch (error) {
+                console.error(`Failed to close tab for ${pair.name}:`, error);
+                addToActivityLog(
+                  `Warning: Failed to close tab for ${pair.name}`
+                );
+              }
+            }
+          }
+
+          addToActivityLog(`Job check completed for ${pair.name}`);
+        } catch (error) {
+          console.error(`Error checking jobs for pair ${pair.name}:`, error);
+          addToActivityLog(
+            `Failed to check jobs for ${pair.name}: ${error.message}`
+          );
+
+          // Ensure tab is closed even if there's an error
+          if (activeTab) {
+            try {
+              await chrome.tabs.remove(activeTab.id);
+              activeTab = null;
+            } catch (closeError) {
+              console.error(`Failed to close tab after error:`, closeError);
+            }
+          }
+        }
+      }
+    } finally {
+      // Always release the lock when we're done
+      const lockReleased = await releaseLock();
+      if (lockReleased) {
+        addToActivityLog("Job scraping lock released");
       }
     }
   } catch (error) {
     console.error("Error in checkForNewJobs:", error);
     addToActivityLog(`Error in job check: ${error.message}`);
-  }
-}
 
-// Update the scrapeJobs function to handle multiple search URLs
-async function scrapeJobs() {
-  try {
-    // Check if we can acquire the lock
-    if (!(await acquireLock())) {
-      console.log("Another scraping operation is in progress");
-      return;
+    // Make sure we release the lock even in case of errors
+    const lockReleased = await releaseLock();
+    if (lockReleased) {
+      addToActivityLog("Job scraping lock released after error");
     }
 
-    // Get enabled search-webhook pairs
-    const enabledPairs = await getEnabledPairs();
-    if (enabledPairs.length === 0) {
-      console.log("No enabled search-webhook pairs found");
-      return;
-    }
-
-    let allNewJobs = [];
-
-    // Process each enabled pair
-    for (const pair of enabledPairs) {
+    // Final attempt to clean up any leftover tab
+    if (activeTab) {
       try {
-        // Skip pairs without a search URL
-        if (!pair.searchUrl) {
-          console.log(`Skipping pair ${pair.name} - No search URL configured`);
-          addToActivityLog(
-            `Skipping pair ${pair.name} - No search URL configured`
-          );
-          continue;
-        }
-
-        console.log(`Scraping jobs for pair: ${pair.name}`);
-        const jobs = await scrapeJobsFromUrl(pair.searchUrl);
-
-        // Add source information to each job
-        for (const job of jobs) {
-          job.source = {
-            name: pair.name,
-            searchUrl: pair.searchUrl,
-            webhookUrl: pair.webhookUrl || "", // Include webhook URL if present
-          };
-        }
-
-        allNewJobs = allNewJobs.concat(jobs);
-      } catch (error) {
-        console.error(`Error scraping jobs for pair ${pair.name}:`, error);
-        logAndReportError(`Error scraping jobs for pair ${pair.name}`, error);
-        addToActivityLog(
-          `Failed to scrape jobs for ${pair.name}: ${error.message}`
-        );
+        await chrome.tabs.remove(activeTab.id);
+      } catch (closeError) {
+        console.error("Failed to close tab in error handler:", closeError);
       }
     }
-
-    if (allNewJobs.length > 0) {
-      await processJobs(allNewJobs);
-    }
-  } catch (error) {
-    console.error("Error in scrapeJobs:", error);
-    logAndReportError("Error in scrapeJobs", error);
-  } finally {
-    await releaseLock();
   }
 }
 
@@ -313,32 +330,6 @@ function clickLoginLink() {
   const loginLink = document.querySelector('a[data-test="UpLink"]');
   if (loginLink) {
     loginLink.click();
-  }
-}
-
-// Function to scrape jobs from a specific URL
-async function scrapeJobsFromUrl(url) {
-  try {
-    // Create a new tab with the search URL
-    const tab = await chrome.tabs.create({ url, active: false });
-
-    // Wait for the page to load and then inject the scraping script
-    await new Promise((resolve) => setTimeout(resolve, 5000)); // Wait 5 seconds for page load
-
-    // Execute the scraping script in the tab
-    const [results] = await chrome.scripting.executeScript({
-      target: { tabId: tab.id },
-      function: scrapeJobsFromPage,
-    });
-
-    // Close the tab
-    await chrome.tabs.remove(tab.id);
-
-    return results.result || [];
-  } catch (error) {
-    console.error("Error scraping jobs from URL:", error);
-    logAndReportError("Error scraping jobs from URL", error);
-    return [];
   }
 }
 
@@ -596,9 +587,7 @@ function scrapeJobsFromPage() {
 }
 
 // Export functions using globalThis
-globalThis.scrapeJobs = scrapeJobs;
-globalThis.scrapeJobsFromUrl = scrapeJobsFromUrl;
-globalThis.scrapeJobsFromPage = scrapeJobsFromPage;
 globalThis.checkForNewJobs = checkForNewJobs;
+globalThis.scrapeJobsFromPage = scrapeJobsFromPage;
 globalThis.isUserLoggedOut = isUserLoggedOut;
 globalThis.clickLoginLink = clickLoginLink;
