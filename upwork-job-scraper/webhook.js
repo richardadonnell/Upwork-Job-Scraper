@@ -24,20 +24,31 @@ function sendToWebhook(webhookUrl, jobs) {
         return;
       }
 
+      // Prepare jobs with source information
+      const jobsWithSource = jobs.map((job) => ({
+        ...job,
+        source: job.source || {
+          name: "Unknown Source",
+          searchUrl: "N/A",
+        },
+      }));
+
       addOperationBreadcrumb("Preparing webhook request", {
         url: webhookUrl,
-        jobCount: jobs.length,
-        firstJobTitle: jobs[0]?.title,
+        jobCount: jobsWithSource.length,
+        firstJobTitle: jobsWithSource[0]?.title,
+        firstJobSource: jobsWithSource[0]?.source?.name,
       });
 
       console.log("Sending webhook request:", {
         url: webhookUrl,
-        jobCount: jobs.length,
-        firstJobTitle: jobs[0]?.title,
+        jobCount: jobsWithSource.length,
+        firstJobTitle: jobsWithSource[0]?.title,
+        firstJobSource: jobsWithSource[0]?.source?.name,
       });
 
       addToActivityLog(
-        `Attempting to send ${jobs.length} job(s) to webhook...`
+        `Attempting to send ${jobsWithSource.length} job(s) to webhook...`
       );
 
       fetch(webhookUrl, {
@@ -45,7 +56,7 @@ function sendToWebhook(webhookUrl, jobs) {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(jobs),
+        body: JSON.stringify(jobsWithSource),
       })
         .then((response) => {
           if (!response.ok) {
@@ -57,7 +68,9 @@ function sendToWebhook(webhookUrl, jobs) {
               },
               "error"
             );
-            throw new Error(`HTTP error! status: ${response.status}`);
+            throw new Error(
+              `HTTP error! status: ${response.status} - ${response.statusText}`
+            );
           }
           addOperationBreadcrumb("Webhook request successful", {
             status: response.status,
@@ -66,7 +79,9 @@ function sendToWebhook(webhookUrl, jobs) {
         })
         .then((result) => {
           console.log("Webhook response:", result);
-          addToActivityLog("Webhook sent successfully");
+          addToActivityLog(
+            `Webhook sent successfully for ${jobsWithSource.length} job(s)`
+          );
           addOperationBreadcrumb("Webhook completed successfully", {
             response: result,
           });
@@ -77,6 +92,9 @@ function sendToWebhook(webhookUrl, jobs) {
             "Webhook request failed",
             {
               error: error.message,
+              jobCount: jobsWithSource.length,
+              firstJobTitle: jobsWithSource[0]?.title,
+              firstJobSource: jobsWithSource[0]?.source?.name,
             },
             "error"
           );
@@ -84,7 +102,9 @@ function sendToWebhook(webhookUrl, jobs) {
           addToActivityLog(`Error sending webhook: ${error.message}`);
           logAndReportError("Error sending webhook", error, {
             webhookUrl,
-            jobCount: jobs.length,
+            jobCount: jobsWithSource.length,
+            firstJobTitle: jobsWithSource[0]?.title,
+            firstJobSource: jobsWithSource[0]?.source?.name,
           });
           reject(error);
         })
@@ -96,13 +116,14 @@ function sendToWebhook(webhookUrl, jobs) {
         "Fatal error in sendToWebhook",
         {
           error: error.message,
+          jobCount: jobs?.length,
         },
         "error"
       );
       console.error("Error in sendToWebhook:", error);
       logAndReportError("Error in sendToWebhook", error, {
         webhookUrl,
-        jobCount: jobs.length,
+        jobCount: jobs?.length,
       });
       addToActivityLog(`Error in sendToWebhook: ${error.message}`);
       reject(error);
@@ -110,3 +131,6 @@ function sendToWebhook(webhookUrl, jobs) {
     }
   });
 }
+
+// Export functions using globalThis
+globalThis.sendToWebhook = sendToWebhook;

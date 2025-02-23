@@ -200,134 +200,59 @@ async function initializeSettings() {
     });
   }
 
+  // Add copy log and open GitHub issue functionality
+  document
+    .getElementById("copy-log-github")
+    .addEventListener("click", async () => {
+      try {
+        // Get the activity log
+        const data = await new Promise((resolve) => {
+          chrome.storage.local.get("activityLog", resolve);
+        });
+
+        // Format the log entries with markdown code block
+        const formattedLog = `\`\`\`\n${(data.activityLog || []).join(
+          "\n"
+        )}\n\`\`\``;
+
+        // Copy to clipboard
+        await navigator.clipboard.writeText(formattedLog);
+
+        // Open GitHub issue page
+        chrome.tabs.create({
+          url: "https://github.com/richardadonnell/Upwork-Job-Scraper/issues/new",
+        });
+
+        showAlert("Activity log copied to clipboard!", "success");
+      } catch (error) {
+        console.error("Error handling copy log:", error);
+        showAlert(`Failed to copy log: ${error.message}`, "error");
+      }
+    });
+
+  // Add setup instructions accordion functionality
+  const setupInstructions = document.getElementById("setup-instructions");
+  const accordionContent =
+    setupInstructions.querySelector(".accordion-content");
+  setupInstructions.addEventListener("click", () => {
+    accordionContent.style.display =
+      accordionContent.style.display === "block" ? "none" : "block";
+    const header = setupInstructions.querySelector(".accordion-header");
+    header.querySelector("p").textContent =
+      accordionContent.style.display === "block"
+        ? "click to collapse"
+        : "click to expand";
+  });
+
   chrome.runtime.sendMessage({ type: "settingsPageOpened" });
   trackEvent("settings_page_opened", {});
 
   try {
-    // Update the webhook URL input event listener
-    document.getElementById("webhook-url").addEventListener("input", () => {
-      const webhookUrl = document.getElementById("webhook-url").value;
-      const webhookEnabled = document.getElementById("webhook-toggle").checked;
+    // Initialize pairs
+    await loadPairs();
 
-      if (webhookUrl === "") {
-        // If the URL is empty, clear the saved webhook URL
-        chrome.storage.sync.remove("webhookUrl", () => {
-          console.log("Webhook URL cleared");
-          addLogEntry("Webhook URL cleared");
-          chrome.runtime.sendMessage({ type: "updateWebhookSettings" });
-          trackEvent("webhook_url_cleared", {});
-        });
-      } else {
-        // Otherwise, save the new webhook URL
-        chrome.storage.sync.set(
-          { webhookUrl: webhookUrl, webhookEnabled: webhookEnabled },
-          () => {
-            console.log("Webhook settings saved");
-            addLogEntry("Webhook settings saved");
-            chrome.runtime.sendMessage({ type: "updateWebhookSettings" });
-            trackEvent("webhook_settings_saved", { enabled: webhookEnabled });
-          }
-        );
-      }
-    });
-
-    // Update webhook test handler with better error handling
-    document
-      .getElementById("test-webhook")
-      .addEventListener("click", async () => {
-        const webhookUrl = document.getElementById("webhook-url").value;
-        const webhookEnabled =
-          document.getElementById("webhook-toggle").checked;
-
-        try {
-          if (!webhookEnabled) {
-            showAlert(
-              "Please enable the webhook before testing.",
-              "webhook-alert-container"
-            );
-            return;
-          }
-          if (!webhookUrl) {
-            showAlert(
-              "Please enter a webhook URL before testing.",
-              "webhook-alert-container"
-            );
-            return;
-          }
-
-          const testPayload = {
-            title: "Test Job",
-            url: "https://www.upwork.com/test-job",
-            jobType: "Fixed price",
-            skillLevel: "Intermediate",
-            budget: "$500",
-            hourlyRange: "N/A",
-            estimatedTime: "N/A",
-            description:
-              "This is a test job posting to verify webhook functionality.",
-            skills: ["Test Skill 1", "Test Skill 2", "Test Skill 3"],
-            paymentVerified: true,
-            clientRating: 4.9,
-            clientSpent: "$10k+",
-            clientCountry: "Test Country",
-            attachments: [
-              {
-                name: "Test Document",
-                url: "https://www.upwork.com/test-document",
-              },
-            ],
-          };
-
-          try {
-            await sendMessageToBackground({
-              type: "testWebhook",
-              webhookUrl,
-              testPayload,
-            });
-            showAlert(
-              "Webhook test successful!",
-              "webhook-alert-container",
-              "success"
-            );
-            addLogEntry("Webhook test successful");
-            trackEvent("webhook_test_success", {});
-          } catch (error) {
-            showAlert(
-              `Webhook test failed: ${error.message}`,
-              "webhook-alert-container",
-              "error"
-            );
-            addLogEntry(`Webhook test failed: ${error.message}`);
-            trackEvent("webhook_test_error", { error: error.message });
-            console.error("Webhook test error:", error);
-          }
-        } catch (error) {
-          showAlert(
-            `Error testing webhook: ${error.message}`,
-            "webhook-alert-container",
-            "error"
-          );
-          addLogEntry(`Error testing webhook: ${error.message}`);
-          trackEvent("webhook_test_error", { error: error.message });
-          console.error("Error testing webhook:", error);
-        }
-      });
-
-    // Load saved webhook settings when the page opens
-    chrome.storage.sync.get(["webhookUrl", "webhookEnabled"], (data) => {
-      if (data.webhookUrl) {
-        document.getElementById("webhook-url").value = data.webhookUrl;
-      }
-      const webhookToggle = document.getElementById("webhook-toggle");
-      if (data.webhookEnabled === undefined) {
-        // Default to enabled if not set
-        webhookToggle.checked = true;
-        chrome.storage.sync.set({ webhookEnabled: true });
-      } else {
-        webhookToggle.checked = data.webhookEnabled;
-      }
-      updateWebhookInputState();
-    });
+    // Add new pair button handler
+    document.getElementById("add-pair").addEventListener("click", addNewPair);
 
     // Load saved notification setting when the page opens
     chrome.storage.sync.get("notificationsEnabled", (data) => {
@@ -348,7 +273,9 @@ async function initializeSettings() {
         const isEnabled = event.target.checked;
         chrome.storage.sync.set({ notificationsEnabled: isEnabled }, () => {
           console.log("Notification setting saved:", isEnabled);
-          addLogEntry(`Notifications ${isEnabled ? "enabled" : "disabled"}`);
+          addToActivityLog(
+            `Notifications ${isEnabled ? "enabled" : "disabled"}`
+          );
           // Send message to background script to update notification state
           chrome.runtime.sendMessage({
             type: "updateNotificationSettings",
@@ -358,24 +285,10 @@ async function initializeSettings() {
         });
       });
 
-    // Save webhook setting when toggled
-    document
-      .getElementById("webhook-toggle")
-      .addEventListener("change", (event) => {
-        const webhookEnabled = event.target.checked;
-        chrome.storage.sync.set({ webhookEnabled: webhookEnabled }, () => {
-          console.log(`Webhook ${webhookEnabled ? "enabled" : "disabled"}`);
-          addLogEntry(`Webhook ${webhookEnabled ? "enabled" : "disabled"}`);
-          updateWebhookInputState();
-          chrome.runtime.sendMessage({ type: "updateWebhookSettings" });
-          trackEvent("webhook_setting_changed", { enabled: webhookEnabled });
-        });
-      });
-
     // Update the check frequency input event listeners
     document.getElementById("minutes").addEventListener("input", saveFrequency);
 
-    // Add event listeners for days and time range
+    // Add event listeners for schedule days
     const days = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
     for (const day of days) {
       document
@@ -383,6 +296,7 @@ async function initializeSettings() {
         .addEventListener("change", saveSchedule);
     }
 
+    // Add event listeners for schedule times
     document
       .getElementById("start-time")
       .addEventListener("change", saveSchedule);
@@ -390,94 +304,39 @@ async function initializeSettings() {
       .getElementById("end-time")
       .addEventListener("change", saveSchedule);
 
-    // Add event listeners for preset buttons
+    // Add event listeners for schedule buttons
     document.getElementById("set-weekdays").addEventListener("click", () => {
-      // Set weekdays only
       for (const day of days) {
-        const checkbox = document.getElementById(`day-${day}`);
-        checkbox.checked = ["mon", "tue", "wed", "thu", "fri"].includes(day);
+        document.getElementById(`day-${day}`).checked =
+          day !== "sun" && day !== "sat";
       }
       saveSchedule();
-      addLogEntry("Schedule updated: Weekdays only");
+      trackEvent("set_weekdays", {});
+    });
+
+    document.getElementById("reset-days").addEventListener("click", () => {
+      for (const day of days) {
+        document.getElementById(`day-${day}`).checked = true;
+      }
+      saveSchedule();
+      trackEvent("reset_days", {});
     });
 
     document
       .getElementById("set-business-hours")
       .addEventListener("click", () => {
-        // Set business hours (8 AM - 5 PM)
         document.getElementById("start-time").value = "08:00";
         document.getElementById("end-time").value = "17:00";
         saveSchedule();
-        addLogEntry("Schedule updated: Business hours (8 AM - 5 PM)");
+        trackEvent("set_business_hours", {});
       });
 
-    function saveSchedule() {
-      const schedule = {
-        days: days.reduce((acc, day) => {
-          acc[day] = document.getElementById(`day-${day}`).checked;
-          return acc;
-        }, {}),
-        startTime: document.getElementById("start-time").value,
-        endTime: document.getElementById("end-time").value,
-      };
-
-      chrome.storage.sync.set({ schedule }, () => {
-        console.log("Schedule saved:", schedule);
-        addLogEntry(`Schedule updated: ${formatSchedule(schedule)}`);
-
-        // Send message to background script to update schedule
-        chrome.runtime.sendMessage(
-          {
-            type: "updateSchedule",
-            schedule: schedule,
-          },
-          (response) => {
-            if (chrome.runtime.lastError) {
-              console.error(
-                "Error updating schedule:",
-                chrome.runtime.lastError
-              );
-              addLogEntry(
-                "Error: Failed to update schedule in background script"
-              );
-            }
-          }
-        );
-      });
-    }
-
-    function formatSchedule(schedule) {
-      const activeDays = Object.entries(schedule.days)
-        .filter(([_, enabled]) => enabled)
-        .map(([day]) => day.charAt(0).toUpperCase() + day.slice(1))
-        .join(", ");
-      return `Active on: ${activeDays} between ${schedule.startTime} and ${schedule.endTime}`;
-    }
-
-    function saveFrequency() {
-      const minutes =
-        Number.parseInt(document.getElementById("minutes").value, 10) || 5;
-
-      if (minutes < 5) {
-        showAlert(
-          "Please set a frequency of at least 5 minutes.",
-          "frequency-alert-container"
-        );
-        document.getElementById("minutes").value = 5;
-        return;
-      }
-
-      chrome.storage.sync.set({ checkFrequency: minutes }, () => {
-        console.log("Check frequency saved");
-        addLogEntry(`Check frequency saved: ${minutes}m`);
-        chrome.runtime.sendMessage({
-          type: "updateCheckFrequency",
-          frequency: minutes,
-        });
-        startCountdown(); // Restart the countdown with the new frequency
-        trackEvent("check_frequency_changed", { minutes });
-      });
-    }
+    document.getElementById("reset-hours").addEventListener("click", () => {
+      document.getElementById("start-time").value = "00:00";
+      document.getElementById("end-time").value = "23:59";
+      saveSchedule();
+      trackEvent("reset_hours", {});
+    });
 
     // Load saved schedule when the page opens
     chrome.storage.sync.get(["schedule"], (data) => {
@@ -512,203 +371,6 @@ async function initializeSettings() {
       startCountdown(); // Start the countdown after loading the frequency
     });
 
-    // Add function to check if current time is within schedule
-    function isWithinSchedule(schedule) {
-      const now = new Date();
-      const currentDay = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"][
-        now.getDay()
-      ];
-
-      // Check if current day is enabled
-      if (!schedule.days[currentDay]) {
-        return false;
-      }
-
-      // Convert current time to minutes since midnight
-      const currentMinutes = now.getHours() * 60 + now.getMinutes();
-
-      // Convert schedule times to minutes since midnight
-      const [startHour, startMinute] = schedule.startTime
-        .split(":")
-        .map(Number);
-      const [endHour, endMinute] = schedule.endTime.split(":").map(Number);
-      const startMinutes = startHour * 60 + startMinute;
-      const endMinutes = endHour * 60 + endMinute;
-
-      return currentMinutes >= startMinutes && currentMinutes <= endMinutes;
-    }
-
-    // Add function to get randomized check interval
-    function getRandomizedCheckInterval(baseMinutes) {
-      // Convert minutes to milliseconds and add random seconds (±15 max)
-      const baseMs = baseMinutes * 60 * 1000;
-      const randomMs = Math.floor(Math.random() * 31 - 15) * 1000; // Random between -15 and +15 seconds
-      return (baseMs + randomMs) / 60000; // Convert back to minutes
-    }
-
-    // Function to add log entries
-    function addLogEntry(message) {
-      const logContainer = document.getElementById("log-container");
-
-      // Remove any existing timestamp from the message if it exists
-      const cleanMessage = message.replace(
-        /^\d{1,2}\/\d{1,2}\/\d{4},\s\d{1,2}:\d{2}:\d{2}\s[AP]M:\s/,
-        ""
-      );
-
-      // Only add timestamp if message doesn't already have one
-      const logEntry = message.includes(":")
-        ? message
-        : `${new Date().toLocaleString()}: ${cleanMessage}`;
-
-      // Check if this exact message already exists at the top
-      const existingTopEntry = logContainer.firstChild?.textContent;
-      if (existingTopEntry !== logEntry) {
-        const logElement = document.createElement("div");
-        logElement.textContent = logEntry;
-        logContainer.prepend(logElement);
-
-        // Remove oldest log entry if there are more than 100
-        while (logContainer.children.length > 100) {
-          logContainer.removeChild(logContainer.lastChild);
-        }
-      }
-    }
-
-    // Load existing log entries
-    chrome.storage.local.get("activityLog", (data) => {
-      if (data.activityLog) {
-        const logContainer = document.getElementById("log-container");
-        logContainer.innerHTML = ""; // Clear existing entries
-
-        // Add entries in reverse order (newest first)
-        for (const entry of data.activityLog) {
-          const logElement = document.createElement("div");
-          logElement.textContent = entry;
-          logContainer.appendChild(logElement);
-        }
-      }
-    });
-
-    // Function to add job entries
-    function addJobEntries(jobs) {
-      const jobsContainer = document.getElementById("jobs-container");
-      jobsContainer.innerHTML = ""; // Clear existing jobs
-
-      if (!Array.isArray(jobs) || jobs.length === 0) {
-        jobsContainer.innerHTML = "<p>No jobs found.</p>";
-        return;
-      }
-
-      for (const job of jobs) {
-        if (!job) continue; // Skip if job is undefined
-
-        const jobItem = document.createElement("div");
-        jobItem.className = "job-item";
-        jobItem.dataset.jobId = job.url || "";
-
-        const jobHeader = document.createElement("div");
-        jobHeader.className = "job-header";
-
-        const jobTitle = document.createElement("div");
-        jobTitle.className = "job-title";
-
-        const timeSpan = document.createElement("span");
-        timeSpan.className = "job-time";
-        timeSpan.dataset.timestamp = job.scrapedAt || Date.now();
-        updateTimeDifference(job.scrapedAt || Date.now(), timeSpan);
-
-        jobTitle.textContent = job.title || "Untitled Job";
-        jobTitle.appendChild(document.createElement("br"));
-        jobTitle.appendChild(timeSpan);
-
-        jobTitle.onclick = () => toggleJobDetails(job.url || "");
-
-        const openButton = document.createElement("button");
-        openButton.className = "open-job-button button-secondary";
-        openButton.textContent = "Open";
-        openButton.onclick = (e) => {
-          e.stopPropagation();
-          if (job.url) window.open(job.url, "_blank");
-        };
-
-        jobHeader.appendChild(jobTitle);
-        jobHeader.appendChild(openButton);
-
-        const jobDetails = document.createElement("div");
-        jobDetails.className = "job-details";
-        jobDetails.id = `job-details-${job.url || ""}`;
-        jobDetails.innerHTML = `
-          <p><strong>URL:</strong> ${
-            job.url
-              ? `<a href="${job.url}" target="_blank">${job.url}</a>`
-              : "N/A"
-          }</p>
-          <p><strong>Job Type:</strong> ${job.jobType || "N/A"}</p>
-          <p><strong>Skill Level:</strong> ${job.skillLevel || "N/A"}</p>
-          <p><strong>${
-            job.jobType === "Fixed price" ? "Budget" : "Hourly Range"
-          }:</strong> ${
-          job.jobType === "Fixed price"
-            ? job.budget || "N/A"
-            : job.hourlyRange || "N/A"
-        }</p>
-          ${
-            job.jobType === "Hourly"
-              ? `<p><strong>Estimated Time:</strong> ${
-                  job.estimatedTime || "N/A"
-                }</p>`
-              : ""
-          }
-          <p><strong>Description:</strong> ${job.description || "N/A"}</p>
-          <p><strong>Skills:</strong> ${
-            Array.isArray(job.skills) ? job.skills.join(", ") : "N/A"
-          }</p>
-          <p><strong>Payment Verified:</strong> ${
-            job.paymentVerified ? "Yes" : "No"
-          }</p>
-          <p><strong>Client Rating:</strong> ${job.clientRating || "N/A"}</p>
-          <p><strong>Client Spent:</strong> ${job.clientSpent || "N/A"}</p>
-          <p><strong>Client Country:</strong> ${job.clientCountry || "N/A"}</p>
-          ${
-            Array.isArray(job.attachments) && job.attachments.length > 0
-              ? `<p><strong>Attachments:</strong> ${job.attachments
-                  .map(
-                    (a) => `<a href="${a.url}" target="_blank">${a.name}</a>`
-                  )
-                  .join(", ")}</p>`
-              : ""
-          }
-          ${
-            Array.isArray(job.questions) && job.questions.length > 0
-              ? `<p><strong>Questions:</strong><ul>${job.questions
-                  .map((q) => `<li>${q}</li>`)
-                  .join("")}</ul></p>`
-              : ""
-          }
-          <p><strong>Scraped At:</strong> ${job.scrapedAtHuman || "N/A"}</p>
-        `;
-
-        jobItem.appendChild(jobHeader);
-        jobItem.appendChild(jobDetails);
-        jobsContainer.appendChild(jobItem);
-      }
-
-      // Start updating time differences
-      if (!window.timeUpdateInterval) {
-        window.timeUpdateInterval = setInterval(updateAllTimeDifferences, 1000);
-      }
-    }
-
-    function toggleJobDetails(jobId) {
-      const details = document.getElementById(`job-details-${jobId}`);
-      if (details.style.display === "block") {
-        details.style.display = "none";
-      } else {
-        details.style.display = "block";
-      }
-    }
-
     // Load existing scraped jobs
     chrome.storage.local.get("scrapedJobs", (data) => {
       if (data.scrapedJobs) {
@@ -716,181 +378,17 @@ async function initializeSettings() {
       }
     });
 
-    // Listen for log updates, job updates, and login warnings from the background script
+    // Listen for log updates and job updates from the background script
     chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       if (message.type === "logUpdate") {
-        addLogEntry(message.content);
+        addToActivityLog(message.content);
         sendResponse({ received: true });
         return true; // Keep the message channel open
-      } else if (message.type === "jobsUpdate") {
+      }
+
+      if (message.type === "jobsUpdate") {
         addJobEntries(message.jobs);
-      } else if (message.type === "loginWarning") {
-        showLoginWarning(message.message);
       }
-    });
-
-    function showLoginWarning(message) {
-      const warningElement = document.createElement("div");
-      warningElement.className = "alert alert-warning";
-      warningElement.innerHTML = `
-        <strong>Warning:</strong> ${message} Please check your Upwork login status and try again.
-        If the issue persists, you may need to manually log in to Upwork and then restart the extension.
-      `;
-
-      const settingsContainer = document.querySelector(".settings-container");
-      settingsContainer.insertBefore(
-        warningElement,
-        settingsContainer.firstChild
-      );
-    }
-
-    function updateTimeDifference(timestamp, element) {
-      if (!timestamp) {
-        element.textContent = "(unknown time)";
-        return;
-      }
-
-      const now = Date.now();
-      const diff = now - timestamp;
-      const seconds = Math.floor(diff / 1000);
-      const minutes = Math.floor(seconds / 60);
-      const hours = Math.floor(minutes / 60);
-      const days = Math.floor(hours / 24);
-
-      let timeString;
-      if (days > 0) {
-        timeString = `${days} day${days > 1 ? "s" : ""} ago`;
-      } else if (hours > 0) {
-        timeString = `${hours} hour${hours > 1 ? "s" : ""} ago`;
-      } else if (minutes > 0) {
-        timeString = `${minutes} minute${minutes > 1 ? "s" : ""} ago`;
-      } else {
-        timeString = `${seconds} second${seconds !== 1 ? "s" : ""} ago`;
-      }
-
-      element.textContent = `(${timeString})`;
-    }
-
-    function updateAllTimeDifferences() {
-      const timeElements = document.querySelectorAll(".job-time");
-      for (const element of timeElements) {
-        const timestamp = Number.parseInt(element.dataset.timestamp, 10);
-        updateTimeDifference(timestamp, element);
-      }
-    }
-
-    // Function to update webhook input state
-    function updateWebhookInputState() {
-      const webhookUrl = document.getElementById("webhook-url");
-      const testWebhookButton = document.getElementById("test-webhook");
-      const isEnabled = document.getElementById("webhook-toggle").checked;
-
-      webhookUrl.disabled = !isEnabled;
-      testWebhookButton.disabled = !isEnabled;
-    }
-
-    // Add this new function to create and manage the error message element
-    function showCustomUrlError(message) {
-      let errorElement = document.getElementById("custom-url-error");
-      if (!errorElement) {
-        errorElement = document.createElement("p");
-        errorElement.id = "custom-url-error";
-        errorElement.style.color = "red";
-        errorElement.style.marginTop = "5px";
-        document
-          .getElementById("custom-search-url")
-          .insertAdjacentElement("afterend", errorElement);
-      }
-      errorElement.textContent = message;
-    }
-
-    // Update custom search URL handler with better error handling
-    document
-      .getElementById("custom-search-url")
-      .addEventListener("input", () => {
-        try {
-          const customSearchUrl =
-            document.getElementById("custom-search-url").value;
-
-          if (customSearchUrl === "") {
-            chrome.storage.sync.remove(
-              ["customSearchUrl", "selectedFeedSource"],
-              () => {
-                if (chrome.runtime.lastError) {
-                  throw new Error(chrome.runtime.lastError.message);
-                }
-                console.log("Custom search URL cleared");
-                addLogEntry("Custom search URL cleared");
-                chrome.runtime.sendMessage({ type: "updateFeedSources" });
-                trackEvent("custom_search_url_cleared", {});
-              }
-            );
-          } else if (
-            !customSearchUrl.startsWith(
-              "https://www.upwork.com/nx/search/jobs/?"
-            )
-          ) {
-            showCustomUrlError(
-              "Custom Search URL must start with https://www.upwork.com/nx/search/jobs/?"
-            );
-          } else {
-            showCustomUrlError("");
-
-            chrome.storage.sync.set(
-              {
-                selectedFeedSource: "custom-search",
-                customSearchUrl: customSearchUrl,
-              },
-              () => {
-                if (chrome.runtime.lastError) {
-                  throw new Error(chrome.runtime.lastError.message);
-                }
-                console.log("Feed sources saved");
-                addLogEntry("Feed source saved: custom-search");
-                chrome.runtime.sendMessage({ type: "updateFeedSources" });
-                trackEvent("feed_sources_changed", {
-                  selectedFeedSource: "custom-search",
-                  customSearchUrl,
-                });
-              }
-            );
-          }
-        } catch (error) {
-          console.error("Error handling custom search URL:", error);
-          addLogEntry(`Error handling custom search URL: ${error.message}`);
-          showCustomUrlError(`Error: ${error.message}`);
-          trackEvent("custom_search_url_error", { error: error.message });
-        }
-      });
-
-    // Load saved feed source settings when the page opens
-    chrome.storage.sync.get(["customSearchUrl"], (data) => {
-      const customSearchUrl = data.customSearchUrl || "";
-      const customSearchUrlInput = document.getElementById("custom-search-url");
-      customSearchUrlInput.value = customSearchUrl;
-    });
-
-    document.getElementById("manual-scrape").addEventListener("click", () => {
-      sendMessageToBackground({ type: "manualScrape" })
-        .then((response) => {
-          if (!response) {
-            throw new Error("No response received from background script");
-          }
-          if (response.success) {
-            addLogEntry("Manual scrape initiated");
-            trackEvent("manual_scrape_initiated", {});
-          } else {
-            throw new Error(
-              response.error || "Failed to initiate manual scrape"
-            );
-          }
-        })
-        .catch((error) => {
-          console.error("Error sending message:", error);
-          addLogEntry(`Error initiating manual scrape: ${error.message}`);
-          trackEvent("manual_scrape_error", { error: error.message });
-          showAlert("Failed to initiate manual scrape. Please try again.");
-        });
     });
 
     // Master toggle (Job Scraping)
@@ -902,7 +400,7 @@ async function initializeSettings() {
     masterToggle.addEventListener("change", (event) => {
       const isEnabled = event.target.checked;
       chrome.storage.sync.set({ jobScrapingEnabled: isEnabled }, () => {
-        addLogEntry(`Job scraping ${isEnabled ? "enabled" : "disabled"}`);
+        addToActivityLog(`Job scraping ${isEnabled ? "enabled" : "disabled"}`);
         chrome.runtime.sendMessage({
           type: "updateJobScraping",
           enabled: isEnabled,
@@ -911,228 +409,240 @@ async function initializeSettings() {
       });
     });
 
-    // Webhook toggle
-    const webhookToggle = document.getElementById("webhook-toggle");
-    chrome.storage.sync.get("webhookEnabled", (data) => {
-      webhookToggle.checked = data.webhookEnabled !== false; // Default to true if not set
-    });
-
-    webhookToggle.addEventListener("change", (event) => {
-      const isEnabled = event.target.checked;
-      chrome.storage.sync.set({ webhookEnabled: isEnabled }, () => {
-        console.log(`Webhook ${isEnabled ? "enabled" : "disabled"}`);
-        addLogEntry(`Webhook ${isEnabled ? "enabled" : "disabled"}`);
-        updateWebhookInputState();
-        chrome.runtime.sendMessage({ type: "updateWebhookSettings" });
-        trackEvent("webhook_setting_changed", { enabled: isEnabled });
-      });
-    });
-
-    // Notification toggle
-    const notificationToggle = document.getElementById("notification-toggle");
-    chrome.storage.sync.get("notificationsEnabled", (data) => {
-      notificationToggle.checked = data.notificationsEnabled !== false; // Default to true if not set
-    });
-
-    notificationToggle.addEventListener("change", (event) => {
-      const isEnabled = event.target.checked;
-      chrome.storage.sync.set({ notificationsEnabled: isEnabled }, () => {
-        addLogEntry(`Push notifications ${isEnabled ? "enabled" : "disabled"}`);
-        trackEvent("notification_toggle_changed", { enabled: isEnabled });
-      });
-    });
-
-    // Add this function near the top of the file, after other function declarations
-    function clearAllJobs() {
-      chrome.storage.local.set({ scrapedJobs: [] }, () => {
-        addLogEntry("All scraped jobs cleared");
-        addJobEntries([]);
-        chrome.runtime.sendMessage({ type: "jobsCleared" });
-      });
-    }
-
-    // Add this inside the initializeSettings function
-    document.getElementById("clear-jobs").addEventListener("click", (event) => {
-      const button = event.target;
-      if (button.classList.contains("confirm")) {
-        clearAllJobs();
-        trackEvent("clear_all_jobs", {});
-        button.classList.remove("confirm");
-        button.textContent = "Clear All Jobs";
-      } else {
-        button.classList.add("confirm");
-        button.textContent = "Click to Confirm";
-      }
-    });
-
-    // Modify the existing chrome.runtime.onMessage listener
-    chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-      if (message.type === "logUpdate") {
-        addLogEntry(message.content);
-      } else if (message.type === "jobsUpdate") {
-        addJobEntries(message.jobs);
-      } else if (message.type === "jobsCleared") {
-        // Update the UI to reflect that jobs have been cleared
-        addJobEntries([]);
-      }
-    });
-
-    // Add this new event listener for the "Open Custom URL" button
-    document.getElementById("open-custom-url").addEventListener("click", () => {
-      const customSearchUrl =
-        document.getElementById("custom-search-url").value;
-      if (customSearchUrl) {
-        window.open(customSearchUrl, "_blank");
-        trackEvent("open_custom_url", { url: customSearchUrl });
-      } else {
-        showAlert(
-          "Please enter a custom search URL first.",
-          "feed-sources-alert-container"
-        );
-      }
-    });
-
-    // Add this code to handle the accordion functionality
+    // Clear jobs button
     document
-      .querySelector(".setup-instructions .accordion-header")
-      .addEventListener("click", () => {
-        const content = document.querySelector(
-          ".setup-instructions .accordion-content"
-        );
-        content.style.display =
-          content.style.display === "block" ? "none" : "block";
-      });
+      .getElementById("clear-jobs")
+      .addEventListener("click", clearAllJobs);
 
-    // Check if the user has previously dismissed the setup instructions
-    chrome.storage.sync.get("setupInstructionsDismissed", (data) => {
-      if (!data.setupInstructionsDismissed) {
-        document.getElementById("setup-instructions").classList.add("show");
-      }
-    });
-
-    // Add this to where you handle the webhook toggle and URL changes
+    // Manual scrape button
     document
-      .getElementById("webhook-toggle")
-      .addEventListener("change", (e) => {
-        const enabled = e.target.checked;
-        console.log("Saving webhook enabled:", enabled);
-        chrome.storage.sync.set({ webhookEnabled: enabled }, () => {
-          console.log("Webhook enabled saved:", enabled);
-          addToActivityLog(`Webhook ${enabled ? "enabled" : "disabled"}`);
-        });
-      });
-
-    document.getElementById("webhook-url").addEventListener("change", (e) => {
-      const url = e.target.value.trim();
-      console.log("Saving webhook URL:", url);
-      chrome.storage.sync.set({ webhookUrl: url }, () => {
-        console.log("Webhook URL saved:", url);
-        addToActivityLog(`Webhook URL updated: ${url}`);
-      });
-    });
-
-    // Add this function to initialize webhook settings
-    function loadWebhookSettings() {
-      chrome.storage.sync.get(["webhookUrl", "webhookEnabled"], (settings) => {
-        console.log("Loading webhook settings:", settings);
-        const webhookToggle = document.getElementById("webhook-toggle");
-        const webhookUrl = document.getElementById("webhook-url");
-
-        if (webhookToggle) {
-          webhookToggle.checked = settings.webhookEnabled !== false;
-        }
-        if (webhookUrl && settings.webhookUrl) {
-          webhookUrl.value = settings.webhookUrl;
-        }
-      });
-    }
-
-    // Call this when the settings page loads
-    document.addEventListener("DOMContentLoaded", () => {
-      loadWebhookSettings();
-      // ... other initialization code
-    });
-
-    // Add this inside the initializeSettings function
-    document
-      .getElementById("notification-toggle")
-      .addEventListener("change", (e) => {
-        const enabled = e.target.checked;
-        chrome.storage.sync.set({ notificationsEnabled: enabled }, () => {
-          console.log("Notifications enabled:", enabled);
-          addToActivityLog(
-            `Push notifications ${enabled ? "enabled" : "disabled"}`
-          );
-        });
-      });
-
-    // Add event listener for copy log and open GitHub issue button
-    document
-      .getElementById("copy-log-github")
-      .addEventListener("click", async () => {
-        const logContainer = document.getElementById("log-container");
-        const logText = logContainer.innerText;
-        const formattedLog = `\`\`\`\n${logText}\n\`\`\``;
-
-        try {
-          await navigator.clipboard.writeText(formattedLog);
-          showAlert(
-            "Activity log copied to clipboard with markdown formatting!",
-            "alert-container"
-          );
-          window.open(
-            "https://github.com/richardadonnell/Upwork-Job-Scraper/issues/new",
-            "_blank"
-          );
-        } catch (err) {
-          console.error("Failed to copy text: ", err);
-          showAlert(
-            "Failed to copy activity log. Please try again.",
-            "alert-container"
-          );
-        }
-      });
-
-    // Reset days button handler
-    document.getElementById("reset-days").addEventListener("click", () => {
-      const days = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
-      for (const day of days) {
-        document.getElementById(`day-${day}`).checked = true;
-      }
-      saveSchedule();
-      addLogEntry("Reset to all days enabled");
-      trackEvent("reset_days", {});
-    });
-
-    // Reset hours button handler
-    document.getElementById("reset-hours").addEventListener("click", () => {
-      document.getElementById("start-time").value = "00:00";
-      document.getElementById("end-time").value = "23:59";
-      saveSchedule();
-      addLogEntry("Reset to all hours enabled");
-      trackEvent("reset_hours", {});
-    });
+      .getElementById("manual-scrape")
+      .addEventListener("click", manualScrape);
   } catch (error) {
     console.error("Error initializing settings:", error);
-    window.logAndReportError("Error initializing settings", error);
+    showAlert(`Error initializing settings: ${error.message}`, "error");
   }
 }
 
-// Update the initialization process with better error handling
-waitForBackgroundScript()
-  .then(() => {
-    console.log("Starting initialization...");
-    return initializeSettings();
-  })
-  .catch((error) => {
-    console.error("Error during initialization:", error);
-    addLogEntry(`Initialization error: ${error.message}`);
-    trackEvent("initialization_error", { error: error.message });
-    showAlert(
-      "Error initializing settings. Please refresh the page and try again.",
-      "alert-container"
-    );
+// Function to create a new pair element
+function createPairElement(pair) {
+  const template = document.getElementById("pair-template");
+  const pairElement = template.content
+    .cloneNode(true)
+    .querySelector(".pair-item");
+
+  pairElement.dataset.pairId = pair.id;
+
+  const nameInput = pairElement.querySelector(".pair-name");
+  nameInput.value = pair.name;
+  nameInput.addEventListener("change", (e) =>
+    updatePairField(pair.id, "name", e.target.value)
+  );
+
+  const enabledToggle = pairElement.querySelector(".pair-enabled");
+  enabledToggle.checked = pair.enabled;
+  enabledToggle.addEventListener("change", () => togglePairEnabled(pair.id));
+
+  const searchUrlInput = pairElement.querySelector(".search-url");
+  searchUrlInput.value = pair.searchUrl || "";
+  searchUrlInput.addEventListener("input", (e) => {
+    // Immediate update on any change
+    updatePairField(pair.id, "searchUrl", e.target.value.trim());
   });
+
+  const webhookUrlInput = pairElement.querySelector(".webhook-url");
+  webhookUrlInput.value = pair.webhookUrl || "";
+  webhookUrlInput.addEventListener("input", (e) => {
+    // Immediate update on any change
+    updatePairField(pair.id, "webhookUrl", e.target.value.trim());
+  });
+
+  const openUrlButton = pairElement.querySelector(".open-search-url");
+  openUrlButton.addEventListener("click", () => {
+    if (searchUrlInput.value.trim()) {
+      chrome.tabs.create({ url: searchUrlInput.value.trim() });
+    } else {
+      alert("Please enter a valid search URL first.");
+    }
+  });
+
+  const testWebhookButton = pairElement.querySelector(".test-webhook");
+  testWebhookButton.addEventListener("click", () => testPairWebhook(pair.id));
+
+  const removeButton = pairElement.querySelector(".remove-pair");
+  removeButton.addEventListener("click", () => removePairElement(pair.id));
+
+  return pairElement;
+}
+
+// Function to update a pair field
+async function updatePairField(pairId, field, value) {
+  try {
+    console.log(`Updating ${field} for pair ${pairId} to:`, value);
+    const pairs = await getAllPairs();
+    const pair = pairs.find((p) => p.id === pairId);
+    if (!pair) {
+      throw new Error("Pair not found");
+    }
+
+    // Create a copy of the pair for updating
+    const updatedPair = { ...pair };
+    updatedPair[field] = value;
+
+    // Special handling for URL fields
+    if (field === "webhookUrl" || field === "searchUrl") {
+      const trimmedValue = value.trim();
+      updatedPair[field] = trimmedValue;
+    }
+
+    // Validate and save the updated pair
+    try {
+      validatePair(updatedPair);
+      await updatePair(pairId, updatedPair);
+      console.log(`Successfully updated ${field} for pair ${pairId}`);
+
+      // Only show success alert for major changes
+      if (field === "name" || field === "enabled") {
+        showAlert("Pair updated successfully", "success");
+      }
+    } catch (validationError) {
+      console.error(`Validation error for ${field}:`, validationError);
+      showAlert(validationError.message, "error");
+
+      // Revert the UI to the last valid state
+      const pairElement = document.querySelector(`[data-pair-id="${pairId}"]`);
+      if (pairElement) {
+        const input = pairElement.querySelector(`.${field.toLowerCase()}`);
+        if (input) input.value = pair[field] || "";
+      }
+    }
+  } catch (error) {
+    console.error(`Error updating ${field} for pair ${pairId}:`, error);
+    showAlert(error.message, "error");
+  }
+}
+
+// Function to toggle pair enabled state
+async function togglePairEnabled(pairId) {
+  try {
+    await togglePair(pairId);
+    showAlert("Pair status updated", "success");
+  } catch (error) {
+    console.error("Error toggling pair:", error);
+    showAlert(error.message, "error");
+  }
+}
+
+// Function to test a pair's webhook
+async function testPairWebhook(pairId) {
+  try {
+    const pairs = await getAllPairs();
+    const pair = pairs.find((p) => p.id === pairId);
+    if (!pair) throw new Error("Pair not found");
+
+    const testPayload = {
+      title: "Example Job Title",
+      url: "https://www.upwork.com/jobs/example",
+      jobType: "Hourly",
+      skillLevel: "Expert",
+      budget: "N/A",
+      hourlyRange: "$30-50",
+      estimatedTime: "Less than 30 hrs/week",
+      description:
+        "This is an example job description that demonstrates all available fields.",
+      skills: ["JavaScript", "React", "Node.js", "API Development"],
+      paymentVerified: true,
+      clientRating: "4.95",
+      clientSpent: "$10K+ spent",
+      clientCountry: "United States",
+      attachments: [
+        {
+          name: "Project Brief.pdf",
+          url: "https://www.upwork.com/jobs/example/attachment1",
+        },
+      ],
+      questions: [
+        "What similar projects have you worked on?",
+        "What is your experience with React?",
+      ],
+      scrapedAt: Date.now(),
+      scrapedAtHuman: new Date().toLocaleString(),
+      jobPostingTime: "4 minutes ago",
+      clientLocation: "San Francisco, CA",
+      sourceUrl: "https://www.upwork.com/nx/search/jobs/?sort=recency",
+      source: {
+        name: pair.name,
+        searchUrl: pair.searchUrl,
+        webhookUrl: pair.webhookUrl,
+      },
+    };
+
+    await sendMessageToBackground({
+      type: "testWebhook",
+      webhookUrl: pair.webhookUrl,
+      testPayload,
+    });
+
+    showAlert("Webhook test successful!", "success");
+  } catch (error) {
+    console.error("Error testing webhook:", error);
+    showAlert(`Webhook test failed: ${error.message}`, "error");
+  }
+}
+
+// Function to remove a pair
+async function removePairElement(pairId) {
+  if (!confirm("Are you sure you want to remove this pair?")) return;
+
+  try {
+    await removePair(pairId);
+    const element = document.querySelector(`[data-pair-id="${pairId}"]`);
+    if (element) element.remove();
+    showAlert("Pair removed successfully", "success");
+  } catch (error) {
+    console.error("Error removing pair:", error);
+    showAlert(error.message, "error");
+  }
+}
+
+// Function to load all pairs
+async function loadPairs() {
+  try {
+    const pairs = await getAllPairs();
+    const pairsContainer = document.getElementById("pairs-container");
+    pairsContainer.innerHTML = ""; // Clear existing pairs
+
+    for (const pair of pairs) {
+      const pairElement = createPairElement(pair);
+      pairsContainer.appendChild(pairElement);
+    }
+  } catch (error) {
+    console.error("Error loading pairs:", error);
+    showAlert(`Error loading pairs: ${error.message}`, "error");
+  }
+}
+
+// Function to add a new pair
+async function addNewPair() {
+  try {
+    console.log("Adding new pair...");
+    const pair = createDefaultPair();
+    console.log("Created default pair:", pair);
+    await addPair(pair);
+    console.log("Pair added to storage");
+    const pairElement = createPairElement(pair);
+    console.log("Created pair element");
+    document.getElementById("pairs-container").appendChild(pairElement);
+    console.log("Pair element added to DOM");
+    showAlert("New pair added successfully", "success");
+  } catch (error) {
+    console.error("Error adding new pair:", error);
+    showAlert(error.message, "error");
+  }
+}
+
+// Initialize settings when the page loads
+document.addEventListener("DOMContentLoaded", initializeSettings);
 
 // Add this to your initialization function or at the end of the file
 window.addEventListener("beforeunload", () => {
@@ -1141,50 +651,64 @@ window.addEventListener("beforeunload", () => {
   }
 });
 
-function showAlert(message, timeout = "15000") {
+function showAlert(message, type = "success", timeout = 5000) {
   const alertContainer = document.getElementById("alert-container");
   const alertElement = document.createElement("div");
-  alertElement.classList.add("alert");
+  alertElement.classList.add("alert", type);
+
+  // Create message paragraph
   const alertMessage = document.createElement("p");
   alertMessage.textContent = message;
   alertElement.appendChild(alertMessage);
 
+  // Create close button
   const closeButton = document.createElement("button");
   closeButton.classList.add("close-btn");
-  closeButton.innerHTML = "&times;";
+  closeButton.innerHTML = "×";
   closeButton.addEventListener("click", () => {
     clearTimeout(alertTimeout);
-    alertElement.remove();
+    alertElement.style.opacity = "0";
+    setTimeout(() => alertElement.remove(), 300);
   });
   alertElement.appendChild(closeButton);
 
+  // Create countdown element
   const countdownElement = document.createElement("span");
   countdownElement.classList.add("countdown");
   alertElement.appendChild(countdownElement);
 
-  const parsedTimeout = Number.parseInt(timeout, 10);
-  let remainingTime = Number.isNaN(parsedTimeout) ? 15000 : parsedTimeout;
-
-  // Update the countdown immediately
-  const seconds = Math.ceil(remainingTime / 1000);
-  countdownElement.textContent = `Closing in ${seconds}s`;
-
-  const countdownInterval = setInterval(() => {
-    remainingTime -= 1000;
-    const seconds = Math.ceil(remainingTime / 1000);
-    countdownElement.textContent = `Closing in ${seconds}s`;
-
-    if (remainingTime <= 0) {
+  // Update countdown
+  const startTime = Date.now();
+  const updateCountdown = () => {
+    const remaining = Math.ceil((timeout - (Date.now() - startTime)) / 1000);
+    if (remaining <= 0) {
       clearInterval(countdownInterval);
-      alertElement.remove();
+      alertElement.style.opacity = "0";
+      setTimeout(() => alertElement.remove(), 300);
+    } else {
+      countdownElement.textContent = `${remaining}s`;
     }
-  }, 1000);
+  };
+  updateCountdown();
+  const countdownInterval = setInterval(updateCountdown, 1000);
 
+  // Add to container
   alertContainer.appendChild(alertElement);
 
+  // Set timeout for removal
   const alertTimeout = setTimeout(() => {
-    alertElement.remove();
-  }, remainingTime);
+    alertElement.style.opacity = "0";
+    setTimeout(() => alertElement.remove(), 300);
+  }, timeout);
+
+  // Limit the number of visible alerts
+  const maxAlerts = 3;
+  const alerts = alertContainer.getElementsByClassName("alert");
+  if (alerts.length > maxAlerts) {
+    for (let i = 0; i < alerts.length - maxAlerts; i++) {
+      alerts[i].remove();
+    }
+  }
 }
 
 // Add this near the top of settings.js, before it's used
@@ -1197,7 +721,12 @@ function addToActivityLog(message) {
   const logContainer = document.getElementById("log-container");
   if (logContainer) {
     const logElement = document.createElement("div");
-    logElement.textContent = logEntry;
+    // Remove the timestamp from the message if it's already there
+    const cleanMessage = message.replace(
+      /^\d{1,2}\/\d{1,2}\/\d{4},\s+\d{1,2}:\d{2}:\d{2}\s+[AP]M:\s+/,
+      ""
+    );
+    logElement.textContent = `${timestamp}: ${cleanMessage}`;
     logContainer.prepend(logElement);
 
     // Keep only the last 100 entries
@@ -1225,4 +754,192 @@ function addToActivityLog(message) {
       }
     }
   );
+}
+
+// Add this before initializeSettings
+function saveFrequency() {
+  const minutes = document.getElementById("minutes").value;
+  const frequency = Math.max(5, Number.parseInt(minutes, 10) || 5);
+
+  chrome.storage.sync.set({ checkFrequency: frequency }, () => {
+    chrome.runtime.sendMessage({ type: "updateCheckFrequency", frequency });
+    addToActivityLog(`Check frequency updated to ${frequency} minute(s)`);
+    trackEvent("frequency_updated", { frequency });
+  });
+}
+
+// Add this before initializeSettings
+function saveSchedule() {
+  const days = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
+  const schedule = {
+    days: days.reduce((acc, day) => {
+      acc[day] = document.getElementById(`day-${day}`).checked;
+      return acc;
+    }, {}),
+    startTime: document.getElementById("start-time").value,
+    endTime: document.getElementById("end-time").value,
+  };
+
+  chrome.storage.sync.set({ schedule }, () => {
+    chrome.runtime.sendMessage({ type: "updateSchedule", schedule });
+    addToActivityLog("Schedule updated");
+    trackEvent("schedule_updated", schedule);
+    startCountdown(); // Restart countdown with new schedule
+  });
+}
+
+// Store intervals for cleanup
+let timeUpdateIntervals = [];
+
+function clearTimeUpdateIntervals() {
+  for (const interval of timeUpdateIntervals) {
+    clearInterval(interval);
+  }
+  timeUpdateIntervals = [];
+}
+
+function addJobEntries(jobs) {
+  // Clear existing intervals before updating the job list
+  clearTimeUpdateIntervals();
+
+  const container = document.getElementById("jobs-container");
+  container.innerHTML = ""; // Clear existing jobs
+
+  // Sort jobs by scraped time, newest first
+  jobs.sort((a, b) => b.scrapedAt - a.scrapedAt);
+
+  for (const job of jobs) {
+    const jobElement = document.createElement("div");
+    jobElement.className = "job-item";
+
+    const header = document.createElement("div");
+    header.className = "job-header";
+
+    const title = document.createElement("div");
+    title.className = "job-title";
+    title.textContent = job.title;
+    if (job.source?.name) {
+      const sourceSpan = document.createElement("span");
+      sourceSpan.textContent = ` (${job.source.name})`;
+      title.appendChild(sourceSpan);
+    }
+    title.addEventListener("click", () => toggleJobDetails(jobElement));
+
+    const rightSection = document.createElement("div");
+    rightSection.className = "job-header-right";
+    rightSection.style.display = "flex";
+    rightSection.style.alignItems = "center";
+    rightSection.style.gap = "1em";
+
+    const timeSpan = document.createElement("span");
+    timeSpan.className = "job-time";
+    timeSpan.style.color = "#8d8c8c";
+    timeSpan.style.fontSize = "0.9em";
+    timeSpan.style.whiteSpace = "nowrap";
+    timeSpan.textContent = getRelativeTime(job.scrapedAt);
+
+    // Update the time every second
+    const interval = setInterval(() => {
+      timeSpan.textContent = getRelativeTime(job.scrapedAt);
+    }, 1000);
+    timeUpdateIntervals.push(interval);
+
+    const openButton = document.createElement("button");
+    openButton.className = "open-job-button button-secondary";
+    openButton.textContent = "Open Job";
+    openButton.addEventListener("click", () => {
+      chrome.tabs.create({ url: job.url });
+    });
+
+    rightSection.appendChild(timeSpan);
+    rightSection.appendChild(openButton);
+
+    header.appendChild(title);
+    header.appendChild(rightSection);
+    jobElement.appendChild(header);
+
+    // Create details section (hidden by default)
+    const details = document.createElement("div");
+    details.className = "job-details";
+    details.innerHTML = `
+      <p><strong>Type:</strong> ${job.jobType} ${
+      job.hourlyRange || job.budget || ""
+    }</p>
+      <p><strong>Skills:</strong> ${job.skills.join(", ")}</p>
+      <p><strong>Posted:</strong> ${job.jobPostingTime}</p>
+      <p><strong>Client:</strong> ${job.clientCountry} (Rating: ${
+      job.clientRating
+    })</p>
+      <p><strong>Description:</strong> ${job.description}</p>
+    `;
+    jobElement.appendChild(details);
+
+    container.appendChild(jobElement);
+  }
+}
+
+function toggleJobDetails(jobElement) {
+  const details = jobElement.querySelector(".job-details");
+  if (details) {
+    details.style.display = details.style.display === "none" ? "block" : "none";
+  }
+}
+
+// Add this function before initializeSettings
+async function manualScrape() {
+  try {
+    const response = await sendMessageToBackground({ type: "manualScrape" });
+    if (response.success) {
+      showAlert("Manual scrape started successfully", "success");
+      addToActivityLog("Manual scrape initiated");
+    } else {
+      showAlert(`Manual scrape failed: ${response.error}`, "error");
+      addToActivityLog(`Manual scrape failed: ${response.error}`);
+    }
+  } catch (error) {
+    console.error("Error during manual scrape:", error);
+    showAlert(`Manual scrape failed: ${error.message}`, "error");
+    addToActivityLog(`Manual scrape failed: ${error.message}`);
+  }
+}
+
+// Add cleanup on page unload
+window.addEventListener("beforeunload", clearTimeUpdateIntervals);
+
+// Add cleanup when the jobs container is cleared
+function clearAllJobs() {
+  if (!confirm("Are you sure you want to clear all scraped jobs?")) {
+    return;
+  }
+
+  clearTimeUpdateIntervals();
+  chrome.storage.local.remove(["scrapedJobs"], () => {
+    document.getElementById("jobs-container").innerHTML = "";
+    addToActivityLog("All scraped jobs cleared");
+    trackEvent("jobs_cleared", {});
+    showAlert("All jobs cleared successfully", "success");
+  });
+}
+
+function getRelativeTime(timestamp) {
+  const now = Date.now();
+  const diff = now - timestamp;
+  const seconds = Math.floor(diff / 1000);
+  const minutes = Math.floor(seconds / 60);
+  const hours = Math.floor(minutes / 60);
+  const days = Math.floor(hours / 24);
+
+  if (days > 0) {
+    return `${days} day${days > 1 ? "s" : ""} ago`;
+  }
+
+  if (hours > 0) {
+    return `${hours} hour${hours > 1 ? "s" : ""} ago`;
+  }
+
+  if (minutes > 0) {
+    return `${minutes} minute${minutes > 1 ? "s" : ""} ago`;
+  }
+
+  return `${seconds} second${seconds !== 1 ? "s" : ""} ago`;
 }
