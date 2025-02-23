@@ -365,6 +365,11 @@ async function initializeSettings() {
     document
       .getElementById("clear-jobs")
       .addEventListener("click", clearAllJobs);
+
+    // Manual scrape button
+    document
+      .getElementById("manual-scrape")
+      .addEventListener("click", manualScrape);
   } catch (error) {
     console.error("Error initializing settings:", error);
     showAlert(
@@ -736,5 +741,35 @@ function toggleJobDetails(jobElement) {
   const details = jobElement.querySelector(".job-details");
   if (details) {
     details.style.display = details.style.display === "none" ? "block" : "none";
+  }
+}
+
+// Add this function before initializeSettings
+async function manualScrape() {
+  try {
+    const response = await sendMessageToBackground({ type: "manualScrape" });
+    if (response.success) {
+      showAlert(
+        "Manual scrape started successfully",
+        "alert-container",
+        "success"
+      );
+      addToActivityLog("Manual scrape initiated");
+    } else {
+      showAlert(
+        `Manual scrape failed: ${response.error}`,
+        "alert-container",
+        "error"
+      );
+      addToActivityLog(`Manual scrape failed: ${response.error}`);
+    }
+  } catch (error) {
+    console.error("Error during manual scrape:", error);
+    showAlert(
+      `Manual scrape failed: ${error.message}`,
+      "alert-container",
+      "error"
+    );
+    addToActivityLog(`Manual scrape failed: ${error.message}`);
   }
 }
