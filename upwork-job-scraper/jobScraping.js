@@ -2,8 +2,18 @@
 const jobScrapingEnabled = true; // or load the value from storage
 
 async function checkForNewJobs(jobScrapingEnabled) {
+  // Check if scraping is already in progress
+  const backgroundPage = await chrome.runtime.getBackgroundPage();
+  if (backgroundPage.isScrapingInProgress) {
+    addToActivityLog("Job scraping already in progress, skipping this check");
+    return;
+  }
+
   const opId = startOperation("checkForNewJobs");
   try {
+    // Set the lock
+    backgroundPage.isScrapingInProgress = true;
+
     if (!jobScrapingEnabled) {
       addOperationBreadcrumb("Job scraping disabled, skipping check");
       addToActivityLog("Job scraping is disabled. Skipping job check.");
@@ -158,6 +168,8 @@ async function checkForNewJobs(jobScrapingEnabled) {
     logAndReportError("Error in checkForNewJobs", error, { url });
     throw error; // Re-throw to be handled by the caller
   } finally {
+    // Release the lock in finally block to ensure it's always released
+    backgroundPage.isScrapingInProgress = false;
     endOperation();
   }
 }

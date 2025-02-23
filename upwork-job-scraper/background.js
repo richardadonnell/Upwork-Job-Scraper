@@ -42,6 +42,9 @@ try {
   let lastInitializationTime = 0;
   const MIN_INITIALIZATION_INTERVAL = 5000; // 5 seconds minimum between initializations
 
+  // Add global lock for job scraping
+  let isScrapingInProgress = false;
+
   // Initialize settings when extension starts
   chrome.storage.sync.get(
     ["jobScrapingEnabled", "checkFrequency", "schedule"],
