@@ -650,7 +650,12 @@ function addToActivityLog(message) {
   const logContainer = document.getElementById("log-container");
   if (logContainer) {
     const logElement = document.createElement("div");
-    logElement.textContent = logEntry;
+    // Remove the timestamp from the message if it's already there
+    const cleanMessage = message.replace(
+      /^\d{1,2}\/\d{1,2}\/\d{4},\s+\d{1,2}:\d{2}:\d{2}\s+[AP]M:\s+/,
+      ""
+    );
+    logElement.textContent = `${timestamp}: ${cleanMessage}`;
     logContainer.prepend(logElement);
 
     // Keep only the last 100 entries
