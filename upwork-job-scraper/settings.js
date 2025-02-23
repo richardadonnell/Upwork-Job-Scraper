@@ -441,31 +441,40 @@ async function updatePairField(pairId, field, value) {
       throw new Error("Pair not found");
     }
 
-    // Create update object with the new value
-    const updates = { [field]: value };
+    // Create a copy of the pair for updating
+    const updatedPair = { ...pair };
+    updatedPair[field] = value;
 
-    // If webhook URL is cleared, disable the pair
-    if (field === "webhookUrl" && !value.trim()) {
-      updates.enabled = false;
-      const pairElement = document.querySelector(`[data-pair-id="${pairId}"]`);
-      if (pairElement) {
-        const enabledToggle = pairElement.querySelector(".pair-enabled");
-        if (enabledToggle) {
-          enabledToggle.checked = false;
-        }
-      }
+    // Special handling for URL fields
+    if (field === "webhookUrl" || field === "searchUrl") {
+      const trimmedValue = value.trim();
+      updatedPair[field] = trimmedValue;
     }
 
-    await updatePair(pairId, updates);
-    console.log(`Successfully updated ${field} for pair ${pairId}`);
+    // Validate and save the updated pair
+    try {
+      validatePair(updatedPair);
+      await updatePair(pairId, updatedPair);
+      console.log(`Successfully updated ${field} for pair ${pairId}`);
 
-    // Only show success alert for major changes
-    if (field === "name" || field === "enabled") {
-      showAlert(
-        "Pair updated successfully",
-        "pairs-alert-container",
-        "success"
-      );
+      // Only show success alert for major changes
+      if (field === "name" || field === "enabled") {
+        showAlert(
+          "Pair updated successfully",
+          "pairs-alert-container",
+          "success"
+        );
+      }
+    } catch (validationError) {
+      console.error(`Validation error for ${field}:`, validationError);
+      showAlert(validationError.message, "pairs-alert-container", "error");
+
+      // Revert the UI to the last valid state
+      const pairElement = document.querySelector(`[data-pair-id="${pairId}"]`);
+      if (pairElement) {
+        const input = pairElement.querySelector(`.${field.toLowerCase()}`);
+        if (input) input.value = pair[field] || "";
+      }
     }
   } catch (error) {
     console.error(`Error updating ${field} for pair ${pairId}:`, error);

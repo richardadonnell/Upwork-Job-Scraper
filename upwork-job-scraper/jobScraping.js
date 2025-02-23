@@ -165,11 +165,11 @@ async function scrapeJobs() {
     // Process each enabled pair
     for (const pair of enabledPairs) {
       try {
-        // Skip pairs without both URLs configured
-        if (!pair.searchUrl || !pair.webhookUrl) {
-          console.log(`Skipping pair ${pair.name} - URLs not fully configured`);
+        // Skip pairs without a search URL
+        if (!pair.searchUrl) {
+          console.log(`Skipping pair ${pair.name} - No search URL configured`);
           addToActivityLog(
-            `Skipping pair ${pair.name} - URLs not fully configured`
+            `Skipping pair ${pair.name} - No search URL configured`
           );
           continue;
         }
@@ -177,12 +177,12 @@ async function scrapeJobs() {
         console.log(`Scraping jobs for pair: ${pair.name}`);
         const jobs = await scrapeJobsFromUrl(pair.searchUrl);
 
-        // Add complete source information to each job
+        // Add source information to each job
         for (const job of jobs) {
           job.source = {
             name: pair.name,
             searchUrl: pair.searchUrl,
-            webhookUrl: pair.webhookUrl,
+            webhookUrl: pair.webhookUrl || "", // Include webhook URL if present
           };
         }
 
@@ -231,8 +231,8 @@ async function processJobs(newJobs) {
       updatedJobs.push(newJob);
       addedJobsCount++;
 
-      // Strict webhook pairing check
-      if (newJob.source?.searchUrl && newJob.source?.webhookUrl) {
+      // Only send to webhook if a webhook URL is configured
+      if (newJob.source?.webhookUrl?.trim()) {
         try {
           await sendToWebhook(newJob.source.webhookUrl, [newJob]);
           addToActivityLog(
@@ -246,14 +246,9 @@ async function processJobs(newJobs) {
         }
       } else {
         console.log(
-          `Skipping webhook for job from ${
+          `Job from ${
             newJob.source?.name || "unknown source"
-          } - No webhook URL configured`
-        );
-        addToActivityLog(
-          `Skipped webhook for job from ${
-            newJob.source?.name || "unknown source"
-          } (no webhook URL configured)`
+          } will not be sent to webhook (no webhook URL configured)`
         );
       }
     }

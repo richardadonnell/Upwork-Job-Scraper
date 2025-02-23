@@ -23,27 +23,17 @@ function validatePair(pair) {
     throw new Error("Pair name is required");
   }
 
-  // Both URLs must be either empty or valid together
-  const hasSearchUrl = Boolean(pair.searchUrl);
-  const hasWebhookUrl = Boolean(pair.webhookUrl);
-
-  // For new pairs, allow both to be empty
-  if (!hasSearchUrl && !hasWebhookUrl) {
-    // This is fine for a new pair
-  }
-  // If one URL is set, the other must also be set
-  else if (hasSearchUrl !== hasWebhookUrl) {
-    throw new Error(
-      "Search URL and Webhook URL must be set together. Please provide both URLs or leave both empty."
-    );
-  }
-  // If both are set, validate their formats
-  else {
+  // Validate search URL if present
+  if (pair.searchUrl?.trim()) {
     if (!pair.searchUrl.startsWith("https://www.upwork.com/nx/search/jobs/?")) {
       throw new Error(
         "Invalid search URL format. Must be an Upwork job search URL."
       );
     }
+  }
+
+  // Validate webhook URL if present
+  if (pair.webhookUrl?.trim()) {
     if (!pair.webhookUrl.startsWith("http")) {
       throw new Error(
         "Invalid webhook URL format. Must start with http:// or https://"
