@@ -200,6 +200,20 @@ async function initializeSettings() {
     });
   }
 
+  // Add setup instructions accordion functionality
+  const setupInstructions = document.getElementById("setup-instructions");
+  const accordionContent =
+    setupInstructions.querySelector(".accordion-content");
+  setupInstructions.addEventListener("click", () => {
+    accordionContent.style.display =
+      accordionContent.style.display === "block" ? "none" : "block";
+    const header = setupInstructions.querySelector(".accordion-header");
+    header.querySelector("p").textContent =
+      accordionContent.style.display === "block"
+        ? "click to collapse"
+        : "click to expand";
+  });
+
   chrome.runtime.sendMessage({ type: "settingsPageOpened" });
   trackEvent("settings_page_opened", {});
 
