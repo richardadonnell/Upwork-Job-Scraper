@@ -702,26 +702,26 @@ option {
 /* Search-Webhook Pairs */
 .pair-item {
   font-size: 1em;
-  margin-top: 1.25em;
+  margin-bottom: 1.25em;
   border: 0.0625em solid #313131;
-  padding: 0.9375em;
+  padding: 1.25em;
   background-color: #181818;
   border-radius: 0.25em;
-  margin-bottom: 1.25em;
 }
 
 .pair-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1em;
+  margin-bottom: 1.875em;
 }
 
 .pair-title {
   display: flex;
   align-items: center;
-  gap: 1em;
+  gap: 1.25em;
   flex: 1;
+  margin-right: 1.875em;
 }
 
 .pair-name {
@@ -741,29 +741,33 @@ option {
 .pair-actions {
   display: flex;
   gap: 0.625em;
+  align-items: center;
+  margin-left: auto;
 }
 
 .pair-content {
-  margin-top: 1em;
+  margin-top: 1.25em;
 }
 
 .pair-urls {
   display: flex;
   flex-direction: column;
-  gap: 1em;
+  gap: 1.25em;
 }
 
 .search-url-container,
 .webhook-url-container {
   display: flex;
   align-items: center;
-  gap: 0.625em;
+  gap: 1.25em;
 }
 
 .search-url-container label,
 .webhook-url-container label {
-  min-width: 8em;
+  min-width: 7em;
   color: #e0e0e0;
+  font-size: 1em;
+  white-space: nowrap;
 }
 
 .search-url-container input,
@@ -776,8 +780,16 @@ option {
   border: 0.0625em solid #333;
   color: #e0e0e0;
   border-radius: 0.25em;
+  margin-right: 0.625em;
 }
 
+.pair-toggle {
+  display: flex;
+  align-items: center;
+  margin-left: 0.625em;
+}
+
+/* Update button styles to match rest of extension */
 .button-danger {
   background-color: #dc3545;
   color: #fff;
@@ -788,6 +800,7 @@ option {
   font-weight: bold;
   font-family: "DM Serif Display", serif;
   font-size: 1em;
+  margin: 0;
 }
 
 .button-danger:hover {
@@ -795,11 +808,60 @@ option {
   box-shadow: 0 0 30px rgba(220, 53, 69, 0.5);
 }
 
+/* Add New Pair button styling */
+#add-pair {
+  background-color: #108a00;
+  margin-top: 0.625em;
+}
+
+#add-pair:hover {
+  background-color: #4ebc2d;
+  box-shadow: 0 0 30px rgba(16, 138, 0, 0.5);
+}
+
+/* Open URL button styling */
+.open-url {
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  background-color: transparent;
+  color: #108a00;
+  border: 0.0625em solid #333;
+  padding: 0 1.25em;
+  margin: 0;
+  white-space: nowrap;
+}
+
+.open-url:hover {
+  color: #1e1e1e;
+  box-shadow: 0 0 30px rgba(16, 138, 0, 0.5);
+}
+
+/* Test Webhook button styling */
+.test-webhook {
+  background-color: transparent;
+  color: #108a00;
+  border: 0.0625em solid #333;
+  margin: 0;
+}
+
+.test-webhook:hover {
+  color: #1e1e1e;
+  box-shadow: 0 0 30px rgba(16, 138, 0, 0.5);
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .pair-header {
     flex-direction: column;
-    gap: 1em;
+    gap: 1.25em;
+    margin-bottom: 1.25em;
+  }
+
+  .pair-title {
+    width: 100%;
+    flex-direction: row;
+    justify-content: space-between;
   }
 
   .pair-actions {
@@ -811,16 +873,21 @@ option {
   .webhook-url-container {
     flex-direction: column;
     align-items: flex-start;
+    gap: 0.625em;
   }
 
   .search-url-container label,
   .webhook-url-container label {
-    margin-bottom: 0.5em;
+    margin-bottom: 0.3125em;
   }
 
   .search-url-container input,
   .webhook-url-container input {
     width: 100%;
+  }
+
+  .pair-toggle {
+    margin-left: 1.25em;
   }
 }
 
