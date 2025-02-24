@@ -418,6 +418,9 @@ async function initializeSettings() {
     document
       .getElementById("manual-scrape")
       .addEventListener("click", manualScrape);
+
+    // Load existing activity log entries from storage
+    loadActivityLog();
   } catch (error) {
     console.error("Error initializing settings:", error);
     showAlert(`Error initializing settings: ${error.message}`, "error");
@@ -754,6 +757,26 @@ function addToActivityLog(message) {
       }
     }
   );
+}
+
+// Function to load existing activity log entries from storage
+function loadActivityLog() {
+  const logContainer = document.getElementById("log-container");
+  if (logContainer) {
+    chrome.storage.local.get("activityLog", (data) => {
+      const log = data.activityLog || [];
+
+      // Clear the container first
+      logContainer.innerHTML = "";
+
+      // Add each log entry to the log container
+      for (const entry of log) {
+        const logElement = document.createElement("div");
+        logElement.textContent = entry;
+        logContainer.appendChild(logElement);
+      }
+    });
+  }
 }
 
 // Add this before initializeSettings
