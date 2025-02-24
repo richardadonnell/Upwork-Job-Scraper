@@ -465,9 +465,6 @@ try {
     "storage.js"
   );
 
-  // Import the webhook functions at the top of background.js
-  importScripts("webhook.js", "activityLog.js");
-
   async function processJobs(newJobs) {
     try {
       console.log("Starting processJobs with", newJobs.length, "new jobs");

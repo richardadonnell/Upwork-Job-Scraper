@@ -1,26 +1,76 @@
 // Simple lock functions with improved error handling
 async function acquireLock() {
   try {
-    const data = await chrome.storage.local.get(["scrapingLock"]);
+    // Generate a unique lock ID for this operation
+    const lockId =
+      "lock_" + Date.now() + "_" + Math.random().toString(36).substring(2, 11);
+
+    // Get the current lock state first
+    const data = await chrome.storage.local.get([
+      "scrapingLock",
+      "lockTimestamp",
+    ]);
+
+    // Check if there's an existing lock
     if (data.scrapingLock) {
+      // If lock exists, check if it's stale (older than 10 minutes)
+      const now = Date.now();
+      const lockTime = data.lockTimestamp || 0;
+      const lockAgeMinutes = (now - lockTime) / (1000 * 60);
+
+      if (lockAgeMinutes < 10) {
+        // Lock is still valid
+        addToActivityLog(
+          "Lock acquisition failed: Another job scraping operation is in progress (running for " +
+            lockAgeMinutes.toFixed(1) +
+            " minutes)"
+        );
+        return false;
+      }
+
+      // Lock is stale, we'll force release it
+      addToActivityLog(
+        "Breaking stale lock (" + lockAgeMinutes.toFixed(1) + " minutes old)"
+      );
+    }
+
+    // Set the lock with timestamp in a single operation
+    await chrome.storage.local.set({
+      scrapingLock: true,
+      lockTimestamp: Date.now(),
+      lockId: lockId,
+    });
+
+    // Verify our lock was set (check if our lockId was stored)
+    const verification = await chrome.storage.local.get(["lockId"]);
+    if (verification.lockId !== lockId) {
+      addToActivityLog(
+        "Lock verification failed: Another process acquired the lock first"
+      );
       return false;
     }
-    await chrome.storage.local.set({ scrapingLock: true });
+
+    addToActivityLog("Job scraping lock acquired successfully");
     return true;
   } catch (error) {
     console.error("Error acquiring lock:", error);
-    addToActivityLog(`Failed to acquire job scraping lock: ${error.message}`);
+    addToActivityLog("Failed to acquire job scraping lock: " + error.message);
     return false;
   }
 }
 
 async function releaseLock() {
   try {
-    await chrome.storage.local.remove(["scrapingLock"]);
+    await chrome.storage.local.remove([
+      "scrapingLock",
+      "lockTimestamp",
+      "lockId",
+    ]);
+    addToActivityLog("Job scraping lock released");
     return true;
   } catch (error) {
     console.error("Error releasing lock:", error);
-    addToActivityLog(`Failed to release job scraping lock: ${error.message}`);
+    addToActivityLog("Failed to release job scraping lock: " + error.message);
     return false;
   }
 }
