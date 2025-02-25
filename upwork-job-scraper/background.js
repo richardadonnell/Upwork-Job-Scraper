@@ -1,7 +1,62 @@
 // Add global unhandled promise rejection handler
 globalThis.addEventListener("unhandledrejection", (event) => {
-  console.error("Unhandled promise rejection:", event.reason);
-  logAndReportError("Unhandled promise rejection", event.reason);
+  // Enhanced error logging for unhandled rejections
+  const error = event.reason;
+  const errorObj = {
+    message: error.message || "Unknown error",
+    stack: error.stack || "No stack trace available",
+    context: "Unhandled promise rejection",
+    timestamp: new Date().toISOString(),
+    appVersion: chrome.runtime.getManifest().version,
+    extensionId: chrome.runtime.id || "unknown",
+    url: self.location?.href || "unknown",
+    source: "background.js",
+  };
+
+  console.error("Unhandled promise rejection:", errorObj);
+
+  // If error is about connection, add more diagnostic info
+  if (error?.message?.includes("Receiving end does not exist")) {
+    console.error("Connection error details:", {
+      extensionState: {
+        isInitializing,
+        lastInitializationTime,
+        jobScrapingEnabled,
+        checkFrequency,
+        webhookEnabled,
+        notificationsEnabled,
+      },
+      error: error,
+    });
+
+    // Add diagnostic operation
+    const diagOpId = startOperation("diagnose-connection-error");
+    addOperationBreadcrumb(
+      "Connection error detected",
+      {
+        message: error.message,
+        timeElapsedSinceInit: Date.now() - lastInitializationTime,
+      },
+      "error"
+    );
+
+    // Try to log runtime information if available
+    try {
+      chrome.runtime.getPlatformInfo((info) => {
+        addOperationBreadcrumb("Platform info", { platformInfo: info }, "info");
+        endOperation();
+      });
+    } catch (platformError) {
+      addOperationBreadcrumb(
+        "Failed to get platform info",
+        { error: platformError.message },
+        "error"
+      );
+      endOperation(platformError);
+    }
+  }
+
+  logAndReportError("Unhandled promise rejection", error);
   event.preventDefault(); // Prevent the default handling
 });
 
@@ -248,18 +303,74 @@ try {
     }
   });
 
-  // Modify the message listener to include error handling
+  // Modify the message listener to include enhanced error handling
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     let handled = false;
 
+    // Log all received messages for diagnostic purposes
+    console.log("Background script received message:", {
+      type: message.type,
+      sender: sender.id,
+      url: sender.url,
+      timestamp: new Date().toISOString(),
+      tabId: sender.tab?.id,
+    });
+
     const handleAsyncOperation = async (operation) => {
       try {
+        // Create a diagnostic context for the operation
+        const opId = startOperation(`message-handler-${message.type}`);
+        addOperationBreadcrumb("Starting async operation", {
+          messageType: message.type,
+          sender: sender.id,
+        });
+
         const result = await operation();
+
+        addOperationBreadcrumb("Operation completed successfully");
+        endOperation();
+
         sendResponse({ success: true, ...result });
       } catch (error) {
-        console.error("Error in async operation:", error);
-        logAndReportError("Error in async operation", error);
-        sendResponse({ success: false, error: error.message });
+        console.error(
+          `Error in async operation for message type '${message.type}':`,
+          error
+        );
+
+        // Enhanced error details
+        const errorDetails = {
+          messageType: message.type,
+          sender: sender?.id || "unknown",
+          tabId: sender?.tab?.id,
+          url: sender?.url,
+          error: {
+            name: error.name,
+            message: error.message,
+            stack: error.stack,
+          },
+        };
+
+        // Log error with context
+        logAndReportError(
+          `Error in message handler for '${message.type}'`,
+          error,
+          errorDetails
+        );
+
+        // Try to end operation if it exists
+        try {
+          endOperation(error);
+        } catch (opError) {
+          console.error("Error ending operation:", opError);
+        }
+
+        // Send error response
+        sendResponse({
+          success: false,
+          error: error.message,
+          timestamp: Date.now(),
+          details: errorDetails,
+        });
       }
     };
 

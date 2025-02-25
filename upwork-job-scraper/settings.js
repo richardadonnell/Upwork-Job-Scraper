@@ -1,18 +1,179 @@
 function waitForBackgroundScript() {
   console.log("Waiting for background script...");
   return new Promise((resolve) => {
+    let attempts = 0;
+    const maxAttempts = 10;
+
     const checkBackgroundScript = () => {
+      attempts++;
+      console.log(
+        `Background script connection attempt ${attempts}/${maxAttempts}`
+      );
+
       chrome.runtime.sendMessage({ type: "ping" }, (response) => {
         if (chrome.runtime.lastError) {
-          console.log("Background script not ready, retrying...");
-          setTimeout(checkBackgroundScript, 100);
+          const error = chrome.runtime.lastError;
+          console.error("Background script connection error:", {
+            message: error.message,
+            attempt: attempts,
+            extensionId: chrome.runtime.id || "unknown",
+            timestamp: new Date().toISOString(),
+          });
+
+          // Log detailed error for 'Receiving end does not exist' errors
+          if (
+            error.message &&
+            error.message.includes("Receiving end does not exist")
+          ) {
+            console.error("Connection error diagnostic information:", {
+              extensionId: chrome.runtime.id,
+              manifestVersion: chrome.runtime.getManifest().manifest_version,
+              extensionVersion: chrome.runtime.getManifest().version,
+              serviceWorkerStatus: "checking...",
+              browser: navigator.userAgent,
+            });
+
+            // Try to check if background page is registered
+            try {
+              chrome.management.getSelf((info) => {
+                console.log("Extension info:", info);
+              });
+            } catch (mgmtError) {
+              console.error("Failed to get extension info:", mgmtError);
+            }
+          }
+
+          if (attempts < maxAttempts) {
+            // Increasing backoff time with each attempt
+            const backoffTime = Math.min(100 * Math.pow(2, attempts), 10000); // Exponential backoff, max 10 seconds
+            console.log(`Retrying in ${backoffTime}ms...`);
+            setTimeout(checkBackgroundScript, backoffTime);
+          } else {
+            console.error(
+              "Maximum connection attempts reached. Background script may not be running properly."
+            );
+            // Show error to user
+            alert(
+              "Could not connect to extension background script. Please try refreshing the page or reinstalling the extension."
+            );
+            // Resolve anyway to allow partial functionality
+            resolve({ error: "Failed to connect to background script" });
+          }
         } else {
           console.log("Background script is ready");
-          resolve();
+          resolve(response);
         }
       });
     };
+
     checkBackgroundScript();
+  });
+}
+
+// Enhanced function for sending messages to background script with improved error handling
+function sendMessageToBackground(message, retries = 3) {
+  return new Promise((resolve, reject) => {
+    // Add diagnostic information to all outgoing messages
+    const enhancedMessage = {
+      ...message,
+      _metadata: {
+        timestamp: Date.now(),
+        sender: "settings.js",
+        retryCount: retries,
+      },
+    };
+
+    console.log(`Sending message to background script: ${message.type}`, {
+      message: enhancedMessage,
+      retriesLeft: retries,
+    });
+
+    const attemptSend = (remainingRetries) => {
+      chrome.runtime.sendMessage(enhancedMessage, (response) => {
+        if (chrome.runtime.lastError) {
+          const error = chrome.runtime.lastError;
+          console.error("Message send error:", {
+            errorMessage: error.message,
+            messageType: message.type,
+            remainingRetries,
+            timestamp: new Date().toISOString(),
+          });
+
+          // Add detailed diagnostic info for connection errors
+          if (error.message?.includes("Receiving end does not exist")) {
+            console.error("Connection error in sendMessageToBackground:", {
+              extensionId: chrome.runtime.id,
+              messageDetails: message,
+              browserInfo: navigator.userAgent,
+              timestamp: Date.now(),
+            });
+
+            // Try to check if service worker is still registered
+            if ("serviceWorker" in navigator) {
+              navigator.serviceWorker
+                .getRegistrations()
+                .then((registrations) => {
+                  console.log("Service worker registrations:", registrations);
+                })
+                .catch((err) => {
+                  console.error("Error checking service workers:", err);
+                });
+            }
+          }
+
+          if (remainingRetries > 0) {
+            console.log(
+              `Retrying message send (${message.type}), ${remainingRetries} attempts left`
+            );
+            // Exponential backoff
+            const backoffTime = Math.min(
+              1000 * 2 ** (retries - remainingRetries),
+              5000
+            );
+            setTimeout(() => attemptSend(remainingRetries - 1), backoffTime);
+          } else {
+            const finalError = new Error(
+              `Failed to send message to background script: ${error.message}`
+            );
+            console.error("All retry attempts failed:", finalError);
+            reject(finalError);
+
+            // Show UI error if it's an important operation
+            if (
+              message.type === "manualScrape" ||
+              message.type === "updateSchedule" ||
+              message.type === "updateCheckFrequency"
+            ) {
+              showAlert(
+                "Communication with extension background failed. Try reloading the page.",
+                "error"
+              );
+            }
+          }
+        } else if (!response) {
+          const error = new Error(
+            "No response received from background script"
+          );
+          if (remainingRetries > 0) {
+            console.log(
+              `Retrying due to no response (${message.type}), ${remainingRetries} attempts left`
+            );
+            setTimeout(() => attemptSend(remainingRetries - 1), 1000);
+          } else {
+            console.error("No response after all retries:", error);
+            reject(error);
+          }
+        } else {
+          console.log(
+            `Message ${message.type} successfully processed`,
+            response
+          );
+          resolve(response);
+        }
+      });
+    };
+
+    attemptSend(retries);
   });
 }
 
