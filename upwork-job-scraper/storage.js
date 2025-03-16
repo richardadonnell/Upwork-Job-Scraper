@@ -13,7 +13,16 @@ async function getEnabledPairs() {
 }
 
 // Add a new pair
-async function addPair(pair) {
+async function addPair(name, searchUrl, webhookUrl) {
+  const pair = {
+    id: Date.now().toString(),
+    name: name || "New Configuration",
+    searchUrl: searchUrl || "https://www.upwork.com/nx/search/jobs/?sort=recency",
+    webhookUrl: webhookUrl || "",
+    enabled: true,
+    createdAt: new Date().toISOString()
+  };
+
   validatePair(pair);
 
   const pairs = await getAllPairs();
@@ -62,6 +71,25 @@ async function togglePair(id) {
   }
 
   return await updatePair(id, { enabled: !pair.enabled });
+}
+
+// Validate pair data
+function validatePair(pair) {
+  if (!pair || typeof pair !== 'object') {
+    throw new Error('Invalid pair object');
+  }
+  
+  if (!pair.name || typeof pair.name !== 'string') {
+    pair.name = "New Configuration";
+  }
+  
+  if (!pair.searchUrl || typeof pair.searchUrl !== 'string') {
+    pair.searchUrl = "https://www.upwork.com/nx/search/jobs/?sort=recency";
+  }
+  
+  if (!pair.webhookUrl || typeof pair.webhookUrl !== 'string') {
+    pair.webhookUrl = "";
+  }
 }
 
 // Migrate from old storage format

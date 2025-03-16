@@ -568,12 +568,12 @@ try {
   // Import the functions from the new files
   importScripts(
     "errorHandling.js",
+    "storage.js",
     "jobScraping.js",
     "activityLog.js",
     "webhook.js",
     "notifications.js",
-    "utils.js",
-    "storage.js"
+    "utils.js"
   );
 
   async function processJobs(newJobs) {
