@@ -1,3 +1,38 @@
+// Import the functions from the new files first
+importScripts(
+  "errorHandling.js",
+  "storage.js",
+  "jobScraping.js",
+  "activityLog.js",
+  "webhook.js",
+  "notifications.js",
+  "utils.js"
+);
+
+// Define these variables at the very top of the file
+let isInitializing = false;
+let lastInitializationTime = 0;
+let jobScrapingEnabled = true; // Default to true, but we'll load the actual state
+let checkFrequency = 5; // Default to 5 minutes
+let webhookEnabled = false;
+let notificationsEnabled = true; // Default state
+let newJobsCount = 0;
+let lastViewedTimestamp = 0;
+let schedule = {
+  days: ["sun", "mon", "tue", "wed", "thu", "fri", "sat"].reduce(
+    (acc, day) => {
+      acc[day] = true;
+      return acc;
+    },
+    {}
+  ),
+  startTime: "00:00",
+  endTime: "23:59",
+};
+const MIN_INITIALIZATION_INTERVAL = 5000; // 5 seconds minimum between initializations
+const selectedFeedSource = "most-recent";
+const customSearchUrl = "";
+
 // Add global unhandled promise rejection handler
 globalThis.addEventListener("unhandledrejection", (event) => {
   // Enhanced error logging for unhandled rejections
@@ -71,31 +106,6 @@ try {
       logAndReportError("Error opening options page", error);
     }
   });
-
-  // Add these variables at the top of the file
-  const selectedFeedSource = "most-recent";
-  const customSearchUrl = "";
-  let checkFrequency = 5; // Default to 5 minutes
-  let webhookEnabled = false;
-  let jobScrapingEnabled = true; // Default to true, but we'll load the actual state
-  let notificationsEnabled = true; // Default state
-  let newJobsCount = 0;
-  let lastViewedTimestamp = 0;
-  let schedule = {
-    days: ["sun", "mon", "tue", "wed", "thu", "fri", "sat"].reduce(
-      (acc, day) => {
-        acc[day] = true;
-        return acc;
-      },
-      {}
-    ),
-    startTime: "00:00",
-    endTime: "23:59",
-  };
-
-  let isInitializing = false;
-  let lastInitializationTime = 0;
-  const MIN_INITIALIZATION_INTERVAL = 5000; // 5 seconds minimum between initializations
 
   // Initialize settings when extension starts
   chrome.storage.sync.get(
@@ -564,17 +574,6 @@ try {
 
     return currentMinutes >= startMinutes && currentMinutes <= endMinutes;
   }
-
-  // Import the functions from the new files
-  importScripts(
-    "errorHandling.js",
-    "storage.js",
-    "jobScraping.js",
-    "activityLog.js",
-    "webhook.js",
-    "notifications.js",
-    "utils.js"
-  );
 
   async function processJobs(newJobs) {
     try {

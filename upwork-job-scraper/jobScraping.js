@@ -76,7 +76,8 @@ async function releaseLock() {
 }
 
 // Wrap your main functions with try-catch blocks
-const jobScrapingEnabled = true; // or load the value from storage
+// Remove the redundant declaration that conflicts with background.js
+// const jobScrapingEnabled = true; // or load the value from storage
 
 async function checkForNewJobs(jobScrapingEnabled) {
   let activeTab = null;
