@@ -1,5 +1,3 @@
-let notificationsEnabled = true; // Default value
-
 // Add function to update the notifications state
 function updateNotificationsEnabled(enabled) {
   notificationsEnabled = enabled;

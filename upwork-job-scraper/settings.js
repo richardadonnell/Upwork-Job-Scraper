@@ -792,9 +792,13 @@ async function addNewPair() {
     console.log("Adding new pair...");
     const pair = createDefaultPair();
     console.log("Created default pair:", pair);
-    await addPair(pair);
-    console.log("Pair added to storage");
-    const pairElement = createPairElement(pair);
+    
+    // Call addPair with individual parameters instead of the whole pair object
+    const savedPair = await addPair(pair.name, pair.searchUrl, pair.webhookUrl);
+    console.log("Pair added to storage:", savedPair);
+    
+    // Use the returned pair from storage which has the correct ID
+    const pairElement = createPairElement(savedPair);
     console.log("Created pair element");
     document.getElementById("pairs-container").appendChild(pairElement);
     console.log("Pair element added to DOM");
