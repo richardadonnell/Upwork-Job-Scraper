@@ -878,7 +878,7 @@ option {
 }
 
 /* Open URL button styling */
-.open-url {
+.open-search-url {
   height: 2.5em;
   display: flex;
   align-items: center;
@@ -886,23 +886,34 @@ option {
   background-color: transparent;
   color: #108a00;
   border: 0.0625em solid #333;
-  padding: 0 1.25em;
+  padding: 0.625em 1.25em;
   margin: 0;
   white-space: nowrap;
   box-sizing: border-box;
+  font-family: "DM Sans", sans-serif;
+  font-size: 1em;
 }
 
-.open-url:hover {
+.open-search-url:hover {
   color: #1e1e1e;
   box-shadow: 0 0 30px rgba(16, 138, 0, 0.5);
 }
 
 /* Test Webhook button styling */
 .test-webhook {
+  height: 2.5em;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background-color: transparent;
   color: #108a00;
   border: 0.0625em solid #333;
+  padding: 0.625em 1.25em;
   margin: 0;
+  white-space: nowrap;
+  font-family: "DM Sans", sans-serif;
+  font-size: 1em;
 }
 
 .test-webhook:hover {
