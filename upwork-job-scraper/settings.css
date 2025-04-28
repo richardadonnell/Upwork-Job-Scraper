@@ -860,13 +860,23 @@ option {
   margin-left: auto;
   margin-right: 0;
   margin-bottom: 0;
+  transition: background-color 0.2s ease, border-color 0.2s ease,
+    color 0.2s ease, opacity 0.2s ease;
 }
 
-.button-danger:hover {
+.button-danger:hover:not(:disabled) {
   background-color: rgba(255, 77, 77, 0.1);
   border-color: #ff3333;
   color: #ff3333;
   box-shadow: none;
+}
+
+.button-danger:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background-color: transparent;
+  color: #ff4d4d;
+  border-color: #ff4d4d;
 }
 
 /* Add New Pair button styling */

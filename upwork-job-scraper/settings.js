@@ -628,7 +628,7 @@ function createPairElement(pair) {
     if (searchUrlInput.value.trim()) {
       chrome.tabs.create({ url: searchUrlInput.value.trim() });
     } else {
-      alert("Please enter a valid search URL first.");
+      showAlert("Please enter a valid search URL first.", "error");
     }
   });
 
@@ -639,7 +639,10 @@ function createPairElement(pair) {
   testWebhookButton.addEventListener("click", () => testPairWebhook(pair.id));
 
   const removeButton = pairElement.querySelector(".remove-pair");
-  removeButton.addEventListener("click", () => removePairElement(pair.id));
+  // Updated: Call handleRemoveClick with the button element
+  removeButton.addEventListener("click", () =>
+    handleRemoveClick(pair.id, removeButton)
+  );
 
   return pairElement;
 }
@@ -812,24 +815,73 @@ async function testPairWebhook(pairId) {
   }
 }
 
-// Function to remove a pair
-async function removePairElement(pairId) {
-  if (!confirm("Are you sure you want to remove this pair?")) return;
+// Function to handle the remove button click, implementing the two-step confirmation
+async function handleRemoveClick(pairId, button) {
+  // Clear any existing interval if the button is clicked again quickly
+  if (button.dataset.confirmIntervalId) {
+    clearInterval(parseInt(button.dataset.confirmIntervalId, 10));
+    delete button.dataset.confirmIntervalId;
+  }
 
-  try {
-    const response = await sendMessageToBackground({
-      type: "removePair",
-      id: pairId,
-    });
-    if (!response.success) {
-      throw new Error(response.error || "Failed to remove pair");
+  // Check if the button is already in the 'confirming' state
+  if (button.dataset.confirming === "true") {
+    // Second click: Proceed with removal
+    button.textContent = "Removing...";
+    button.disabled = true;
+    button.style.opacity = ""; // Reset opacity
+
+    try {
+      const response = await sendMessageToBackground({
+        type: "removePair",
+        id: pairId,
+      });
+      if (!response.success) {
+        throw new Error(response.error || "Failed to remove pair");
+      }
+      const element = document.querySelector(`[data-pair-id="${pairId}"]`);
+      if (element) {
+        element.remove();
+      }
+      showAlert("Pair removed successfully", "success");
+      // Clean up confirmation state (though element is removed)
+      delete button.dataset.confirming;
+      delete button.dataset.confirmIntervalId;
+    } catch (error) {
+      console.error(`Error removing pair ${pairId}:`, error);
+      showAlert(error.message, "error");
+      // Restore button state on error
+      button.textContent = "Remove";
+      button.disabled = false;
+      button.style.opacity = ""; // Reset opacity
+      delete button.dataset.confirming;
+      delete button.dataset.confirmIntervalId;
     }
-    const element = document.querySelector(`[data-pair-id="${pairId}"]`);
-    if (element) element.remove();
-    showAlert("Pair removed successfully", "success");
-  } catch (error) {
-    console.error("Error removing pair:", error);
-    showAlert(error.message, "error");
+  } else {
+    // First click: Enter 'confirming' state
+    button.dataset.confirming = "true";
+    button.disabled = true;
+    let countdown = 3;
+    button.textContent = `Are you sure? (${countdown})`;
+
+    // Use setInterval for countdown
+    const intervalId = setInterval(() => {
+      countdown--;
+      if (countdown > 0) {
+        button.textContent = `Are you sure? (${countdown})`;
+      } else {
+        // Countdown finished
+        clearInterval(intervalId);
+        delete button.dataset.confirmIntervalId;
+        // Only re-enable if still in confirming state (might have been removed)
+        if (button.dataset.confirming === "true") {
+          button.disabled = false;
+          button.textContent = "Are you sure?"; // Final confirmation text
+        }
+      }
+    }, 1000); // 1 second interval
+
+    // Store the interval ID so it can be cleared if needed
+    button.dataset.confirmIntervalId = intervalId.toString();
   }
 }
 
