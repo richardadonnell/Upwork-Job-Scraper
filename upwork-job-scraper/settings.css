@@ -844,7 +844,6 @@ option {
 .pair-toggle {
   display: flex;
   align-items: center;
-  margin-left: 0.625em;
 }
 
 /* Update button styles to match rest of extension */
