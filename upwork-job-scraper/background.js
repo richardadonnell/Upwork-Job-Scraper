@@ -447,7 +447,22 @@ try {
         sendResponse({ success: true });
       } else if (message.type === "testWebhook") {
         handled = true;
+
+        // Perform validation *before* calling handleAsyncOperation
+        if (!globalThis.isValidUrl(message.webhookUrl)) {
+          console.log("Test webhook skipped: Invalid URL format provided.");
+          sendResponse({
+            success: false,
+            error: "Invalid webhook URL format. Please provide a valid URL.",
+          });
+          return true; // Indicate response was sent
+        }
+
+        // If validation passes, proceed with the async operation
         handleAsyncOperation(async () => {
+          // No need to re-validate URL here
+
+          // Existing fetch logic
           const response = await fetch(message.webhookUrl, {
             method: "POST",
             headers: {

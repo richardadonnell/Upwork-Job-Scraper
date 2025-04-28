@@ -619,6 +619,8 @@ function createPairElement(pair) {
   webhookUrlInput.addEventListener("input", (e) => {
     // Immediate update on any change
     updatePairField(pair.id, "webhookUrl", e.target.value.trim());
+    // Also update the button state
+    testWebhookButton.disabled = e.target.value.trim() === "";
   });
 
   const openUrlButton = pairElement.querySelector(".open-search-url");
@@ -631,6 +633,9 @@ function createPairElement(pair) {
   });
 
   const testWebhookButton = pairElement.querySelector(".test-webhook");
+  // Set initial state of the test button
+  testWebhookButton.disabled =
+    !pair.webhookUrl || pair.webhookUrl.trim() === "";
   testWebhookButton.addEventListener("click", () => testPairWebhook(pair.id));
 
   const removeButton = pairElement.querySelector(".remove-pair");
@@ -714,6 +719,20 @@ async function togglePairEnabled(pairId) {
 
 // Function to test a pair's webhook
 async function testPairWebhook(pairId) {
+  // Get the button element associated with this pair
+  const pairElement = document.querySelector(`[data-pair-id="${pairId}"]`);
+  const testButton = pairElement?.querySelector(".test-webhook");
+
+  if (!testButton) {
+    console.error("Could not find test button for pair:", pairId);
+    showAlert("Error: UI element not found.", "error");
+    return;
+  }
+
+  const originalButtonText = testButton.textContent;
+  testButton.disabled = true;
+  testButton.textContent = "Testing...";
+
   try {
     // Fetch the specific pair's data from the background script
     const pairsResponse = await sendMessageToBackground({
@@ -726,20 +745,12 @@ async function testPairWebhook(pairId) {
     }
     const pair = pairsResponse.results.find((p) => p.id === pairId);
     if (!pair) {
-      // If pair not found, show alert and return (or potentially throw, as this is unexpected)
       showAlert("Error: Could not find the specified pair.", "error");
+      // No need to throw here, just return after showing the alert
       return;
     }
 
-    // Check if webhook URL is empty
-    if (!pair.webhookUrl) {
-      // Show the alert to the user
-      showAlert("Webhook URL is not set for this pair.", "error");
-      // Exit the function early without throwing an error
-      return;
-    }
-
-    // If webhook URL exists, continue with creating the payload and sending the test
+    // Create the test payload
     const testPayload = {
       title: "Example Job Title",
       url: "https://www.upwork.com/jobs/example",
@@ -784,15 +795,20 @@ async function testPairWebhook(pairId) {
     });
 
     if (!response.success) {
-      // Throw an error here ONLY if the background script reported a failure
-      throw new Error(response.error || "Webhook test failed");
+      // Throw the error received from the background script
+      throw new Error(response.error || "Webhook test failed in background");
     }
 
-    showAlert("Webhook test successful!", "success");
+    // Use a more accurate success message
+    showAlert("Webhook test sent. Received success response (2xx).", "success");
   } catch (error) {
-    // This catch block will now only handle errors from fetching pairs or the actual webhook test
     console.error("Error testing webhook:", error);
+    // Show the specific error message from the catch block
     showAlert(`Webhook test failed: ${error.message}`, "error");
+  } finally {
+    // Ensure the button is always re-enabled and text restored
+    testButton.disabled = false;
+    testButton.textContent = originalButtonText;
   }
 }
 
