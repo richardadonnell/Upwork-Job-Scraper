@@ -643,53 +643,68 @@ function createPairElement(pair) {
 async function updatePairField(pairId, field, value) {
   try {
     console.log(`Updating ${field} for pair ${pairId} to:`, value);
-    const pairs = await getAllPairs();
-    const pair = pairs.find((p) => p.id === pairId);
+    // Get the current state of the pair to validate against
+    const pairs = await sendMessageToBackground({ type: "getAllPairs" });
+    const pair = pairs.results.find((p) => p.id === pairId); // Assuming response structure { success: true, results: [...] }
     if (!pair) {
       throw new Error("Pair not found");
     }
 
     // Create a copy of the pair for updating
-    const updatedPair = { ...pair };
-    updatedPair[field] = value;
+    const updatedPairData = { ...pair };
+    updatedPairData[field] = value;
 
     // Special handling for URL fields
     if (field === "webhookUrl" || field === "searchUrl") {
       const trimmedValue = value.trim();
-      updatedPair[field] = trimmedValue;
+      updatedPairData[field] = trimmedValue;
     }
 
-    // Validate and save the updated pair
-    try {
-      validatePair(updatedPair);
-      await updatePair(pairId, updatedPair);
-      console.log(`Successfully updated ${field} for pair ${pairId}`);
+    // Validate locally before sending to background (optional but good practice)
+    // This validation logic might need adjustment based on how storage.js validates
+    // Since storage.js handles validation on update, we might skip strict local validation
+    // validatePair(updatedPairData);
 
-      // Only show success alert for major changes
-      if (field === "name" || field === "enabled") {
-        showAlert("Pair updated successfully", "success");
-      }
-    } catch (validationError) {
-      console.error(`Validation error for ${field}:`, validationError);
-      showAlert(validationError.message, "error");
+    // Send update request to background script
+    const response = await sendMessageToBackground({
+      type: "updatePair",
+      id: pairId,
+      updates: { [field]: value.trim() }, // Send only the specific update
+    });
 
-      // Revert the UI to the last valid state
-      const pairElement = document.querySelector(`[data-pair-id="${pairId}"]`);
-      if (pairElement) {
-        const input = pairElement.querySelector(`.${field.toLowerCase()}`);
-        if (input) input.value = pair[field] || "";
-      }
+    if (!response.success) {
+      throw new Error(response.error || "Failed to update pair in background");
+    }
+
+    console.log(`Successfully updated ${field} for pair ${pairId}`);
+
+    // Only show success alert for major changes
+    if (field === "name" || field === "enabled") {
+      showAlert("Pair updated successfully", "success");
     }
   } catch (error) {
     console.error(`Error updating ${field} for pair ${pairId}:`, error);
     showAlert(error.message, "error");
+
+    // Optional: Revert UI if needed, although background should be source of truth
+    // const pairElement = document.querySelector(`[data-pair-id="${pairId}"]`);
+    // if (pairElement) {
+    //   const input = pairElement.querySelector(`.${field.toLowerCase()}`);
+    //   // Re-fetch might be better than reverting to potentially stale local state
+    // }
   }
 }
 
 // Function to toggle pair enabled state
 async function togglePairEnabled(pairId) {
   try {
-    await togglePair(pairId);
+    const response = await sendMessageToBackground({
+      type: "togglePair",
+      id: pairId,
+    });
+    if (!response.success) {
+      throw new Error(response.error || "Failed to toggle pair status");
+    }
     showAlert("Pair status updated", "success");
   } catch (error) {
     console.error("Error toggling pair:", error);
@@ -700,10 +715,31 @@ async function togglePairEnabled(pairId) {
 // Function to test a pair's webhook
 async function testPairWebhook(pairId) {
   try {
-    const pairs = await getAllPairs();
-    const pair = pairs.find((p) => p.id === pairId);
-    if (!pair) throw new Error("Pair not found");
+    // Fetch the specific pair's data from the background script
+    const pairsResponse = await sendMessageToBackground({
+      type: "getAllPairs",
+    });
+    if (!pairsResponse.success) {
+      throw new Error(
+        pairsResponse.error || "Failed to fetch pairs for testing"
+      );
+    }
+    const pair = pairsResponse.results.find((p) => p.id === pairId);
+    if (!pair) {
+      // If pair not found, show alert and return (or potentially throw, as this is unexpected)
+      showAlert("Error: Could not find the specified pair.", "error");
+      return;
+    }
 
+    // Check if webhook URL is empty
+    if (!pair.webhookUrl) {
+      // Show the alert to the user
+      showAlert("Webhook URL is not set for this pair.", "error");
+      // Exit the function early without throwing an error
+      return;
+    }
+
+    // If webhook URL exists, continue with creating the payload and sending the test
     const testPayload = {
       title: "Example Job Title",
       url: "https://www.upwork.com/jobs/example",
@@ -741,14 +777,20 @@ async function testPairWebhook(pairId) {
       },
     };
 
-    await sendMessageToBackground({
+    const response = await sendMessageToBackground({
       type: "testWebhook",
       webhookUrl: pair.webhookUrl,
       testPayload,
     });
 
+    if (!response.success) {
+      // Throw an error here ONLY if the background script reported a failure
+      throw new Error(response.error || "Webhook test failed");
+    }
+
     showAlert("Webhook test successful!", "success");
   } catch (error) {
+    // This catch block will now only handle errors from fetching pairs or the actual webhook test
     console.error("Error testing webhook:", error);
     showAlert(`Webhook test failed: ${error.message}`, "error");
   }
@@ -759,7 +801,13 @@ async function removePairElement(pairId) {
   if (!confirm("Are you sure you want to remove this pair?")) return;
 
   try {
-    await removePair(pairId);
+    const response = await sendMessageToBackground({
+      type: "removePair",
+      id: pairId,
+    });
+    if (!response.success) {
+      throw new Error(response.error || "Failed to remove pair");
+    }
     const element = document.querySelector(`[data-pair-id="${pairId}"]`);
     if (element) element.remove();
     showAlert("Pair removed successfully", "success");
@@ -772,7 +820,11 @@ async function removePairElement(pairId) {
 // Function to load all pairs
 async function loadPairs() {
   try {
-    const pairs = await getAllPairs();
+    const response = await sendMessageToBackground({ type: "getAllPairs" });
+    if (!response.success) {
+      throw new Error(response.error || "Failed to load pairs");
+    }
+    const pairs = response.results || []; // Expecting { success: true, results: [...] }
     const pairsContainer = document.getElementById("pairs-container");
     pairsContainer.innerHTML = ""; // Clear existing pairs
 
@@ -783,21 +835,37 @@ async function loadPairs() {
   } catch (error) {
     console.error("Error loading pairs:", error);
     showAlert(`Error loading pairs: ${error.message}`, "error");
+    // Add specific handling for the original error if needed
+    if (error.message.includes("getAllPairs is not defined")) {
+      showAlert(
+        "Critical error: Extension components failed to connect. Please try reloading or reinstalling.",
+        "error"
+      );
+    }
   }
 }
 
 // Function to add a new pair
 async function addNewPair() {
   try {
-    console.log("Adding new pair...");
-    const pair = createDefaultPair();
-    console.log("Created default pair:", pair);
-    
-    // Call addPair with individual parameters instead of the whole pair object
-    const savedPair = await addPair(pair.name, pair.searchUrl, pair.webhookUrl);
-    console.log("Pair added to storage:", savedPair);
-    
-    // Use the returned pair from storage which has the correct ID
+    console.log("Adding new pair via background script...");
+    const defaultPair = createDefaultPair(); // Keep local helper for defaults
+
+    // Send request to background to add the pair
+    const response = await sendMessageToBackground({
+      type: "addPair",
+      name: defaultPair.name,
+      searchUrl: defaultPair.searchUrl,
+      webhookUrl: defaultPair.webhookUrl,
+    });
+
+    if (!response.success || !response.pair) {
+      throw new Error(response.error || "Failed to add pair in background");
+    }
+
+    const savedPair = response.pair; // Use the pair returned by background (with ID)
+    console.log("Pair added via background:", savedPair);
+
     const pairElement = createPairElement(savedPair);
     console.log("Created pair element");
     document.getElementById("pairs-container").appendChild(pairElement);
@@ -807,6 +875,18 @@ async function addNewPair() {
     console.error("Error adding new pair:", error);
     showAlert(error.message, "error");
   }
+}
+
+// Helper function to create a default pair structure (remains local to settings.js)
+function createDefaultPair() {
+  return {
+    id: Date.now().toString(), // Temporary ID, background will assign final
+    name: "New Configuration",
+    searchUrl: "https://www.upwork.com/nx/search/jobs/?sort=recency",
+    webhookUrl: "",
+    enabled: true,
+    createdAt: new Date().toISOString(), // Background might override
+  };
 }
 
 // Initialize settings when the page loads
