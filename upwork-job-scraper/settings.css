@@ -982,3 +982,33 @@ option {
   --error-color: #dc3545;
   --error-color-hover: #c82333;
 }
+
+/* Add styles for the new info banner */
+.info-banner {
+  background-color: #2c2c2c; /* Same as setup instructions background */
+  color: #e0e0e0; /* Default text color */
+  padding: 8px 32px 8px 12px; /* Similar padding to the alert, adjust as needed */
+  border-radius: 0.25em;
+  margin-bottom: 1.25em; /* Spacing below the banner */
+  font-size: 0.75em; /* Match surrounding text */
+  line-height: 1.6;
+  border: 1px solid #313131; /* Subtle border like job container */
+}
+
+.info-banner p {
+  margin: 0;
+}
+
+.info-banner strong {
+  color: #108a00; /* Use theme color for emphasis */
+}
+
+.info-banner a {
+  color: #4ebc2d; /* Lighter green for links inside */
+  font-weight: bold;
+  text-decoration: underline;
+}
+
+.info-banner a:hover {
+  color: #fff; /* White on hover */
+}
