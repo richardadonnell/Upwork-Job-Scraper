@@ -1230,18 +1230,37 @@ function toggleJobDetails(jobElement) {
 // Add this function before initializeSettings
 async function manualScrape() {
   try {
-    const response = await sendMessageToBackground({ type: "manualScrape" });
-    if (response.success) {
-      showAlert("Manual scrape started successfully", "success");
-      addToActivityLog("Manual scrape initiated");
-    } else {
-      showAlert(`Manual scrape failed: ${response.error}`, "error");
-      addToActivityLog(`Manual scrape failed: ${response.error}`);
-    }
+    // Show notification immediately
+    showAlert("Manual scrape initiated", "success");
+    addToActivityLog("Manual scrape initiated");
+
+    // Send message to background without waiting for completion confirmation for this specific alert
+    sendMessageToBackground({ type: "manualScrape" })
+      .then((response) => {
+        if (!response.success) {
+          // Handle potential errors reported *after* the scrape attempt
+          showAlert(`Manual scrape issue: ${response.error}`, "error");
+          addToActivityLog(`Manual scrape issue: ${response.error}`);
+        } else {
+          // Optionally, show a *different* notification upon completion if needed,
+          // or just log it. For now, we'll just log completion/success in background.
+          console.log("Background reported manual scrape process completed.");
+        }
+      })
+      .catch((error) => {
+        // Handle errors during the message sending itself
+        console.error("Error sending manual scrape message:", error);
+        showAlert(
+          `Failed to initiate manual scrape: ${error.message}`,
+          "error"
+        );
+        addToActivityLog(`Failed to initiate manual scrape: ${error.message}`);
+      });
   } catch (error) {
-    console.error("Error during manual scrape:", error);
-    showAlert(`Manual scrape failed: ${error.message}`, "error");
-    addToActivityLog(`Manual scrape failed: ${error.message}`);
+    // Catch synchronous errors in setting up the call (unlikely here)
+    console.error("Unexpected error setting up manual scrape:", error);
+    showAlert(`Error during manual scrape setup: ${error.message}`, "error");
+    addToActivityLog(`Error during manual scrape setup: ${error.message}`);
   }
 }
 
