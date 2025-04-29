@@ -264,9 +264,10 @@ button:hover {
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: #ccc;
+  background-color: #ffffff24;
   transition: 0.4s;
   border-radius: 2.125em;
+  border: 1px solid #ffffff74;
 }
 
 .slider:before {
@@ -849,8 +850,8 @@ option {
 /* Update button styles to match rest of extension */
 .button-danger {
   background-color: transparent;
-  color: #ff4d4d;
-  border: 1px solid #ff4d4d;
+  color: #ff4d4d97;
+  border: 1px solid #ff4d4d97;
   padding: 0.625em 1.25em;
   cursor: pointer;
   border-radius: 0.25em;
@@ -993,6 +994,7 @@ option {
   font-size: 0.75em; /* Match surrounding text */
   line-height: 1.6;
   border: 1px solid #313131; /* Subtle border like job container */
+  border-left: 4px solid #108a00; /* Add green left border */
 }
 
 .info-banner p {
