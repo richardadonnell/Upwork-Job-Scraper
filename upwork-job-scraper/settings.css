@@ -264,9 +264,10 @@ button:hover {
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: #ccc;
+  background-color: #ffffff24;
   transition: 0.4s;
   border-radius: 2.125em;
+  border: 1px solid #ffffff74;
 }
 
 .slider:before {
@@ -844,26 +845,39 @@ option {
 .pair-toggle {
   display: flex;
   align-items: center;
-  margin-left: 0.625em;
 }
 
 /* Update button styles to match rest of extension */
 .button-danger {
-  background-color: #dc3545;
-  color: #fff;
-  border: none;
+  background-color: transparent;
+  color: #ff4d4d97;
+  border: 1px solid #ff4d4d97;
   padding: 0.625em 1.25em;
   cursor: pointer;
   border-radius: 0.25em;
   font-weight: bold;
   font-family: "DM Serif Display", serif;
   font-size: 1em;
-  margin: 0;
+  margin-left: auto;
+  margin-right: 0;
+  margin-bottom: 0;
+  transition: background-color 0.2s ease, border-color 0.2s ease,
+    color 0.2s ease, opacity 0.2s ease;
 }
 
-.button-danger:hover {
-  background-color: #c82333;
-  box-shadow: 0 0 30px rgba(220, 53, 69, 0.5);
+.button-danger:hover:not(:disabled) {
+  background-color: rgba(255, 77, 77, 0.1);
+  border-color: #ff3333;
+  color: #ff3333;
+  box-shadow: none;
+}
+
+.button-danger:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background-color: transparent;
+  color: #ff4d4d;
+  border-color: #ff4d4d;
 }
 
 /* Add New Pair button styling */
@@ -878,7 +892,7 @@ option {
 }
 
 /* Open URL button styling */
-.open-url {
+.open-search-url {
   height: 2.5em;
   display: flex;
   align-items: center;
@@ -886,23 +900,34 @@ option {
   background-color: transparent;
   color: #108a00;
   border: 0.0625em solid #333;
-  padding: 0 1.25em;
+  padding: 0.625em 1.25em;
   margin: 0;
   white-space: nowrap;
   box-sizing: border-box;
+  font-family: "DM Sans", sans-serif;
+  font-size: 1em;
 }
 
-.open-url:hover {
+.open-search-url:hover {
   color: #1e1e1e;
   box-shadow: 0 0 30px rgba(16, 138, 0, 0.5);
 }
 
 /* Test Webhook button styling */
 .test-webhook {
+  height: 2.5em;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background-color: transparent;
   color: #108a00;
   border: 0.0625em solid #333;
+  padding: 0.625em 1.25em;
   margin: 0;
+  white-space: nowrap;
+  font-family: "DM Sans", sans-serif;
+  font-size: 1em;
 }
 
 .test-webhook:hover {
@@ -957,4 +982,35 @@ option {
   --primary-color-hover: #4ebc2d;
   --error-color: #dc3545;
   --error-color-hover: #c82333;
+}
+
+/* Add styles for the new info banner */
+.info-banner {
+  background-color: #2c2c2c; /* Same as setup instructions background */
+  color: #e0e0e0; /* Default text color */
+  padding: 8px 32px 8px 12px; /* Similar padding to the alert, adjust as needed */
+  border-radius: 0.25em;
+  margin-bottom: 1.25em; /* Spacing below the banner */
+  font-size: 0.75em; /* Match surrounding text */
+  line-height: 1.6;
+  border: 1px solid #313131; /* Subtle border like job container */
+  border-left: 4px solid #108a00; /* Add green left border */
+}
+
+.info-banner p {
+  margin: 0;
+}
+
+.info-banner strong {
+  color: #108a00; /* Use theme color for emphasis */
+}
+
+.info-banner a {
+  color: #4ebc2d; /* Lighter green for links inside */
+  font-weight: bold;
+  text-decoration: underline;
+}
+
+.info-banner a:hover {
+  color: #fff; /* White on hover */
 }

@@ -81,6 +81,7 @@ async function releaseLock() {
 
 async function checkForNewJobs(jobScrapingEnabled) {
   let activeTab = null;
+  let lockAcquired = false;
 
   try {
     if (!jobScrapingEnabled) {
@@ -88,8 +89,9 @@ async function checkForNewJobs(jobScrapingEnabled) {
       return;
     }
 
-    // Try to acquire lock
-    if (!(await acquireLock())) {
+    // Try to acquire lock and set the flag
+    lockAcquired = await acquireLock();
+    if (!lockAcquired) {
       addToActivityLog(
         "Another job scraping operation is in progress. Skipping."
       );
@@ -218,7 +220,8 @@ async function checkForNewJobs(jobScrapingEnabled) {
             // Always try to close the tab
             if (activeTab) {
               try {
-                await chrome.tabs.remove(activeTab.id);
+                const tabToCloseId = activeTab.id;
+                await chrome.tabs.remove(tabToCloseId);
                 activeTab = null;
               } catch (error) {
                 console.error(`Failed to close tab for ${pair.name}:`, error);
@@ -239,38 +242,39 @@ async function checkForNewJobs(jobScrapingEnabled) {
           // Ensure tab is closed even if there's an error
           if (activeTab) {
             try {
-              await chrome.tabs.remove(activeTab.id);
+              const tabToCloseId = activeTab.id;
+              await chrome.tabs.remove(tabToCloseId);
               activeTab = null;
             } catch (closeError) {
-              console.error(`Failed to close tab after error:`, closeError);
+              console.error(
+                `Failed to close tab after error for ${pair.name}:`,
+                closeError
+              );
             }
           }
         }
       }
     } finally {
-      // Always release the lock when we're done
-      const lockReleased = await releaseLock();
-      if (lockReleased) {
-        addToActivityLog("Job scraping lock released");
-      }
+      console.log("Inner finally block executed (lock release removed).");
     }
   } catch (error) {
     console.error("Error in checkForNewJobs:", error);
     addToActivityLog(`Error in job check: ${error.message}`);
-
-    // Make sure we release the lock even in case of errors
-    const lockReleased = await releaseLock();
-    if (lockReleased) {
-      addToActivityLog("Job scraping lock released after error");
-    }
 
     // Final attempt to clean up any leftover tab
     if (activeTab) {
       try {
         await chrome.tabs.remove(activeTab.id);
       } catch (closeError) {
-        console.error("Failed to close tab in error handler:", closeError);
+        console.error(
+          "Failed to close tab in outer error handler:",
+          closeError
+        );
       }
+    }
+  } finally {
+    if (lockAcquired) {
+      await releaseLock();
     }
   }
 }

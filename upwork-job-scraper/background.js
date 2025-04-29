@@ -19,13 +19,10 @@ let notificationsEnabled = true; // Default state
 let newJobsCount = 0;
 let lastViewedTimestamp = 0;
 let schedule = {
-  days: ["sun", "mon", "tue", "wed", "thu", "fri", "sat"].reduce(
-    (acc, day) => {
-      acc[day] = true;
-      return acc;
-    },
-    {}
-  ),
+  days: ["sun", "mon", "tue", "wed", "thu", "fri", "sat"].reduce((acc, day) => {
+    acc[day] = true;
+    return acc;
+  }, {}),
   startTime: "00:00",
   endTime: "23:59",
 };
@@ -450,7 +447,22 @@ try {
         sendResponse({ success: true });
       } else if (message.type === "testWebhook") {
         handled = true;
+
+        // Perform validation *before* calling handleAsyncOperation
+        if (!globalThis.isValidUrl(message.webhookUrl)) {
+          console.log("Test webhook skipped: Invalid URL format provided.");
+          sendResponse({
+            success: false,
+            error: "Invalid webhook URL format. Please provide a valid URL.",
+          });
+          return true; // Indicate response was sent
+        }
+
+        // If validation passes, proceed with the async operation
         handleAsyncOperation(async () => {
+          // No need to re-validate URL here
+
+          // Existing fetch logic
           const response = await fetch(message.webhookUrl, {
             method: "POST",
             headers: {
@@ -523,6 +535,48 @@ try {
         updateAlarm(); // Recreate alarm with new schedule
         addToActivityLog("Schedule updated, next check time recalculated");
         handled = true;
+      } else if (message.type === "getAllPairs") {
+        handled = true;
+        handleAsyncOperation(async () => {
+          const pairs = await globalThis.getAllPairs();
+          return { results: pairs };
+        });
+        return true; // Respond asynchronously
+      } else if (message.type === "addPair") {
+        handled = true;
+        handleAsyncOperation(async () => {
+          const savedPair = await globalThis.addPair(
+            message.name,
+            message.searchUrl,
+            message.webhookUrl
+          );
+          return { pair: savedPair };
+        });
+        return true; // Respond asynchronously
+      } else if (message.type === "updatePair") {
+        handled = true;
+        handleAsyncOperation(async () => {
+          const updatedPair = await globalThis.updatePair(
+            message.id,
+            message.updates
+          );
+          return { pair: updatedPair };
+        });
+        return true; // Respond asynchronously
+      } else if (message.type === "removePair") {
+        handled = true;
+        handleAsyncOperation(async () => {
+          await globalThis.removePair(message.id);
+          return {}; // No data needed on success
+        });
+        return true; // Respond asynchronously
+      } else if (message.type === "togglePair") {
+        handled = true;
+        handleAsyncOperation(async () => {
+          const updatedPair = await globalThis.togglePair(message.id);
+          return { updatedPair: updatedPair };
+        });
+        return true; // Respond asynchronously
       }
     } catch (error) {
       console.error("Error in message listener:", error);
