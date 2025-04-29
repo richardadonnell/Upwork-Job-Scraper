@@ -574,7 +574,7 @@ try {
         handled = true;
         handleAsyncOperation(async () => {
           const updatedPair = await globalThis.togglePair(message.id);
-          return { pair: updatedPair };
+          return { updatedPair: updatedPair };
         });
         return true; // Respond asynchronously
       }

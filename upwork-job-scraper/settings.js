@@ -710,10 +710,15 @@ async function togglePairEnabled(pairId) {
       type: "togglePair",
       id: pairId,
     });
-    if (!response.success) {
-      throw new Error(response.error || "Failed to toggle pair status");
+    if (!response.success || !response.updatedPair) {
+      throw new Error(
+        response.error || "Failed to toggle pair status or get updated data"
+      );
     }
-    showAlert("Pair status updated", "success");
+    // Construct the specific message
+    const { name, enabled } = response.updatedPair;
+    const message = `"${name}" ${enabled ? "enabled" : "disabled"}`;
+    showAlert(message, "success"); // Show the new message
   } catch (error) {
     console.error("Error toggling pair:", error);
     showAlert(error.message, "error");
