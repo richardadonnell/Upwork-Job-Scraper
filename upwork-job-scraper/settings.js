@@ -1202,6 +1202,7 @@ function addJobEntries(jobs) {
     // Create details section (hidden by default)
     const details = document.createElement("div");
     details.className = "job-details";
+    details.style.display = "none";
     details.innerHTML = `
       <p><strong>Type:</strong> ${job.jobType} ${
       job.hourlyRange || job.budget || ""
