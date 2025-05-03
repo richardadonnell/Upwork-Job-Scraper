@@ -177,44 +177,6 @@ function sendMessageToBackground(message, retries = 3) {
   });
 }
 
-// Add this function near the top of the file, after the waitForBackgroundScript function
-
-function sendMessageToBackground(message, retries = 3) {
-  return new Promise((resolve, reject) => {
-    const attemptSend = (remainingRetries) => {
-      chrome.runtime.sendMessage(message, (response) => {
-        if (chrome.runtime.lastError) {
-          console.error("Message send error:", chrome.runtime.lastError);
-          if (remainingRetries > 0) {
-            console.log(
-              `Retrying message send, ${remainingRetries} attempts left`
-            );
-            setTimeout(() => attemptSend(remainingRetries - 1), 1000);
-          } else {
-            reject(chrome.runtime.lastError);
-          }
-        } else if (!response) {
-          const error = new Error(
-            "No response received from background script"
-          );
-          if (remainingRetries > 0) {
-            console.log(
-              `Retrying due to no response, ${remainingRetries} attempts left`
-            );
-            setTimeout(() => attemptSend(remainingRetries - 1), 1000);
-          } else {
-            reject(error);
-          }
-        } else {
-          resolve(response);
-        }
-      });
-    };
-
-    attemptSend(retries);
-  });
-}
-
 // Add these functions at the top of your settings.js file
 
 let countdownInterval;
