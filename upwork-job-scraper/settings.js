@@ -963,7 +963,36 @@ function createDefaultPair() {
 }
 
 // Initialize settings when the page loads
-document.addEventListener("DOMContentLoaded", initializeSettings);
+document.addEventListener("DOMContentLoaded", async () => {
+  try {
+    await initializeSettings();
+  } catch (error) {
+    console.error("Error during settings page initialization:", error);
+    showAlert(
+      "An error occurred while loading settings. Some features might not work correctly. Please try refreshing the page.",
+      "error",
+      0 // Keep error message visible indefinitely
+    );
+    // Optionally report this error to Sentry or background script
+    if (typeof logAndReportError === "function") {
+      logAndReportError("Settings Page Initialization Error", error);
+    } else {
+      // Fallback if error reporting isn't loaded
+      try {
+        sendMessageToBackground({
+          type: "logError",
+          context: "Settings Page Initialization Error",
+          error: { message: error.message, stack: error.stack },
+        });
+      } catch (sendError) {
+        console.error(
+          "Failed to send initialization error to background script:",
+          sendError
+        );
+      }
+    }
+  }
+});
 
 // Add this to your initialization function or at the end of the file
 window.addEventListener("beforeunload", () => {
