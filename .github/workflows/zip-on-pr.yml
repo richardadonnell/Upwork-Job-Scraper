@@ -81,6 +81,7 @@ jobs:
             settings.css
             settings.html
             settings.js
+            storage.js
             utils.js
             webhook.js
           )

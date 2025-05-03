@@ -177,44 +177,6 @@ function sendMessageToBackground(message, retries = 3) {
   });
 }
 
-// Add this function near the top of the file, after the waitForBackgroundScript function
-
-function sendMessageToBackground(message, retries = 3) {
-  return new Promise((resolve, reject) => {
-    const attemptSend = (remainingRetries) => {
-      chrome.runtime.sendMessage(message, (response) => {
-        if (chrome.runtime.lastError) {
-          console.error("Message send error:", chrome.runtime.lastError);
-          if (remainingRetries > 0) {
-            console.log(
-              `Retrying message send, ${remainingRetries} attempts left`
-            );
-            setTimeout(() => attemptSend(remainingRetries - 1), 1000);
-          } else {
-            reject(chrome.runtime.lastError);
-          }
-        } else if (!response) {
-          const error = new Error(
-            "No response received from background script"
-          );
-          if (remainingRetries > 0) {
-            console.log(
-              `Retrying due to no response, ${remainingRetries} attempts left`
-            );
-            setTimeout(() => attemptSend(remainingRetries - 1), 1000);
-          } else {
-            reject(error);
-          }
-        } else {
-          resolve(response);
-        }
-      });
-    };
-
-    attemptSend(retries);
-  });
-}
-
 // Add these functions at the top of your settings.js file
 
 let countdownInterval;
@@ -963,7 +925,36 @@ function createDefaultPair() {
 }
 
 // Initialize settings when the page loads
-document.addEventListener("DOMContentLoaded", initializeSettings);
+document.addEventListener("DOMContentLoaded", async () => {
+  try {
+    await initializeSettings();
+  } catch (error) {
+    console.error("Error during settings page initialization:", error);
+    showAlert(
+      "An error occurred while loading settings. Some features might not work correctly. Please try refreshing the page.",
+      "error",
+      0 // Keep error message visible indefinitely
+    );
+    // Optionally report this error to Sentry or background script
+    if (typeof logAndReportError === "function") {
+      logAndReportError("Settings Page Initialization Error", error);
+    } else {
+      // Fallback if error reporting isn't loaded
+      try {
+        sendMessageToBackground({
+          type: "logError",
+          context: "Settings Page Initialization Error",
+          error: { message: error.message, stack: error.stack },
+        });
+      } catch (sendError) {
+        console.error(
+          "Failed to send initialization error to background script:",
+          sendError
+        );
+      }
+    }
+  }
+});
 
 // Add this to your initialization function or at the end of the file
 window.addEventListener("beforeunload", () => {
