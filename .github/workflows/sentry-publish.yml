@@ -1,0 +1,30 @@
+name: Sentry Release and Source Maps
+
+on:
+  push:
+    tags:
+      - "v*.*.*" # Triggers on tags like v1.2.3
+
+jobs:
+  sentry_release_and_sourcemaps:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Extract version from tag
+        id: get_version
+        run: echo "APP_VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_ENV # Extracts '1.2.3' from tag 'v1.2.3'
+
+      - name: Sentry Release and Source Maps Upload
+        uses: getsentry/action-release@v3
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
+          # SENTRY_URL: ${{ secrets.SENTRY_URL }} # Uncomment if self-hosted
+        with:
+          environment: production
+          version: upwork-job-scraper@${{ env.APP_VERSION }} # Formats as upwork-job-scraper@1.2.3
+          sourcemaps: "./upwork-job-scraper" # Path to the folder containing your JS files
+          url_prefix: "app:///" # Must match the prefix used in sentry-init.js

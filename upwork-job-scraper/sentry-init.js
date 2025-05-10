@@ -5,6 +5,25 @@ Sentry.init({
   environment: "production",
 });
 
+Sentry.addEventProcessor((event, hint) => {
+  if (event.exception && event.exception.values) {
+    event.exception.values.forEach((exception) => {
+      if (exception.stacktrace && exception.stacktrace.frames) {
+        exception.stacktrace.frames.forEach((frame) => {
+          if (frame.filename) {
+            // Normalize chrome-extension://<ID>/path/to/file.js to app:///path/to/file.js
+            frame.filename = frame.filename.replace(
+              /^chrome-extension:\/\/[^\/]+\//,
+              "app:///"
+            );
+          }
+        });
+      }
+    });
+  }
+  return event;
+});
+
 // Wrap the existing error logging function
 function logAndReportError(context, error) {
   const errorInfo = {
