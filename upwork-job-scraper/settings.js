@@ -309,9 +309,52 @@ function trackEvent(eventName, eventParams) {
   console.log(`Event tracked: ${eventName}`, eventParams);
 }
 
-// Add this function at the top of your settings.js file
+// Function to send a test CustomEvent (type=error) to test sentry-init.js processing
+function sendTestCustomErrorEvent(detailPayload) {
+  const defaultDetail = {
+    message: "Test CustomEvent (type=error) from settings page",
+    source: "settingsTestFunction",
+    timestamp: new Date().toISOString(),
+    payload: {
+      info: "This is a test payload for a CustomEvent.",
+      random: Math.random(),
+    },
+  };
+
+  const eventDetail = detailPayload || defaultDetail;
+
+  try {
+    const testCustomEvent = new CustomEvent("error", {
+      detail: eventDetail,
+      bubbles: true, // Allow it to bubble to window if needed, though Sentry often hooks early
+      cancelable: true,
+    });
+    console.log(
+      "Dispatching test CustomEvent (type=error) with detail:",
+      eventDetail
+    );
+    // Dispatch on window, as Sentry's global handlers typically listen here or on document/body
+    window.dispatchEvent(testCustomEvent);
+    showAlert(
+      "Test CustomEvent (type=error) dispatched. Check Sentry.",
+      "info",
+      5000
+    );
+  } catch (e) {
+    console.error("Failed to create or dispatch test CustomEvent:", e);
+    showAlert("Failed to dispatch test CustomEvent. See console.", "error");
+  }
+}
+// Expose for console testing on settings page
+window.sendTestCustomErrorEvent = sendTestCustomErrorEvent;
+
+// Function to initialize settings, load data, and set up event listeners
 async function initializeSettings() {
   console.log("Initializing settings...");
+  // Add a log to indicate how to test CustomEvent handling
+  console.log(
+    "To test CustomEvent (type=error) Sentry reporting from this page, execute: window.sendTestCustomErrorEvent() in the console."
+  );
 
   // Initialize Sentry
   if (typeof Sentry !== "undefined") {
@@ -632,6 +675,24 @@ function createPairElement(pair) {
 // Function to update a pair field
 async function updatePairField(pairId, field, value) {
   try {
+    // Validate search URL format if the field is 'searchUrl'
+    if (field === "searchUrl") {
+      if (!value.startsWith("https://www.upwork.com/nx/search/jobs/?")) {
+        const validationError = new Error(
+          "Invalid search URL format. Must be an Upwork job search URL."
+        );
+        // Show warning alert to user - THIS REMAINS to inform the user
+        showAlert(validationError.message, "warning");
+
+        // DO NOT Send to background for Sentry reporting.
+        // The following sendMessageToBackground block for this specific validation will be removed.
+        // sendMessageToBackground({ ... }).catch((sendError) => { ... }); // THIS BLOCK IS REMOVED
+
+        // Stop further processing for this invalid URL - THIS REMAINS
+        return;
+      }
+    }
+
     console.log(`Updating ${field} for pair ${pairId} to:`, value);
     // Get the current state of the pair to validate against
     const pairs = await sendMessageToBackground({ type: "getAllPairs" });
@@ -674,14 +735,48 @@ async function updatePairField(pairId, field, value) {
     }
   } catch (error) {
     console.error(`Error updating ${field} for pair ${pairId}:`, error);
-    showAlert(error.message, "error");
+    const isSearchUrlValidationError = error.message.startsWith(
+      "Invalid search URL format. Must be an Upwork job search URL."
+    );
 
-    // Optional: Revert UI if needed, although background should be source of truth
-    // const pairElement = document.querySelector(`[data-pair-id="${pairId}"]`);
-    // if (pairElement) {
-    //   const input = pairElement.querySelector(`.${field.toLowerCase()}`);
-    //   // Re-fetch might be better than reverting to potentially stale local state
-    // }
+    // If the error is the specific search URL validation error we are now handling differently,
+    // it should not reach this generic catch block for Sentry reporting because of the 'return' statement above.
+    // However, if other errors occur, they will still be reported.
+    if (!isSearchUrlValidationError) {
+      showAlert(error.message, "error"); // Show other errors
+
+      // Send other errors to background script
+      sendMessageToBackground({
+        type: "REPORT_ERROR_FROM_SCRIPT",
+        payload: {
+          script: "settings.js",
+          context: `Error updating ${field} for pair ${pairId}`,
+          error: {
+            message: error.message,
+            name: error.name,
+            stack: error.stack,
+          },
+          additionalInfo: { pairId, field, value },
+          sentryOptions: {}, // Default to 'error' level in background
+        },
+      }).catch((sendError) => {
+        console.error("Failed to send update error to background:", sendError);
+        if (typeof Sentry !== "undefined") {
+          Sentry.captureException(error, {
+            level: "error", // General errors are still errors
+            extra: {
+              context: "updatePairField - MSG_SEND_FAIL",
+              pairId,
+              field,
+              value,
+              messageSendError: sendError.message,
+            },
+          });
+        }
+      });
+    }
+    // For the specific validation error, we've already shown an alert and returned.
+    // No further Sentry reporting or console logging from this catch block is needed for it.
   }
 }
 

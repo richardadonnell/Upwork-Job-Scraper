@@ -479,6 +479,7 @@ try {
           error: errorDetails,
           operationName,
           additionalInfo,
+          sentryOptions,
         } = message.payload;
         let reportedError = new Error(
           errorDetails.message || "Unknown error from script"
@@ -494,12 +495,18 @@ try {
           ...(additionalInfo || {}),
         };
 
+        // Determine the Sentry level
+        const levelForSentry =
+          sentryOptions && typeof sentryOptions.level === "string"
+            ? sentryOptions.level
+            : "error";
+
         if (operationName) {
           const opId = startOperation(operationName); // Start an operation if name provided
-          logAndReportError(context, reportedError, extraData);
+          logAndReportError(context, reportedError, extraData, levelForSentry);
           endOperation(opId, reportedError); // End operation with the error
         } else {
-          logAndReportError(context, reportedError, extraData);
+          logAndReportError(context, reportedError, extraData, levelForSentry);
         }
 
         handled = true;

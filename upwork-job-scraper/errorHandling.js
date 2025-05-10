@@ -185,7 +185,12 @@ function endOperation(error = null) {
 }
 
 // Enhanced error logging function
-function logAndReportError(context, error, extraData = {}) {
+function logAndReportError(
+  context,
+  error,
+  extraData = {},
+  sentryLevel = "error"
+) {
   const currentOperation = operationStack[operationStack.length - 1];
 
   const errorInfo = {
@@ -217,6 +222,7 @@ function logAndReportError(context, error, extraData = {}) {
         operationName: currentOperation?.name,
         operationId: currentOperation?.id,
       },
+      level: sentryLevel,
     });
   }
 }
