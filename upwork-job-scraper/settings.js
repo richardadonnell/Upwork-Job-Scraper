@@ -350,6 +350,26 @@ async function initializeSettings() {
       } catch (error) {
         console.error("Error handling copy log:", error);
         showAlert(`Failed to copy log: ${error.message}`, "error");
+        // Send error to background script
+        try {
+          sendMessageToBackground({
+            type: "REPORT_ERROR_FROM_SCRIPT",
+            payload: {
+              script: "settings.js",
+              context: "Error in copy-log-github click handler",
+              error: {
+                message: error.message,
+                name: error.name,
+                stack: error.stack,
+              },
+            },
+          });
+        } catch (sendError) {
+          console.error(
+            "Failed to send copy-log error to background:",
+            sendError
+          );
+        }
       }
     });
 
@@ -935,22 +955,41 @@ document.addEventListener("DOMContentLoaded", async () => {
       "error",
       0 // Keep error message visible indefinitely
     );
-    // Optionally report this error to Sentry or background script
-    if (typeof logAndReportError === "function") {
-      logAndReportError("Settings Page Initialization Error", error);
-    } else {
-      // Fallback if error reporting isn't loaded
-      try {
-        sendMessageToBackground({
-          type: "logError",
-          context: "Settings Page Initialization Error",
-          error: { message: error.message, stack: error.stack },
-        });
-      } catch (sendError) {
-        console.error(
-          "Failed to send initialization error to background script:",
-          sendError
-        );
+    // Always send error to background script for centralized reporting
+    try {
+      sendMessageToBackground({
+        type: "REPORT_ERROR_FROM_SCRIPT",
+        payload: {
+          script: "settings.js",
+          context: "Settings Page Initialization (DOMContentLoaded)",
+          error: {
+            message: error.message,
+            name: error.name,
+            stack: error.stack,
+          },
+          // Add any other relevant info from settings.js context if needed
+        },
+      });
+    } catch (sendError) {
+      console.error(
+        "Critical: Failed to send initialization error to background script:",
+        sendError
+      );
+      // Fallback to local Sentry if message passing fails catastrophically,
+      // but only if Sentry and logAndReportError are confirmed to be loaded and functional.
+      // This is a last resort.
+      if (
+        typeof Sentry !== "undefined" &&
+        typeof logAndReportError === "function"
+      ) {
+        try {
+          logAndReportError("Settings Page Init - MSG_SEND_FAIL", error, {
+            originalContext: "Settings Page Initialization (DOMContentLoaded)",
+            messageSendError: sendError.message,
+          });
+        } catch (sentryFallbackError) {
+          console.error("Sentry fallback also failed:", sentryFallbackError);
+        }
       }
     }
   }
