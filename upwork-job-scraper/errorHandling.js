@@ -1,15 +1,5 @@
 const APP_VERSION = chrome.runtime.getManifest().version; // Get version from manifest.json
 
-// Initialize Sentry
-if (typeof Sentry !== "undefined") {
-  Sentry.init({
-    dsn: "https://5394268fe023ea7d082781a6ea85f4ce@o4507890797379584.ingest.us.sentry.io/4507891889471488",
-    tracesSampleRate: 1.0,
-    release: `upwork-job-scraper@${chrome.runtime.getManifest().version}`,
-    environment: "production",
-  });
-}
-
 // Operation tracking
 let currentOperationId = 0;
 const operationStack = [];
@@ -97,7 +87,12 @@ function endOperation(error = null) {
 }
 
 // Enhanced error logging function
-function logAndReportError(context, error, extraData = {}) {
+function logAndReportError(
+  context,
+  error,
+  extraData = {},
+  sentryLevel = "error"
+) {
   const currentOperation = operationStack[operationStack.length - 1];
 
   const errorInfo = {
@@ -129,6 +124,7 @@ function logAndReportError(context, error, extraData = {}) {
         operationName: currentOperation?.name,
         operationId: currentOperation?.id,
       },
+      level: sentryLevel,
     });
   }
 }

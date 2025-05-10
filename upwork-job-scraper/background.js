@@ -33,22 +33,80 @@ const customSearchUrl = "";
 // Add global unhandled promise rejection handler
 globalThis.addEventListener("unhandledrejection", (event) => {
   // Enhanced error logging for unhandled rejections
-  const error = event.reason;
+  let errorToReport = event.reason;
+  let originalPromiseReason = null; // To store the original reason if it wasn't an Error
+
+  // Preserve existing error object creation for console logging
+  const errorForConsole = event.reason; // Use original reason for console log object
   const errorObj = {
-    message: error.message || "Unknown error",
-    stack: error.stack || "No stack trace available",
+    message:
+      errorForConsole?.message ||
+      (typeof errorForConsole === "string" ? errorForConsole : "Unknown error"),
+    stack: errorForConsole?.stack || "No stack trace available",
     context: "Unhandled promise rejection",
     timestamp: new Date().toISOString(),
     appVersion: chrome.runtime.getManifest().version,
     extensionId: chrome.runtime.id || "unknown",
     url: self.location?.href || "unknown",
     source: "background.js",
+    originalReason:
+      typeof errorForConsole !== "object" || errorForConsole instanceof Error
+        ? undefined
+        : JSON.stringify(errorForConsole), // Add original reason if it was an object but not an error
   };
 
-  console.error("Unhandled promise rejection:", errorObj);
+  if (!(errorToReport instanceof Error)) {
+    originalPromiseReason = event.reason; // Store the original non-Error reason for Sentry
+    const messagePrefix = "Unhandled promise rejection (non-Error)";
+    let constructedMessage;
+
+    if (typeof errorToReport === "string") {
+      constructedMessage = `${messagePrefix}: ${errorToReport}`;
+    } else if (errorToReport && typeof errorToReport.message === "string") {
+      // If it's an object with a message property (like a DOMException sometimes)
+      constructedMessage = `${messagePrefix} - ${errorToReport.message}`;
+      // Attempt to retain the name of the original non-Error object if available
+      if (errorToReport.name) {
+        constructedMessage = `[${errorToReport.name}] ${constructedMessage}`;
+      }
+    } else {
+      try {
+        // For other objects, stringify them.
+        constructedMessage = `${messagePrefix}: ${JSON.stringify(
+          errorToReport
+        )}`;
+      } catch (e) {
+        // Fallback if stringification fails
+        constructedMessage = `${messagePrefix}: (unserializable object)`;
+      }
+    }
+    errorToReport = new Error(constructedMessage);
+    // Attempt to preserve a semblance of a stack if the original non-Error had one.
+    // Sentry will often create a better stack trace based on where captureException is called.
+    if (
+      originalPromiseReason &&
+      typeof originalPromiseReason.stack === "string"
+    ) {
+      errorToReport.stack = originalPromiseReason.stack;
+    }
+  }
+
+  console.error("Unhandled promise rejection (raw):", event.reason); // Log the raw reason
+  console.error(
+    "Unhandled promise rejection (processed for Sentry):",
+    errorObj
+  ); // Log the object prepared for console
 
   // If error is about connection, add more diagnostic info
-  if (error?.message?.includes("Receiving end does not exist")) {
+  if (
+    errorToReport?.message?.includes("Receiving end does not exist") ||
+    (originalPromiseReason &&
+      typeof originalPromiseReason === "string" &&
+      originalPromiseReason.includes("Receiving end does not exist")) ||
+    (originalPromiseReason &&
+      typeof originalPromiseReason?.message === "string" &&
+      originalPromiseReason.message.includes("Receiving end does not exist"))
+  ) {
     console.error("Connection error details:", {
       extensionState: {
         isInitializing,
@@ -58,7 +116,7 @@ globalThis.addEventListener("unhandledrejection", (event) => {
         webhookEnabled,
         notificationsEnabled,
       },
-      error: error,
+      error: event.reason, // Log original reason here for this specific console log
     });
 
     // Add diagnostic operation
@@ -66,7 +124,7 @@ globalThis.addEventListener("unhandledrejection", (event) => {
     addOperationBreadcrumb(
       "Connection error detected",
       {
-        message: error.message,
+        message: errorToReport?.message,
         timeElapsedSinceInit: Date.now() - lastInitializationTime,
       },
       "error"
@@ -88,7 +146,15 @@ globalThis.addEventListener("unhandledrejection", (event) => {
     }
   }
 
-  logAndReportError("Unhandled promise rejection", error);
+  // Pass originalPromiseReason in extraData if it was a non-Error
+  const extraDataForSentry = originalPromiseReason
+    ? { originalPromiseRejectionReason: originalPromiseReason }
+    : {};
+  logAndReportError(
+    "Unhandled promise rejection",
+    errorToReport,
+    extraDataForSentry
+  );
   event.preventDefault(); // Prevent the default handling
 });
 
@@ -246,6 +312,22 @@ try {
     console.log(`Starting initialization from ${source}`);
 
     try {
+      // Attempt to release any existing lock first
+      if (globalThis.releaseLock) {
+        await globalThis.releaseLock();
+        addToActivityLog(
+          "Ensured any orphaned scraping lock was released on startup."
+        );
+      } else {
+        // Fallback or log if releaseLock is not available, though it should be.
+        console.warn(
+          "releaseLock function not available at initialization. Orphaned lock might persist."
+        );
+        addToActivityLog(
+          "Warning: Could not attempt to release orphaned lock on startup (function missing)."
+        );
+      }
+
       // Clear any existing alarms first
       await chrome.alarms.clear("checkJobs");
 
@@ -403,6 +485,94 @@ try {
           sendResponse({ success: true });
         });
         return true; // Will respond asynchronously
+      }
+
+      // Handler for errors reported from other scripts (settings, content scripts)
+      if (message.type === "REPORT_ERROR_FROM_SCRIPT") {
+        const {
+          script,
+          context,
+          error: errorDetails,
+          operationName,
+          additionalInfo,
+          sentryOptions,
+        } = message.payload;
+        let reportedError = new Error(
+          errorDetails.message || "Unknown error from script"
+        );
+        reportedError.name = errorDetails.name || reportedError.name;
+        if (errorDetails.stack) {
+          reportedError.stack = errorDetails.stack;
+        }
+
+        const extraData = {
+          reportedFromScript: script,
+          originalErrorName: errorDetails.name,
+          ...(additionalInfo || {}),
+        };
+
+        // Determine the Sentry level
+        const levelForSentry =
+          sentryOptions && typeof sentryOptions.level === "string"
+            ? sentryOptions.level
+            : "error";
+
+        if (operationName) {
+          const opId = startOperation(operationName); // Start an operation if name provided
+          logAndReportError(context, reportedError, extraData, levelForSentry);
+          endOperation(opId, reportedError); // End operation with the error
+        } else {
+          logAndReportError(context, reportedError, extraData, levelForSentry);
+        }
+
+        handled = true;
+        sendResponse({
+          success: true,
+          message: "Error reported to background.",
+        });
+        return true; // Indicate a response may be sent asynchronously if operations were involved
+      }
+
+      // Handler to trigger a test error from settings page
+      if (message.type === "TRIGGER_TEST_ERROR_FROM_SETTINGS") {
+        const testMessage =
+          message.payload?.message ||
+          "Test Sentry error triggered from settings page via background script";
+        if (typeof sendTestError === "function") {
+          try {
+            sendTestError(testMessage);
+            sendResponse({
+              success: true,
+              message: "Test error triggered in background.",
+            });
+          } catch (e) {
+            logAndReportError(
+              "Failed to trigger sendTestError from background",
+              e,
+              { originalTestMessage: testMessage }
+            );
+            sendResponse({
+              success: false,
+              error: "Failed to trigger test error in background: " + e.message,
+            });
+          }
+        } else {
+          // This case should ideally not happen if errorHandling.js is loaded.
+          console.error(
+            "sendTestError function is not available in background.js"
+          );
+          logAndReportError(
+            "sendTestError function not found in background",
+            new Error("sendTestError not found"),
+            { originalTestMessage: testMessage }
+          );
+          sendResponse({
+            success: false,
+            error: "sendTestError function not available in background script.",
+          });
+        }
+        handled = true;
+        return true;
       }
 
       if (message.type === "updateCheckFrequency") {
