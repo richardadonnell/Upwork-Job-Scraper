@@ -874,7 +874,6 @@ async function testPairWebhook(pairId) {
       ],
       scrapedAt: Date.now(),
       scrapedAtHuman: new Date().toLocaleString(),
-      jobPostingTime: "4 minutes ago",
       clientLocation: "San Francisco, CA",
       sourceUrl: "https://www.upwork.com/nx/search/jobs/?sort=recency",
       source: {
@@ -1344,7 +1343,6 @@ function addJobEntries(jobs) {
       job.hourlyRange || job.budget || ""
     }</p>
       <p><strong>Skills:</strong> ${job.skills.join(", ")}</p>
-      <p><strong>Posted:</strong> ${job.jobPostingTime}</p>
       <p><strong>Client:</strong> ${job.clientCountry} (Rating: ${
       job.clientRating
     })</p>

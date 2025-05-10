@@ -588,10 +588,6 @@ function scrapeJobsFromPage() {
             clientSpent = `${clientSpendingElementCustomSearch.textContent.trim()} spent`;
           }
 
-          const jobPostingTime =
-            jobElement
-              ?.querySelector(".job-tile-timestamp")
-              ?.textContent?.trim() ?? "N/A";
           const clientLocation =
             jobElement
               ?.querySelector(".client-location")
@@ -617,7 +613,6 @@ function scrapeJobsFromPage() {
             questions: questions,
             scrapedAt: scrapedAt,
             scrapedAtHuman: humanReadableTime,
-            jobPostingTime: jobPostingTime,
             clientLocation: clientLocation,
             sourceUrl: window.location.href,
           };
