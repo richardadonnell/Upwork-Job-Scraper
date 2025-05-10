@@ -335,14 +335,35 @@ function sendTestCustomErrorEvent(detailPayload) {
     );
     // Dispatch on window, as Sentry's global handlers typically listen here or on document/body
     window.dispatchEvent(testCustomEvent);
-    showAlert(
-      "Test CustomEvent (type=error) dispatched. Check Sentry.",
-      "info",
-      5000
-    );
+
+    if (window.logAndReportError) {
+      const errorToReport = new Error(
+        eventDetail.message || "Test CustomEvent Error from settings.js"
+      );
+      // Attach more details if needed, for example, by adding them to errorToReport or a custom object
+      // For instance, to pass along the original detailPayload or eventDetail:
+      // errorToReport.customDetails = eventDetail; // Sentry will pick this up in extra data
+
+      window.logAndReportError("sendTestCustomErrorEvent", errorToReport);
+      showAlert(
+        "Test CustomEvent (type=error) dispatched AND reported to Sentry. Check Sentry.",
+        "info",
+        5000
+      );
+    } else {
+      showAlert(
+        "Test CustomEvent (type=error) dispatched, but logAndReportError not found.",
+        "warning",
+        5000
+      );
+    }
   } catch (e) {
     console.error("Failed to create or dispatch test CustomEvent:", e);
     showAlert("Failed to dispatch test CustomEvent. See console.", "error");
+    // Optionally, report the error from the catch block itself
+    if (window.logAndReportError) {
+      window.logAndReportError("sendTestCustomErrorEvent-Catch", e);
+    }
   }
 }
 // Expose for console testing on settings page
@@ -355,16 +376,6 @@ async function initializeSettings() {
   console.log(
     "To test CustomEvent (type=error) Sentry reporting from this page, execute: window.sendTestCustomErrorEvent() in the console."
   );
-
-  // Initialize Sentry
-  if (typeof Sentry !== "undefined") {
-    Sentry.init({
-      dsn: "https://5394268fe023ea7d082781a6ea85f4ce@o4507890797379584.ingest.us.sentry.io/4507891889471488",
-      tracesSampleRate: 1.0,
-      release: `upwork-job-scraper@${chrome.runtime.getManifest().version}`,
-      environment: "production",
-    });
-  }
 
   // Add copy log and open GitHub issue functionality
   document

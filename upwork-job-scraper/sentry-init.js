@@ -35,7 +35,7 @@ Sentry.init({
             value: customEventMessage,
             // Sentry will attempt to generate a stacktrace if not provided or if it's poor
             // We don't have a good JS stacktrace from a bare CustomEvent typically
-            stacktrace: { frames: [] }, // Provide empty frames to signal we handled it
+            // stacktrace: { frames: [] }, // Provide empty frames to signal we handled it
           },
         ],
       };
