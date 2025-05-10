@@ -4,33 +4,85 @@ Sentry.init({
   release: "upwork-job-scraper@" + chrome.runtime.getManifest().version,
   environment: "production",
   beforeSend(event, hint) {
-    // Basic title refinement for content script/settings direct errors
-    if (
-      event.exception &&
-      event.exception.values &&
-      event.exception.values.length > 0
-    ) {
-      let mainException = event.exception.values[0];
-      let originalMessage = mainException.value || "";
-      let prefix = "[ContentScript/SettingsDirect]"; // Generic prefix
+    const originalException = hint.originalException;
 
-      // Try to get a more specific context if available from the simpler logAndReportError
-      if (event.extra?.context) {
-        // `context` is the field used by the simpler logAndReportError
-        prefix = `[CS/${event.extra.context}]`;
+    // --- Handle CustomEvent exceptions ---
+    if (
+      originalException instanceof CustomEvent &&
+      originalException.type === "error"
+    ) {
+      let customEventMessage = "CustomEvent (type=error) occurred";
+      const details = originalException.detail;
+
+      if (typeof details === "string") {
+        customEventMessage = details;
+      } else if (details && typeof details.message === "string") {
+        customEventMessage = details.message;
+      } else if (details) {
+        try {
+          customEventMessage = JSON.stringify(details).substring(0, 250); // Cap length
+        } catch (e) {
+          customEventMessage =
+            "CustomEvent (type=error) with unserializable details";
+        }
       }
-      mainException.value = `${prefix} ${originalMessage}`;
-      if (event.message) {
-        event.message = mainException.value;
+
+      // Reconstruct the exception part of the Sentry event
+      event.exception = {
+        values: [
+          {
+            type: "CustomEventError", // Custom type to identify these
+            value: customEventMessage,
+            // Sentry will attempt to generate a stacktrace if not provided or if it's poor
+            // We don't have a good JS stacktrace from a bare CustomEvent typically
+            stacktrace: { frames: [] }, // Provide empty frames to signal we handled it
+          },
+        ],
+      };
+      // Update event.message as Sentry might use it for grouping or display
+      event.message = customEventMessage;
+
+      // Preserve original CustomEvent details in extraData
+      event.extra = {
+        ...event.extra,
+        originalCustomEventDetails: details,
+        originalCustomEventType: originalException.type,
+      };
+      // Add a tag to easily find these modified events
+      event.tags = { ...event.tags, processedCustomEvent: "true" };
+    } else {
+      // --- Existing title refinement for other errors ---
+      if (
+        event.exception &&
+        event.exception.values &&
+        event.exception.values.length > 0
+      ) {
+        let mainException = event.exception.values[0];
+        let originalMessage = mainException.value || "";
+        let prefix = "[ContentScript/SettingsDirect]"; // Generic prefix
+
+        if (event.extra?.context) {
+          prefix = `[CS/${event.extra.context}]`;
+        }
+        mainException.value = `${prefix} ${originalMessage}`;
+        if (event.message) {
+          event.message = mainException.value;
+        }
       }
     }
 
-    // Basic fingerprinting: add current URL path to default
-    // This helps group errors that occur on the same page in content scripts.
+    // --- Existing fingerprinting ---
     try {
       const path = new URL(window.location.href).pathname;
       if (path) {
-        event.fingerprint = ["{{default}}", path];
+        // Ensure fingerprint is an array, start with {{default}} if not already complex
+        if (!event.fingerprint || event.fingerprint.length === 0) {
+          event.fingerprint = ["{{default}}"];
+        }
+        // Avoid adding duplicate path if already part of a more complex fingerprint
+        if (!event.fingerprint.includes(path)) {
+          event.fingerprint.push(path);
+        }
       }
     } catch (e) {
       /* ignore if URL parsing fails */
