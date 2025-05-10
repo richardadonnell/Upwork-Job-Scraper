@@ -7,6 +7,94 @@ if (typeof Sentry !== "undefined") {
     tracesSampleRate: 1.0,
     release: `upwork-job-scraper@${chrome.runtime.getManifest().version}`,
     environment: "production",
+    beforeSend(event, hint) {
+      const exception = hint.originalException;
+
+      // --- Title/Message Refinement ---
+      if (
+        event.exception &&
+        event.exception.values &&
+        event.exception.values.length > 0
+      ) {
+        let mainException = event.exception.values[0];
+        let originalMessage = mainException.value || "";
+        let prefix = "";
+
+        // Prioritize context from REPORT_ERROR_FROM_SCRIPT
+        if (event.extra?.reportedFromScript && event.tags?.errorContext) {
+          prefix = `[${event.extra.reportedFromScript} / ${event.tags.errorContext}]`;
+        } else if (event.tags?.errorContext) {
+          prefix = `[${event.tags.errorContext}]`;
+        } else if (event.extra?.reportedFromScript) {
+          prefix = `[${event.extra.reportedFromScript}]`;
+        }
+
+        // For unhandled promise rejections that were non-Errors, the message might be generic.
+        // Try to make it more specific using the original reason if available.
+        if (
+          event.message &&
+          event.message.startsWith("Unhandled promise rejection (non-Error)") &&
+          event.extra?.originalPromiseRejectionReason
+        ) {
+          let reasonSummary = "";
+          const originalReason = event.extra.originalPromiseRejectionReason;
+          if (typeof originalReason === "string") {
+            reasonSummary = originalReason.substring(0, 100); // Max 100 chars of the string reason
+          } else if (
+            typeof originalReason === "object" &&
+            originalReason !== null &&
+            originalReason.message
+          ) {
+            reasonSummary = String(originalReason.message).substring(0, 100);
+          } else {
+            try {
+              reasonSummary = JSON.stringify(originalReason).substring(0, 100);
+            } catch (e) {
+              reasonSummary = "(unserializable original reason)";
+            }
+          }
+          originalMessage = `Unhandled non-Error rejection: ${reasonSummary}`;
+        }
+
+        if (prefix) {
+          mainException.value = `${prefix} ${originalMessage}`;
+        } else {
+          // Ensure originalMessage is set if no prefix was added, but message refinement happened
+          mainException.value = originalMessage;
+        }
+        // Also update event.message if it exists, as Sentry might use it for grouping or display
+        if (event.message) {
+          event.message = mainException.value;
+        }
+      }
+
+      // --- Fingerprinting Considerations (Example - can be expanded) ---
+      // This is a basic example. More sophisticated fingerprinting might be needed.
+      const fingerprintParts = ["{{default}}"]; // Start with Sentry's default grouping
+      if (event.tags?.errorContext) {
+        fingerprintParts.push(event.tags.errorContext);
+      }
+      if (event.extra?.reportedFromScript) {
+        fingerprintParts.push(event.extra.reportedFromScript);
+      }
+      // If it was a non-Error promise rejection, and we have the original stringified reason,
+      // add a part of it to the fingerprint to group identical non-error rejections.
+      if (
+        event.extra?.originalPromiseRejectionReason &&
+        typeof event.extra.originalPromiseRejectionReason === "string"
+      ) {
+        fingerprintParts.push(
+          String(event.extra.originalPromiseRejectionReason).substring(0, 50)
+        );
+      }
+
+      // Only apply custom fingerprint if we have more than just '{{default}}'
+      if (fingerprintParts.length > 1) {
+        event.fingerprint = fingerprintParts;
+      }
+
+      return event;
+    },
   });
 }
 
