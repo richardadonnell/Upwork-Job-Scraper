@@ -862,12 +862,6 @@ async function testPairWebhook(pairId) {
       clientRating: "4.95",
       clientSpent: "$10K+ spent",
       clientCountry: "United States",
-      attachments: [
-        {
-          name: "Project Brief.pdf",
-          url: "https://www.upwork.com/jobs/example/attachment1",
-        },
-      ],
       questions: [
         "What similar projects have you worked on?",
         "What is your experience with React?",

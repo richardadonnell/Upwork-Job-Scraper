@@ -432,9 +432,6 @@ function scrapeJobsFromPage() {
           const clientCountryElement = jobElement.querySelector(
             '[data-test="client-country"], [data-test="location"] .air3-badge-tagline'
           );
-          const attachmentsElement = jobElement.querySelector(
-            '[data-test="attachments"]'
-          );
           const questionsElement = jobElement.querySelector(
             '[data-test="additional-questions"]'
           );
@@ -511,19 +508,6 @@ function scrapeJobsFromPage() {
             }
           }
 
-          const attachments = attachmentsElement
-            ? Array.from(attachmentsElement.querySelectorAll("a")).map((a) => ({
-                name: a.textContent.trim(),
-                url: a.href,
-              }))
-            : [];
-
-          const questions = questionsElement
-            ? Array.from(questionsElement.querySelectorAll("li")).map((li) =>
-                li.textContent.trim()
-              )
-            : [];
-
           const scrapedAt = Date.now();
           const humanReadableTime = new Date(scrapedAt).toLocaleString();
 
@@ -593,6 +577,12 @@ function scrapeJobsFromPage() {
               ?.querySelector(".client-location")
               ?.textContent?.trim() ?? "N/A";
 
+          const questions = questionsElement
+            ? Array.from(questionsElement.querySelectorAll("li")).map((li) =>
+                li.textContent.trim()
+              )
+            : [];
+
           return {
             title: titleElement?.textContent?.trim() ?? "N/A",
             url: titleElement?.href ?? "N/A",
@@ -609,7 +599,6 @@ function scrapeJobsFromPage() {
             clientRating: clientRating,
             clientSpent: clientSpent,
             clientCountry: clientCountry,
-            attachments: attachments,
             questions: questions,
             scrapedAt: scrapedAt,
             scrapedAtHuman: humanReadableTime,

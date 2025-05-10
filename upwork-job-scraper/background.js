@@ -312,6 +312,22 @@ try {
     console.log(`Starting initialization from ${source}`);
 
     try {
+      // Attempt to release any existing lock first
+      if (globalThis.releaseLock) {
+        await globalThis.releaseLock();
+        addToActivityLog(
+          "Ensured any orphaned scraping lock was released on startup."
+        );
+      } else {
+        // Fallback or log if releaseLock is not available, though it should be.
+        console.warn(
+          "releaseLock function not available at initialization. Orphaned lock might persist."
+        );
+        addToActivityLog(
+          "Warning: Could not attempt to release orphaned lock on startup (function missing)."
+        );
+      }
+
       // Clear any existing alarms first
       await chrome.alarms.clear("checkJobs");
 
