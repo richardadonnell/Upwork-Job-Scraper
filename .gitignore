@@ -82,3 +82,5 @@ README-task-master.md
 scripts/
 .env.example
 PLANNING.md
+node_modules/
+tasks/
