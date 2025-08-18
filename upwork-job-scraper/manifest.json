@@ -7,8 +7,7 @@
   "host_permissions": [
     "https://*.upwork.com/*",
     "https://www.upwork.com/*",
-    "https://o4507890797379584.ingest.us.sentry.io/*",
-    "<all_urls>"
+    "https://o4507890797379584.ingest.us.sentry.io/*"
   ],
   "background": {
     "service_worker": "background.js"

@@ -1,35 +1,29 @@
-<p align="center">
-    <h1 align="center">‼️ NOTE: THIS IS UNDER DEVELOPMENT ‼️</h1>
-    <h3 align="center">Got questions, feedback, or ideas? Run into any hiccups? Feel free to drop an <a href="https://github.com/richardadonnell/Upwork-Job-Scraper/issues">issue here</a>.</h3>
-    <p align="center">Things might be a little buggy, but hang tight—I'm working hard to keep improving it!</p>
-<br>
-<br>
-<p align="center">
-  <img src="upwork-job-scraper/icon128.png" width="128" height="128" alt="UPWORK-JOB-SCRAPER-logo">
-</p>
-<p align="center">
-    <h1 align="center">UPWORK JOB SCRAPER + WEBHOOK</h1>
-</p>
-<p align="center">
-    <em><code>⭐ Chrome Browser Extension ⭐</code></em>
-</p>
-<p align="center">
-	<img src="https://img.shields.io/github/license/warezit/Upwork-Job-Scraper?style=default&logo=opensourceinitiative&logoColor=white&color=0080ff" alt="license">
-	<img src="https://img.shields.io/github/last-commit/warezit/Upwork-Job-Scraper?style=default&logo=git&logoColor=white&color=0080ff" alt="last-commit">
-	<img src="https://img.shields.io/github/languages/top/warezit/Upwork-Job-Scraper?style=default&color=0080ff" alt="repo-top-language">
-	<img src="https://img.shields.io/github/languages/count/warezit/Upwork-Job-Scraper?style=default&color=0080ff" alt="repo-language-count">
-</p>
-<p align="center">
-  <a href="https://chromewebstore.google.com/detail/upwork-job-scraper-+-webh/mojpfejnpifdgjjknalhghclnaifnjkg?authuser=0&hl=en" target="_blank">
-    <img src="https://storage.googleapis.com/web-dev-uploads/image/WlD8wC6g8khYWPJUsQceQkhXSlv1/iNEddTyWiMfLSwFD6qGq.png" alt="Available in the Chrome Web Store" width="248" height="75">
-  </a>
-</p>
-
-<p align="center">
-  Simply click the button above to visit the Chrome Web Store and click "Add to Chrome" to install the extension.
-</p>
-
 # Upwork Job Scraper + Webhook Chrome Extension
+
+ ![UPWORK-JOB-SCRAPER-logo](upwork-job-scraper\icon128.png)
+
+ > **‼️ NOTE: THIS IS UNDER DEVELOPMENT ‼️**
+
+ > *Got questions, feedback, or ideas? Run into any hiccups? Feel free to drop an [issue here](https://github.com/richardadonnell/Upwork-Job-Scraper/issues).*
+
+ > *Things might be a little buggy, but hang tight—I'm working hard to keep improving it!*
+
+
+
+⭐ Chrome Browser Extension ⭐
+
+ [![license](https://img.shields.io/github/license/warezit/Upwork-Job-Scraper?style=default&logo=opensourceinitiative&logoColor=white&color=0080ff)](https://github.com/warezit/Upwork-Job-Scraper)
+ [![last-commit](https://img.shields.io/github/last-commit/warezit/Upwork-Job-Scraper?style=default&logo=git&logoColor=white&color=0080ff)](https://github.com/warezit/Upwork-Job-Scraper)
+ [![top-language](https://img.shields.io/github/languages/top/warezit/Upwork-Job-Scraper?style=default&color=0080ff)](https://github.com/warezit/Upwork-Job-Scraper)
+ [![languages-count](https://img.shields.io/github/languages/count/warezit/Upwork-Job-Scraper?style=default&color=0080ff)](https://github.com/warezit/Upwork-Job-Scraper)
+
+ [![Available in the Chrome Web Store](https://developer.chrome.com/static/docs/webstore/branding/image/206x58-chrome-web-bcb82d15b2486.png)](https://chromewebstore.google.com/detail/mojpfejnpifdgjjknalhghclnaifnjkg?utm_source=item-share-cb)
+ 
+ https://chromewebstore.google.com/detail/mojpfejnpifdgjjknalhghclnaifnjkg?utm_source=item-share-cb
+
+Simply click the button above to visit the Chrome Web Store and click "Add to Chrome" to install the extension.
+
+---
 
 ## 🔴👇 HOW TO SETUP VIDEO BELOW 👇🔴
 
@@ -37,7 +31,7 @@
 
 ## 🔴👆 HOW TO SETUP VIDEO ABOVE 👆🔴
 
-![Upwork Job Scraper Screenshot](upwork-job-scraper/screenshot-1.30.png)
+---
 
 ## Overview
 
@@ -65,9 +59,7 @@ This Chrome extension automatically scrapes job listings from Upwork and sends t
 
 Install the Upwork Job Scraper + Webhook extension directly from the Chrome Web Store:
 
-<a href="https://chromewebstore.google.com/detail/upwork-job-scraper-+-webh/mojpfejnpifdgjjknalhghclnaifnjkg?authuser=0&hl=en" target="_blank">
-  <img src="https://storage.googleapis.com/web-dev-uploads/image/WlD8wC6g8khYWPJUsQceQkhXSlv1/iNEddTyWiMfLSwFD6qGq.png" alt="Available in the Chrome Web Store" width="248" height="75">
-</a>
+ [![Available in the Chrome Web Store](https://developer.chrome.com/static/docs/webstore/branding/image/206x58-chrome-web-bcb82d15b2486.png)](https://chromewebstore.google.com/detail/mojpfejnpifdgjjknalhghclnaifnjkg?utm_source=item-share-cb)
 
 Simply click the button above to visit the Chrome Web Store and click "Add to Chrome" to install the extension.
 
@@ -165,21 +157,10 @@ This extension requires the following permissions:
 
 ## Star History
 
-<a href="https://star-history.com/#richardadonnell/Upwork-Job-Scraper&Date">
- <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=richardadonnell/Upwork-Job-Scraper&type=Date&theme=dark" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=richardadonnell/Upwork-Job-Scraper&type=Date" />
-   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=richardadonnell/Upwork-Job-Scraper&type=Date" />
- </picture>
-</a>
+[![Star History Chart](https://api.star-history.com/svg?repos=richardadonnell/Upwork-Job-Scraper&type=Date)](https://star-history.com/#richardadonnell/Upwork-Job-Scraper&Date)
 
 ## Support
 
 If you found this project helpful, consider supporting the developer:
 
-<a href="https://buymeacoffee.com/richardadonnell" target="_blank">
-          <img
-            src="https://img.buymeacoffee.com/button-api/?text=Buy%20me%20a%20coffee&emoji=&slug=richardadonnell&button_colour=24292e&font_colour=ffffff&font_family=Cookie&outline_colour=000000&coffee_colour=ffffff"
-            alt="Buy Me A Coffee"
-          />
-        </a>
+[![Buy Me A Coffee](https://img.buymeacoffee.com/button-api/?text=Buy%20me%20a%20coffee&emoji=&slug=richardadonnell&button_colour=24292e&font_colour=ffffff&font_family=Cookie&outline_colour=000000&coffee_colour=ffffff)](https://buymeacoffee.com/richardadonnell)
