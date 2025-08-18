@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Upwork Job Scraper v2",
-  "version": "0.1.0",
-  "description": "Rewritten Upwork job scraper (v2) — TypeScript + React + Tailwind + Sentry + Cheerio",
+  "version": "2.0.0",
+  "description": "Upwork Job Scraper v2",
   "action": {
     "default_title": "Upwork Job Scraper v2"
   },
