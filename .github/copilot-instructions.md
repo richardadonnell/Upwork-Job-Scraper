@@ -7,6 +7,8 @@ applyTo: "**"
 
 Purpose: a Manifest V3 Chrome extension that scrapes Upwork job listings and optionally posts them to configured webhooks.
 
+Note: See `.github/instructions/extension-v2-typescript.instructions.md` and `.github/instructions/reference-extension-js-examples.instructions.md` for guidance when working in `extension-v2` (prefer TypeScript ESM and reuse `extension.js` examples where relevant).
+
 High-level plan: I'll keep this file concise and organized so an AI agent can be productive immediately. Sections below cover the big-picture architecture, conventions, key files/symbols to inspect, a short file tree, technologies used, concrete examples (storage shape, sample message), and a small PR checklist.
 
 ## Quick rules
