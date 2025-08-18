@@ -10,7 +10,7 @@
  > **‼️ NOTE: THIS IS UNDER DEVELOPMENT ‼️**
 
  > *Got questions, feedback, or ideas? Run into any hiccups? Feel free to drop an [issue here](https://github.com/richardadonnell/Upwork-Job-Scraper/issues).*
- 
+
  > *Things might be a little buggy, but hang tight—I'm working hard to keep improving it!*
 
 ⭐ Chrome Browser Extension ⭐
