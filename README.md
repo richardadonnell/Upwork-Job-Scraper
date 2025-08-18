@@ -18,20 +18,10 @@
  [![languages-count](https://img.shields.io/github/languages/count/warezit/Upwork-Job-Scraper?style=default&color=0080ff)](https://github.com/warezit/Upwork-Job-Scraper)
 
  [![Available in the Chrome Web Store](https://developer.chrome.com/static/docs/webstore/branding/image/206x58-chrome-web-bcb82d15b2486.png)](https://chromewebstore.google.com/detail/mojpfejnpifdgjjknalhghclnaifnjkg?utm_source=item-share-cb)
- 
- https://chromewebstore.google.com/detail/mojpfejnpifdgjjknalhghclnaifnjkg?utm_source=item-share-cb
 
-Simply click the button above to visit the Chrome Web Store and click "Add to Chrome" to install the extension.
-
----
-
-## 🔴👇 HOW TO SETUP VIDEO BELOW 👇🔴
+## 🔴▶️👇 Watch the YouTube for setup instructions 👇▶️🔴
 
 [![Watch the video](https://img.youtube.com/vi/FMH1QU0lz0Y/0.jpg)](https://www.youtube.com/watch?v=FMH1QU0lz0Y)
-
-## 🔴👆 HOW TO SETUP VIDEO ABOVE 👆🔴
-
----
 
 ## Overview
 
