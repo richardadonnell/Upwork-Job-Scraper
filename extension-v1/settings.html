@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Upwork Job Scraper + Webhook Chrome Extension Settings</title>
+    <link rel="stylesheet" href="settings.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=DM+Serif+Display:ital@0;1&display=swap"
+      rel="stylesheet"
+    />
+    <!-- Remove Google Analytics scripts -->
+    <!-- <script src="gtag.js"></script> -->
+    <!-- <script src="analytics.js"></script> -->
+    <script src="sentry.js"></script>
+    <script src="sentry-init.js"></script>
+    <script src="utils.js"></script>
+    <script src="storage.js"></script>
+  </head>
+  <body>
+    <nav class="main-nav">
+      <div class="container">
+        <div class="nav-content">
+          <img src="icon48.png" alt="Upwork Job Scraper Icon" />
+          <h1>Upwork Job Scraper + Webhook Settings</h1>
+        </div>
+      </div>
+    </nav>
+    <div class="container">
+      <!-- Add the "Getting Started" accordion here -->
+      <div class="setup-instructions" id="setup-instructions">
+        <div class="accordion-header">
+          <h4>▶️ Ready to get started? Watch the quick setup guide here!</h4>
+          <p>click to expand</p>
+        </div>
+        <div class="accordion-content">
+          <div class="video-container">
+            <iframe
+              width="100%"
+              height="315"
+              src="https://www.youtube.com/embed/FMH1QU0lz0Y?start=31"
+              title="Upwork Job Scraper Setup Guide"
+              frameborder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowfullscreen
+            >
+            </iframe>
+          </div>
+          <p class="video-description">
+            Watch this quick video guide to learn how to set up and configure
+            your Upwork Job Scraper extension for optimal performance.
+          </p>
+        </div>
+      </div>
+
+      <div id="alert-container"></div>
+      <div class="info-banner">
+        <p>
+          <strong>ℹ️ Note:</strong> This Chrome extension is under development.
+          If you encounter any issues or have any feedback, please
+          <a href="#help-section">open a ticket on Github</a>! Suggestions are
+          welcome!
+        </p>
+      </div>
+      <div class="master-toggle-container">
+        <label class="toggle-switch">
+          <input type="checkbox" id="master-toggle" checked />
+          <span class="slider"></span>
+        </label>
+        <span class="toggle-label">Enable Job Scraping</span>
+      </div>
+      <h2>Scraped Jobs</h2>
+      <div id="jobs-container"></div>
+
+      <div class="button-group">
+        <button id="manual-scrape" class="button-secondary">
+          Manually Scrape Jobs
+        </button>
+        <button id="clear-jobs" class="button-secondary">Clear All Jobs</button>
+      </div>
+
+      <h2>Search-Webhook Pairs</h2>
+      <div id="pairs-alert-container"></div>
+      <div id="pairs-container">
+        <!-- Pairs will be added here dynamically -->
+      </div>
+      <div class="button-group">
+        <button id="add-pair" class="button-primary">Add New Pair</button>
+      </div>
+
+      <!-- Template for a new pair -->
+      <template id="pair-template">
+        <div class="pair-item" data-pair-id="">
+          <div class="pair-header">
+            <div class="pair-title">
+              <div class="pair-toggle">
+                <label class="toggle-switch">
+                  <input type="checkbox" class="pair-enabled" checked />
+                  <span class="slider"></span>
+                </label>
+              </div>
+              <input
+                type="text"
+                class="pair-name"
+                placeholder="Enter a name for this pair"
+              />
+            </div>
+            <div class="pair-actions">
+              <button class="remove-pair button-danger">Remove</button>
+            </div>
+          </div>
+          <div class="pair-content">
+            <div class="pair-urls">
+              <div class="search-url-container">
+                <label>Search URL:</label>
+                <input
+                  type="text"
+                  class="search-url"
+                  placeholder="Enter Upwork search URL"
+                />
+                <button class="open-search-url button-secondary">
+                  Open URL
+                </button>
+              </div>
+              <div class="webhook-url-container">
+                <label>Webhook URL:</label>
+                <input
+                  type="text"
+                  class="webhook-url"
+                  placeholder="Enter webhook URL"
+                />
+                <button class="test-webhook button-secondary">
+                  Test Webhook
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </template>
+
+      <h2>Notification Settings</h2>
+      <div id="notification-alert-container"></div>
+      <div class="toggle-container">
+        <label class="toggle-switch">
+          <input type="checkbox" id="notification-toggle" checked />
+          <span class="slider"></span>
+        </label>
+        <span class="toggle-label">Enable Push Notifications</span>
+      </div>
+
+      <h2>Job Check Frequency</h2>
+      <div id="frequency-alert-container"></div>
+      <div id="next-check-countdown"></div>
+      <div class="frequency-container">
+        <div class="frequency-input">
+          <label for="minutes">Minutes:</label>
+          <input type="number" id="minutes" min="5" max="59" placeholder="5" />
+        </div>
+
+        <div class="days-selection">
+          <h3>Active Days</h3>
+          <div class="days-grid">
+            <label class="day-checkbox">
+              <input type="checkbox" id="day-sun" checked />
+              <span>Sunday</span>
+            </label>
+            <label class="day-checkbox">
+              <input type="checkbox" id="day-mon" checked />
+              <span>Monday</span>
+            </label>
+            <label class="day-checkbox">
+              <input type="checkbox" id="day-tue" checked />
+              <span>Tuesday</span>
+            </label>
+            <label class="day-checkbox">
+              <input type="checkbox" id="day-wed" checked />
+              <span>Wednesday</span>
+            </label>
+            <label class="day-checkbox">
+              <input type="checkbox" id="day-thu" checked />
+              <span>Thursday</span>
+            </label>
+            <label class="day-checkbox">
+              <input type="checkbox" id="day-fri" checked />
+              <span>Friday</span>
+            </label>
+            <label class="day-checkbox">
+              <input type="checkbox" id="day-sat" checked />
+              <span>Saturday</span>
+            </label>
+          </div>
+          <button id="set-weekdays" class="button-secondary mt-2">
+            Set Weekdays Only (Mon-Fri)
+          </button>
+          <button id="reset-days" class="button-reset">
+            Reset to All Days
+          </button>
+        </div>
+
+        <div class="time-range">
+          <h3>Active Hours</h3>
+          <div class="time-inputs">
+            <div class="time-input-group">
+              <label for="start-time">Start Time:</label>
+              <input type="time" id="start-time" value="00:00" />
+            </div>
+            <div class="time-input-group">
+              <label for="end-time">End Time:</label>
+              <input type="time" id="end-time" value="23:59" />
+            </div>
+          </div>
+          <button id="set-business-hours" class="button-secondary mt-2">
+            Set Business Hours (8 AM - 5 PM)
+          </button>
+          <button id="reset-hours" class="button-reset">
+            Reset to All Hours
+          </button>
+        </div>
+      </div>
+
+      <h2>Activity Log</h2>
+      <div id="log-container"></div>
+      <div class="alert" id="help-section">
+        <p><strong>Need help or having issues?</strong></p>
+        <p>When you click the button below:</p>
+        <ul>
+          <li>
+            Your Activity Log will be copied to your clipboard and formatted as
+            a GitHub code block
+          </li>
+          <li>A new GitHub issue page will open</li>
+          <li>Describe your issue in the GitHub form</li>
+          <li>
+            <em
+              ><strong>Paste your clipboard contents (Ctrl+V/Cmd+V)</strong>
+              into the description on GitHub! </em
+            >😄
+          </li>
+        </ul>
+        <p>
+          This helps us quickly understand and fix any problems you're
+          experiencing!
+        </p>
+        <button id="copy-log-github">Copy Log & Open GitHub Issue</button>
+      </div>
+
+      <div class="buy-me-coffee">
+        <h3>Support My Work</h3>
+        <p class="buy-me-coffee-text">
+          If you found this repository helpful and would like to show your
+          support, consider buying me a coffee!<br />Your contribution helps
+          keep this project going.
+        </p>
+        <a href="https://buymeacoffee.com/richardadonnell" target="_blank">
+          <img
+            src="https://img.buymeacoffee.com/button-api/?text=Buy%20me%20a%20coffee&emoji=&slug=richardadonnell&button_colour=24292e&font_colour=ffffff&font_family=Cookie&outline_colour=000000&coffee_colour=ffffff"
+            alt="Buy Me A Coffee"
+          />
+        </a>
+      </div>
+    </div>
+
+    <footer>
+      <p>
+        <a
+          href="https://github.com/richardadonnell/Upwork-Job-Scraper"
+          target="_blank"
+          class="github-link"
+        >
+          <img src="https://github.com/favicon.ico" alt="GitHub" />
+          View on GitHub
+        </a>
+      </p>
+    </footer>
+
+    <div id="alert-container"></div>
+
+    <!-- Add this near the end of the body tag -->
+    <script src="activityLog.js"></script>
+    <script src="webhook.js"></script>
+    <script src="settings.js"></script>
+  </body>
+</html>
