@@ -1,0 +1,31 @@
+{
+  "manifest_version": 3,
+  "name": "Upwork Job Scraper v2",
+  "version": "0.1.0",
+  "description": "Rewritten Upwork job scraper (v2) — TypeScript + React + Tailwind + Sentry + Cheerio",
+  "action": {
+    "default_title": "Upwork Job Scraper v2"
+  },
+  "background": {
+    "service_worker": "background/worker.js"
+  },
+  "permissions": [
+    "storage",
+    "tabs",
+    "scripting",
+    "alarms"
+  ],
+  "host_permissions": [
+    "https://www.upwork.com/*"
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "dist/src/content/dom-inject.js"
+      ],
+      "matches": [
+        "https://www.upwork.com/*"
+      ]
+    }
+  ]
+}
