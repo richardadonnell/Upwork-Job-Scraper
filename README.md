@@ -1,21 +1,19 @@
 # Upwork Job Scraper + Webhook Chrome Extension
 
+ [![license](https://img.shields.io/github/license/warezit/Upwork-Job-Scraper?style=default&logo=opensourceinitiative&logoColor=white&color=0080ff)](https://github.com/warezit/Upwork-Job-Scraper)
+ [![last-commit](https://img.shields.io/github/last-commit/warezit/Upwork-Job-Scraper?style=default&logo=git&logoColor=white&color=0080ff)](https://github.com/warezit/Upwork-Job-Scraper)
+ [![top-language](https://img.shields.io/github/languages/top/warezit/Upwork-Job-Scraper?style=default&color=0080ff)](https://github.com/warezit/Upwork-Job-Scraper)
+ [![languages-count](https://img.shields.io/github/languages/count/warezit/Upwork-Job-Scraper?style=default&color=0080ff)](https://github.com/warezit/Upwork-Job-Scraper)
+
  ![UPWORK-JOB-SCRAPER-logo](upwork-job-scraper\icon128.png)
 
  > **‼️ NOTE: THIS IS UNDER DEVELOPMENT ‼️**
 
  > *Got questions, feedback, or ideas? Run into any hiccups? Feel free to drop an [issue here](https://github.com/richardadonnell/Upwork-Job-Scraper/issues).*
-
+ 
  > *Things might be a little buggy, but hang tight—I'm working hard to keep improving it!*
 
-
-
 ⭐ Chrome Browser Extension ⭐
-
- [![license](https://img.shields.io/github/license/warezit/Upwork-Job-Scraper?style=default&logo=opensourceinitiative&logoColor=white&color=0080ff)](https://github.com/warezit/Upwork-Job-Scraper)
- [![last-commit](https://img.shields.io/github/last-commit/warezit/Upwork-Job-Scraper?style=default&logo=git&logoColor=white&color=0080ff)](https://github.com/warezit/Upwork-Job-Scraper)
- [![top-language](https://img.shields.io/github/languages/top/warezit/Upwork-Job-Scraper?style=default&color=0080ff)](https://github.com/warezit/Upwork-Job-Scraper)
- [![languages-count](https://img.shields.io/github/languages/count/warezit/Upwork-Job-Scraper?style=default&color=0080ff)](https://github.com/warezit/Upwork-Job-Scraper)
 
  [![Available in the Chrome Web Store](https://developer.chrome.com/static/docs/webstore/branding/image/206x58-chrome-web-bcb82d15b2486.png)](https://chromewebstore.google.com/detail/mojpfejnpifdgjjknalhghclnaifnjkg?utm_source=item-share-cb)
 
