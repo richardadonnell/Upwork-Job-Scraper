@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "vite",
-    "build": "vite build && tsc --outDir build-ts && node ./scripts/generate-manifest.js",
+  "build": "vite build && tsc --outDir build-ts && node ./scripts/generate-manifest.js && node ./scripts/validate-extension.js",
     "preview": "vite preview",
     "package:open": "pwsh ./scripts/load-extension.ps1"
   },

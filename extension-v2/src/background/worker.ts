@@ -1,4 +1,4 @@
-import { runManualScrape } from './scraperController'
+import { runManualScrape } from './scraperController.js'
 
 console.log('Background worker loaded (v2)')
 

@@ -1,4 +1,4 @@
-import { runManualScrape } from './scraperController';
+import { runManualScrape } from './scraperController.js';
 console.log('Background worker loaded (v2)');
 // Open settings page in a new tab when the toolbar icon is clicked
 chrome.action.onClicked.addListener(() => {

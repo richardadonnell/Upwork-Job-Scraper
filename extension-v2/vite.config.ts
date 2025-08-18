@@ -6,10 +6,15 @@ export default defineConfig({
   build: {
     rollupOptions: {
       input: {
-        settings: 'src/ui/main.html'
+        settings: 'src/ui/main.html',
+        // background entry will be emitted to dist/background/worker.js
+        background: 'src/background/worker.ts'
       },
       output: {
-        entryFileNames: '[name].js'
+        // put the generated background entry in dist/background/worker.js
+        entryFileNames: (chunkInfo) => {
+          return chunkInfo.name === 'background' ? 'background/worker.js' : '[name].js'
+        }
       }
     }
   }

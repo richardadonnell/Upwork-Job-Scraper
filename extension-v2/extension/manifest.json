@@ -7,7 +7,8 @@
     "default_title": "Upwork Job Scraper v2"
   },
   "background": {
-    "service_worker": "background/worker.js"
+    "service_worker": "dist/background/worker.js",
+    "type": "module"
   },
   "permissions": [
     "storage",

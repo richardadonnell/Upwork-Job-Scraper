@@ -15,6 +15,8 @@ High-level plan: I'll keep this file concise and organized so an AI agent can be
 - Edit only inside `./upwork-job-scraper/`.
 - Do NOT modify `sentry.js` (in `misc/` and `upwork-job-scraper/`).
 - Preserve global exports used by content scripts (e.g., `globalThis.getEnabledPairs`, `globalThis.addToActivityLog`, `globalThis.sendToWebhook`).
+ - NEVER modify or make changes inside `extension-v2/extension`.
+	 - Rationale: `extension-v2/extension` is a build output folder produced by `npm run build` and will be overwritten on each build; edits there will be lost and may introduce hard-to-debug runtime issues. Make source changes under `extension-v2/src` or `extension-v2/public` instead.
 
 ## Architecture & important flows
 - Background service worker: `background.js` — handles initialization, scheduling (`chrome.alarms`), routing messages, and coordinating scrapes.
@@ -110,6 +112,7 @@ Activity log entries live in `chrome.storage.local.activityLog` as an array of t
 
 ## PR checklist (small, practical)
 - Code edits only in `upwork-job-scraper/`.
+ - Code edits only in `upwork-job-scraper/` or the appropriate `extension-v2/src` / `extension-v2/public` sources — do NOT edit `extension-v2/extension` (build output).
 - Don't change `sentry.js` content; update `sentry-init.js` or use `logAndReportError()` where necessary.
 - If modifying exported globals (e.g., `globalThis.getEnabledPairs`), update all usages (search the repo).
 - When changing scraping selectors: update `scrapeJobsFromPage()` in `jobScraping.js`, run a manual scrape locally, and verify `processJobs()` receives an array of job objects.
