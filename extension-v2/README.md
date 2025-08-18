@@ -5,6 +5,7 @@ A rewritten starter of the original Upwork Job Scraper — built with TypeScript
 This README documents the local dev workflow, build/packaging steps, how to load the extension in Chrome, and common troubleshooting tips.
 
 Table of contents
+
 - Prerequisites
 - Quick start
 - Loading the extension in Chrome
@@ -54,9 +55,9 @@ Packaging helper: `npm run package:open`
 
 - Purpose: convenience helper that opens the packaged `extension/` folder in Explorer and opens Chrome's Extensions page so you can quickly load the unpacked extension.
 - What it runs: `pwsh ./scripts/load-extension.ps1` (PowerShell). The script will:
-	- Verify `extension/` exists (if not, it prints a message and exits).
-	- Open File Explorer at the `extension/` folder.
-	- Open Chrome's extensions page (chrome://extensions) to make it easy to click **Load unpacked** and select the folder.
+  - Verify `extension/` exists (if not, it prints a message and exits).
+  - Open File Explorer at the `extension/` folder.
+  - Open Chrome's extensions page (chrome://extensions) to make it easy to click **Load unpacked** and select the folder.
 
 Usage
 
