@@ -94,6 +94,70 @@ Job scraping relies on these selectors (may break if Upwork changes):
 - Description: `[data-test="job-description-text"]`
 - Login detection: `a[href*="/login"]`, `button[data-qa="login-button"]`
 
+## MCP Tools Workflow
+
+### Task Planning (Always First)
+Before starting any work, use the **manage_todo_list** tool to:
+1. Break down the request into small, manageable steps
+2. Create a todo list with specific, actionable items
+3. Mark each todo as in-progress before starting, completed when done
+4. Keep only ONE todo in-progress at a time
+
+**Why this matters:**
+- Prevents scope creep and getting lost in complex changes
+- Provides clear checkpoints to verify progress
+- Makes it easy to pause and resume work
+- Ensures nothing gets forgotten in multi-step tasks
+
+### Research Before Coding (Critical)
+**Never make assumptions.** Before implementing any feature or fix:
+
+1. **Use Perplexity search MCP** to research thoroughly:
+   - Search for official documentation first (Chrome Extensions API, MDN, React docs, Vite docs)
+   - Do NOT accept the first search result — perform multiple searches with different query angles
+   - Cross-reference information across multiple authoritative sources
+   - If uncertain, search again with more specific queries until 100% confident
+
+2. **Prioritize official sources** (in order):
+   - Official documentation (developer.chrome.com, react.dev, vitejs.dev)
+   - GitHub repos/issues from the library maintainers
+   - Stack Overflow answers with high votes and recent dates
+   - Blog posts only if they reference official docs
+
+3. **Verify before coding:**
+   - Confirm API signatures match the version used in this project
+   - Check for deprecations or breaking changes
+   - Only proceed with code changes when fully confident in the approach
+
+### Build & Test Cycle with BrowserOS
+After making code changes, use this workflow:
+
+```powershell
+cd app
+npm run build
+```
+
+Then use **personal-browserOS MCP tools** to:
+
+1. **Reload the extension:**
+   - Navigate to `chrome://extensions/`
+   - Click the reload button for "Upwork Job Scraper"
+
+2. **Test the settings UI:**
+   - Navigate to extension settings page (URL changes during development, check manifest or use `chrome.runtime.getURL('dist/src/ui/main.html')`)
+   - Current dev URL: `chrome-extension://nflajldeanelekfefhjcgneibgdkoccn/dist/src/ui/main.html`
+
+3. **Test scraping functionality:**
+   - Navigate to Upwork job search pages
+   - Trigger manual scrape via settings UI
+   - Verify console output in DevTools
+
+### BrowserOS Tool Tips
+- Use `browser_get_page_content` to verify DOM changes
+- Use `browser_execute_javascript` to test extension messaging: `chrome.runtime.sendMessage({type: 'manualScrape'})`
+- Use `browser_get_screenshot` to document visual states
+- Check Service Worker console at `chrome://extensions/` → Details → Inspect views
+
 ## Reference Workspace
 
 The `extension.js/` workspace contains example patterns for Chrome extension development. When implementing new features, reference its `templates/typescript/` for patterns.
