@@ -1,6 +1,6 @@
 ---
 description: "When authoring code in `extension-v2`, prefer referencing and reusing examples from the `extension.js` workspace when relevant."
-applyTo: "extension-v2/**"
+applyTo: "app/**"
 ---
 
 # Reference `extension.js` examples when helpful

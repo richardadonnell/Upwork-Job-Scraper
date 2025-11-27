@@ -1,12 +1,12 @@
 ---
 description: "Workspace instructions: prefer TypeScript ES modules (not CommonJS) when developing `extension-v2`"
-applyTo: "extension-v2/**"
+applyTo: "app/**"
 ---
 
 # extension-v2 — TypeScript / ESM guidance for Copilot
 
 Scope
-- These notes apply only to files under `extension-v2/`.
+- These notes apply only to files under `app/`.
 
 Quick rule
 - Use TypeScript compiled to ES modules (ESNext / ES2022) — avoid producing CommonJS output for runtime assets (background service worker, content scripts, injected DOM scripts, UI bundles).
@@ -16,7 +16,7 @@ Why
 
 How to apply (concrete checklist)
 - `tsconfig.json`: set "module" to `ESNext` (or `ES2022`), "target" to at least `ES2020`/`ES2022`, and keep `moduleResolution: "bundler"` or `node` depending on toolchain.
-- `package.json` (in root and extension-v2): when running ESM Node scripts during dev, set `"type": "module"` if those scripts are ESM. For tooling that must remain CJS, keep scripts isolated.
+- `package.json` (in root and app): when running ESM Node scripts during dev, set `"type": "module"` if those scripts are ESM. For tooling that must remain CJS, keep scripts isolated.
 - Build outputs that go into `extension/` must be runnable by Chrome: service worker and content scripts should be plain ES module JS files (no `require()`/CommonJS). Prefer producing bundled JS via Vite/ESBuild for background when possible.
 - `public/manifest.json` used by the build should reference final built JS paths (e.g. `background/worker.js` or `dist/background/worker.js`) — do not reference `.ts` source files.
 - For Node helpers (scripts under `scripts/`), prefer ESM but either CJS or ESM is OK as long as build scripts run reliably on CI/dev machine.
