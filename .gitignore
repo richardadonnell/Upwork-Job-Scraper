@@ -73,7 +73,7 @@ node_modules/
 .DS_Store
 # Task files
 tasks.json
-tasks/ 
+tasks/
 
 .windsurfrules
 README-task-master.md
