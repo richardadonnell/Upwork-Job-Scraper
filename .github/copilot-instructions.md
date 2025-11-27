@@ -96,6 +96,34 @@ Job scraping relies on these selectors (may break if Upwork changes):
 
 ## MCP Tools Workflow
 
+### Project Management with Plane (Required)
+Use **Plane MCP tools** for all project and task management. This is mandatory for every step of development.
+
+**Plane Workspace:** https://plane.richardadonnell.com/rad/projects/f998dcfa-1178-42dc-a275-a3f22a65e528/issues
+
+**Workflow:**
+1. **Before starting any work:**
+   - Check existing issues in Plane for context
+   - Create a new issue for the task if one doesn't exist
+   - Break down large tasks into sub-issues
+
+2. **During development:**
+   - Update issue status as you progress (To Do → In Progress → Done)
+   - Add comments to issues documenting decisions, blockers, or findings
+   - Log work time using worklogs for time tracking
+
+3. **After completing work:**
+   - Update the issue with final notes
+   - Link any related issues or dependencies
+   - Move issue to appropriate state (Done, Review, etc.)
+
+**Key Plane MCP tools to use:**
+- `create_issue` — create new tasks/bugs/features
+- `update_issue` — change status, assignees, priority
+- `add_issue_comment` — document progress and decisions
+- `create_worklog` — track time spent on issues
+- `list_cycle_issues` — view sprint/cycle progress
+
 ### Task Planning (Always First)
 Before starting any work, use the **manage_todo_list** tool to:
 1. Break down the request into small, manageable steps
