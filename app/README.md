@@ -24,7 +24,7 @@ Prerequisites
 
 Quick start
 
-1. From the `extension-v2` folder install dependencies:
+1. From the `app` folder install dependencies:
 
 ```powershell
 npm install
@@ -44,8 +44,8 @@ npm run build
 
 Loading the extension in Chrome
 
-- After running `npm run build` the packaging script creates a ready-to-load folder at `extension-v2/extension`.
-- In Chrome open chrome://extensions, enable Developer mode, click **Load unpacked**, and select the `extension-v2/extension` folder.
+- After running `npm run build` the packaging script creates a ready-to-load folder at `app/extension`.
+- In Chrome open chrome://extensions, enable Developer mode, click **Load unpacked**, and select the `app/extension` folder.
 
 Notes about the UI and settings
 
