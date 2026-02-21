@@ -1,11 +1,83 @@
 import type { Job, ScrapeResult } from '../utils/types';
 
+function parsePostedTextToMs(postedText: string, anchorNowMs: number): number | undefined {
+  const normalized = postedText
+    .toLowerCase()
+    .replace(/^posted\s+on\s+/, '')
+    .replace(/^posted\s+/, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  if (!normalized) return undefined;
+  if (normalized === 'just now' || normalized === 'moments ago' || normalized === 'today') {
+    return anchorNowMs;
+  }
+  if (normalized === 'yesterday') {
+    return anchorNowMs - 24 * 60 * 60 * 1000;
+  }
+
+  const relativePattern =
+    /^(\d+)\+?\s*(min|mins|minute|minutes|hr|hrs|hour|hours|day|days|week|weeks|month|months)\s*ago$/;
+  const relativeMatch = relativePattern.exec(normalized);
+
+  if (relativeMatch) {
+    const amount = Number(relativeMatch[1]);
+    if (!Number.isFinite(amount)) return undefined;
+
+    const unit = relativeMatch[2];
+    let multiplierMs = 0;
+
+    if (unit.startsWith('min')) multiplierMs = 60 * 1000;
+    else if (unit.startsWith('h')) multiplierMs = 60 * 60 * 1000;
+    else if (unit.startsWith('day')) multiplierMs = 24 * 60 * 60 * 1000;
+    else if (unit.startsWith('week')) multiplierMs = 7 * 24 * 60 * 60 * 1000;
+    else if (unit.startsWith('month')) multiplierMs = 30 * 24 * 60 * 60 * 1000;
+
+    if (multiplierMs > 0) {
+      return anchorNowMs - amount * multiplierMs;
+    }
+  }
+
+  const parsedAbsolute = Date.parse(normalized);
+  if (Number.isFinite(parsedAbsolute)) {
+    return parsedAbsolute;
+  }
+
+  return undefined;
+}
+
+function extractPublishedOnByUid(): Map<string, number> {
+  const byUid = new Map<string, number>();
+  const scripts = Array.from(document.querySelectorAll('script'));
+
+  for (const script of scripts) {
+    const text = script.textContent;
+    if (!text || !text.includes('publishedOn') || !text.includes('uid')) continue;
+
+    const matchAll = text.matchAll(/"uid":"([^"]+)"[\s\S]{0,1000}?"(?:publishedOn|createdOn)":"([^"]+)"/g);
+    for (const match of matchAll) {
+      const uid = match[1];
+      const iso = match[2];
+      const ms = Date.parse(iso);
+      if (!Number.isFinite(ms)) continue;
+      if (!byUid.has(uid)) {
+        byUid.set(uid, ms);
+      }
+    }
+  }
+
+  return byUid;
+}
+
 export default defineContentScript({
   matches: ['https://www.upwork.com/*'],
   registration: 'runtime',
 
   main(): ScrapeResult {
     const jobTiles = document.querySelectorAll<HTMLElement>('article[data-ev-job-uid]');
+    const scrapedAtIso = new Date().toISOString();
+    const scrapedAtMs = Date.parse(scrapedAtIso);
+    const publishedOnByUid = extractPublishedOnByUid();
 
     if (jobTiles.length === 0) {
       const hasLoginLink =
@@ -53,6 +125,8 @@ export default defineContentScript({
         const datePosted = dateSpans && dateSpans.length > 1
           ? dateSpans[dateSpans.length - 1]?.textContent?.trim() ?? ''
           : dateEl?.textContent?.trim() ?? '';
+        const postedAtMs =
+          publishedOnByUid.get(uid) ?? parsePostedTextToMs(datePosted, scrapedAtMs);
 
         const descEl = article.querySelector('.air3-line-clamp-wrapper.clamp p');
         const description = descEl?.textContent?.trim() ?? '';
@@ -86,6 +160,7 @@ export default defineContentScript({
           title,
           url,
           datePosted,
+          postedAtMs,
           description,
           jobType,
           budget,
@@ -95,7 +170,7 @@ export default defineContentScript({
           clientRating,
           clientTotalSpent,
           proposals,
-          scrapedAt: new Date().toISOString(),
+          scrapedAt: scrapedAtIso,
         });
       } catch (err) {
         console.error('[Upwork Scraper] Error parsing job tile:', err);

@@ -205,6 +205,7 @@ async function processTargetResult(
 			title: preferFreshString(existing.title, fresh.title),
 			url: preferFreshString(existing.url, fresh.url),
 			datePosted: preferFreshString(existing.datePosted, fresh.datePosted),
+			postedAtMs: existing.postedAtMs ?? fresh.postedAtMs,
 			description: preferFreshString(existing.description, fresh.description),
 			jobType: preferFreshString(existing.jobType, fresh.jobType),
 			budget: preferFreshString(existing.budget, fresh.budget),

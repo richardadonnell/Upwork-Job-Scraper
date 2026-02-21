@@ -3,6 +3,7 @@ export interface Job {
   title: string;
   url: string;
   datePosted: string;
+  postedAtMs?: number;
   description: string;
   jobType: string;
   budget: string;
@@ -71,6 +72,7 @@ export const EXAMPLE_WEBHOOK_PAYLOAD: {
       title: 'Senior React Developer Needed',
       url: 'https://www.upwork.com/jobs/~01exampleJobUid12345',
       datePosted: 'Posted 2 hours ago',
+      postedAtMs: Date.now() - 2 * 60 * 60 * 1000,
       description:
         'We are looking for an experienced React developer to help build a SaaS dashboard. ' +
         'You will work closely with our design team to implement pixel-perfect UI components, ' +

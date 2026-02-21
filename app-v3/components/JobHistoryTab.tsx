@@ -51,8 +51,78 @@ function SortIcon({
 	return sortDir === "asc" ? <CaretUpIcon /> : <CaretDownIcon />;
 }
 
+function parsePostedTextToMs(
+	postedText: string,
+	anchorNowMs: number,
+): number | undefined {
+	const normalized = postedText
+		.toLowerCase()
+		.replace(/^posted\s+on\s+/, "")
+		.replace(/^posted\s+/, "")
+		.replace(/\s+/g, " ")
+		.trim();
+
+	if (!normalized) return undefined;
+	if (
+		normalized === "just now" ||
+		normalized === "moments ago" ||
+		normalized === "today"
+	) {
+		return anchorNowMs;
+	}
+	if (normalized === "yesterday") {
+		return anchorNowMs - 24 * 60 * 60 * 1000;
+	}
+
+	const relativePattern =
+		/^(\d+)\+?\s*(min|mins|minute|minutes|hr|hrs|hour|hours|day|days|week|weeks|month|months)\s*ago$/;
+	const relativeMatch = relativePattern.exec(normalized);
+
+	if (relativeMatch) {
+		const amount = Number(relativeMatch[1]);
+		if (!Number.isFinite(amount)) return undefined;
+
+		const unit = relativeMatch[2];
+		let multiplierMs = 0;
+
+		if (unit.startsWith("min")) multiplierMs = 60 * 1000;
+		else if (unit.startsWith("h")) multiplierMs = 60 * 60 * 1000;
+		else if (unit.startsWith("day")) multiplierMs = 24 * 60 * 60 * 1000;
+		else if (unit.startsWith("week")) multiplierMs = 7 * 24 * 60 * 60 * 1000;
+		else if (unit.startsWith("month")) multiplierMs = 30 * 24 * 60 * 60 * 1000;
+
+		if (multiplierMs > 0) {
+			return anchorNowMs - amount * multiplierMs;
+		}
+	}
+
+	const parsedAbsolute = Date.parse(normalized);
+	if (Number.isFinite(parsedAbsolute)) {
+		return parsedAbsolute;
+	}
+
+	return undefined;
+}
+
+function getPostedTimestampMs(job: Job): number {
+	if (typeof job.postedAtMs === "number" && Number.isFinite(job.postedAtMs)) {
+		return job.postedAtMs;
+	}
+
+	const scrapedAtMs = Date.parse(job.scrapedAt);
+	const anchorNowMs = Number.isFinite(scrapedAtMs) ? scrapedAtMs : Date.now();
+	return parsePostedTextToMs(job.datePosted, anchorNowMs) ?? anchorNowMs;
+}
+
 function sortJobs(jobs: Job[], col: SortCol, dir: SortDir): Job[] {
 	return [...jobs].sort((a, b) => {
+		if (col === "datePosted") {
+			const av = getPostedTimestampMs(a);
+			const bv = getPostedTimestampMs(b);
+			const cmp = av - bv;
+			return dir === "asc" ? cmp : -cmp;
+		}
+
 		const av = a[col] ?? "";
 		const bv = b[col] ?? "";
 		const cmp = av.localeCompare(bv, undefined, { numeric: true });
@@ -88,7 +158,7 @@ export function JobHistoryTab() {
 			setSortDir((d) => (d === "asc" ? "desc" : "asc"));
 		} else {
 			setSortCol(col);
-			setSortDir("asc");
+			setSortDir(col === "datePosted" ? "desc" : "asc");
 		}
 	}
 
