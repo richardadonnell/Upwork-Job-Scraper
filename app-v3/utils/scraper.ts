@@ -114,14 +114,46 @@ async function processTargetResult(
 ): Promise<number> {
 	if (!result.ok || !result.jobs) return 0;
 
+	const preferFreshString = (current: string, fresh: string): string =>
+		current.trim() !== "" ? current : fresh;
+
 	const seenIds = await seenJobIdsStorage.getValue();
 	const seenSet = new Set(seenIds);
 	const newJobs = result.jobs.filter((job) => !seenSet.has(job.uid));
 
-	if (newJobs.length === 0) return 0;
-
 	const existingHistory = await jobHistoryStorage.getValue();
-	const updatedHistory = [...newJobs, ...existingHistory].slice(
+	const latestByUid = new Map(result.jobs.map((job) => [job.uid, job]));
+	const backfilledHistory = existingHistory.map((existing) => {
+		const fresh = latestByUid.get(existing.uid);
+		if (!fresh) return existing;
+
+		return {
+			...existing,
+			title: preferFreshString(existing.title, fresh.title),
+			url: preferFreshString(existing.url, fresh.url),
+			datePosted: preferFreshString(existing.datePosted, fresh.datePosted),
+			description: preferFreshString(existing.description, fresh.description),
+			jobType: preferFreshString(existing.jobType, fresh.jobType),
+			budget: preferFreshString(existing.budget, fresh.budget),
+			experienceLevel: preferFreshString(
+				existing.experienceLevel,
+				fresh.experienceLevel,
+			),
+			skills: existing.skills.length > 0 ? existing.skills : fresh.skills,
+			paymentVerified: existing.paymentVerified || fresh.paymentVerified,
+			clientRating: preferFreshString(
+				existing.clientRating,
+				fresh.clientRating,
+			),
+			clientTotalSpent: preferFreshString(
+				existing.clientTotalSpent,
+				fresh.clientTotalSpent,
+			),
+			proposals: preferFreshString(existing.proposals, fresh.proposals),
+		};
+	});
+
+	const updatedHistory = [...newJobs, ...backfilledHistory].slice(
 		0,
 		JOB_HISTORY_MAX,
 	);
@@ -131,6 +163,8 @@ async function processTargetResult(
 		jobHistoryStorage.setValue(updatedHistory),
 		seenJobIdsStorage.setValue(updatedSeenIds),
 	]);
+
+	if (newJobs.length === 0) return 0;
 
 	if (target.webhookEnabled && target.webhookUrl) {
 		try {

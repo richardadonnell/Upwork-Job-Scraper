@@ -23,10 +23,29 @@ export default defineContentScript({
       try {
         const uid = article.dataset.evJobUid ?? '';
 
-        const titleEl = article.querySelector<HTMLAnchorElement>('[data-test="job-tile-title-link"]');
-        const title = titleEl?.textContent?.trim() ?? '';
-        const relativeUrl = titleEl?.getAttribute('href') ?? '';
-        const url = relativeUrl ? `https://www.upwork.com${relativeUrl}` : '';
+        const titleEl =
+          article.querySelector<HTMLAnchorElement>('[data-test="job-tile-title-link"]') ??
+          article.querySelector<HTMLAnchorElement>('.job-tile-title a') ??
+          article.querySelector<HTMLAnchorElement>('h2.job-tile-title a') ??
+          article.querySelector<HTMLAnchorElement>('h2 a[href*="/jobs/"]') ??
+          article.querySelector<HTMLAnchorElement>('a[href*="/jobs/"]');
+
+        const fallbackTitleEl =
+          article.querySelector<HTMLElement>('.job-tile-title') ??
+          article.querySelector<HTMLElement>('[data-test="job-title"]') ??
+          article.querySelector<HTMLElement>('h2');
+
+        const title = titleEl?.textContent?.trim() || fallbackTitleEl?.textContent?.trim() || '';
+
+        const href = titleEl?.getAttribute('href')?.trim() ?? '';
+        let url = '';
+        if (href) {
+          try {
+            url = new URL(href, 'https://www.upwork.com').toString();
+          } catch {
+            url = '';
+          }
+        }
 
         // Note: Upwork has a typo in their attribute name ("pubilshed" not "published") — intentional
         const dateEl = article.querySelector('[data-test="job-pubilshed-date"]');

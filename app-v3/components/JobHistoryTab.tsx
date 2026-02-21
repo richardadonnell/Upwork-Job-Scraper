@@ -42,11 +42,11 @@ function SortIcon({
 	col,
 	sortCol,
 	sortDir,
-}: {
+}: Readonly<{
 	col: SortCol;
 	sortCol: SortCol;
 	sortDir: SortDir;
-}) {
+}>) {
 	if (col !== sortCol) return <CaretSortIcon style={{ opacity: 0.4 }} />;
 	return sortDir === "asc" ? <CaretUpIcon /> : <CaretDownIcon />;
 }
