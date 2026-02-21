@@ -7,16 +7,20 @@ interface Props {
 }
 
 export function DashboardPage({ settings, jobs }: Props) {
+  const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const;
   const isActive = settings.masterEnabled;
   const targetCount = settings.searchTargets.filter(t => t.searchUrl.trim()).length;
   const webhookCount = settings.searchTargets.filter(t => t.webhookEnabled && t.webhookUrl.trim()).length;
 
-  const { days, hours, minutes } = settings.checkFrequency;
-  const freqParts: string[] = [];
-  if (days > 0) freqParts.push(`${days}d`);
-  if (hours > 0) freqParts.push(`${hours}h`);
-  if (minutes > 0) freqParts.push(`${minutes}m`);
-  const freqDisplay = freqParts.length > 0 ? freqParts.join(" ") : "not set";
+  const freqDisplay = `${settings.minuteInterval}m`;
+  const activeDayLabels = settings.activeDays.flatMap((isEnabled, dayIndex) => (isEnabled ? [DAY_LABELS[dayIndex]] : []));
+  let activeDaysDisplay = activeDayLabels.join(", ");
+  if (activeDayLabels.length === 7) {
+    activeDaysDisplay = "Every day";
+  } else if (activeDayLabels.length === 0) {
+    activeDaysDisplay = "No days";
+  }
+  const scheduleSummary = `${activeDaysDisplay} · ${settings.timeWindow.start}-${settings.timeWindow.end}`;
 
   return (
     <Box p="6">
@@ -63,6 +67,7 @@ export function DashboardPage({ settings, jobs }: Props) {
           <Flex direction="column" gap="1">
             <Text size="1" color="gray" weight="medium">Check Frequency</Text>
             <Text size="4" weight="bold">{freqDisplay}</Text>
+            <Text size="1" color="gray">{scheduleSummary}</Text>
           </Flex>
         </Card>
       </Grid>

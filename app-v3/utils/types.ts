@@ -25,10 +25,11 @@ export interface SearchTarget {
 export interface Settings {
   masterEnabled: boolean;
   searchTargets: SearchTarget[];
-  checkFrequency: {
-    days: number;
-    hours: number;
-    minutes: number;
+  minuteInterval: number;
+  activeDays: [boolean, boolean, boolean, boolean, boolean, boolean, boolean];
+  timeWindow: {
+    start: string;
+    end: string;
   };
   notificationsEnabled: boolean;
   lastRunAt: string | null;

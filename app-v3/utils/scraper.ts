@@ -15,11 +15,37 @@ export async function setupAlarm(): Promise<void> {
 
 	if (!settings.masterEnabled) return;
 
-	const { days, hours, minutes } = settings.checkFrequency;
-	const periodInMinutes = days * 24 * 60 + hours * 60 + minutes;
-	if (periodInMinutes < 1) return;
+	const periodInMinutes = Math.max(5, Math.floor(settings.minuteInterval || 5));
 
 	browser.alarms.create(ALARM_NAME, { periodInMinutes });
+}
+
+function parseTimeToMinutes(value: string): number | null {
+	const match = /^(\d{2}):(\d{2})$/.exec(value);
+	if (!match) return null;
+
+	const hour = Number(match[1]);
+	const minute = Number(match[2]);
+	if (!Number.isInteger(hour) || !Number.isInteger(minute)) return null;
+	if (hour < 0 || hour > 23 || minute < 0 || minute > 59) return null;
+
+	return hour * 60 + minute;
+}
+
+function shouldRunNow(
+	settings: Awaited<ReturnType<typeof settingsStorage.getValue>>,
+): boolean {
+	const now = new Date();
+	const dayIndex = now.getDay();
+	if (!settings.activeDays[dayIndex]) return false;
+
+	const startMinutes = parseTimeToMinutes(settings.timeWindow.start);
+	const endMinutes = parseTimeToMinutes(settings.timeWindow.end);
+	if (startMinutes === null || endMinutes === null) return false;
+	if (startMinutes > endMinutes) return false;
+
+	const nowMinutes = now.getHours() * 60 + now.getMinutes();
+	return nowMinutes >= startMinutes && nowMinutes <= endMinutes;
 }
 
 async function scrapeTarget(target: SearchTarget): Promise<ScrapeResult> {
@@ -241,6 +267,17 @@ export async function runScrape(options?: { manual?: boolean }): Promise<void> {
 			"[Upwork Scraper] Skipping scrape — automatic scraping is disabled.",
 		);
 		await appendActivityLog("warn", "Skipped — automatic scraping is disabled");
+		return;
+	}
+
+	if (!options?.manual && !shouldRunNow(settings)) {
+		console.warn(
+			"[Upwork Scraper] Skipping scrape — outside active days/time window.",
+		);
+		await appendActivityLog(
+			"info",
+			"Skipped — outside active days/time window",
+		);
 		return;
 	}
 

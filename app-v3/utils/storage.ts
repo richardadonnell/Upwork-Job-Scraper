@@ -3,7 +3,9 @@ import type { ActivityLog, Job, Settings } from './types';
 export const DEFAULT_SETTINGS: Settings = {
   masterEnabled: false,
   searchTargets: [{ id: crypto.randomUUID(), searchUrl: '', webhookEnabled: false, webhookUrl: '' }],
-  checkFrequency: { days: 0, hours: 1, minutes: 0 },
+  minuteInterval: 5,
+  activeDays: [false, true, true, true, true, true, false],
+  timeWindow: { start: '00:00', end: '23:59' },
   notificationsEnabled: true,
   lastRunAt: null,
   lastRunStatus: null,
@@ -11,7 +13,7 @@ export const DEFAULT_SETTINGS: Settings = {
 
 export const settingsStorage = storage.defineItem<Settings>('sync:settings', {
   fallback: DEFAULT_SETTINGS,
-  version: 2,
+  version: 3,
   migrations: {
     2: (old: Record<string, unknown>): Settings => {
       // Migrate from the v1 flat shape (searchUrl / webhookUrl / webhookEnabled)
@@ -22,6 +24,27 @@ export const settingsStorage = storage.defineItem<Settings>('sync:settings', {
       return {
         ...(old as unknown as Settings),
         searchTargets: [{ id: crypto.randomUUID(), searchUrl, webhookEnabled, webhookUrl }],
+      };
+    },
+    3: (old: Record<string, unknown>): Settings => {
+      const oldFrequency =
+        typeof old.checkFrequency === 'object' && old.checkFrequency
+          ? (old.checkFrequency as { days?: unknown; hours?: unknown; minutes?: unknown })
+          : null;
+
+      const days = typeof oldFrequency?.days === 'number' ? oldFrequency.days : 0;
+      const hours = typeof oldFrequency?.hours === 'number' ? oldFrequency.hours : 0;
+      const minutes = typeof oldFrequency?.minutes === 'number' ? oldFrequency.minutes : 0;
+      const legacyTotalMinutes = days * 24 * 60 + hours * 60 + minutes;
+
+      const rawMinuteInterval =
+        typeof old.minuteInterval === 'number' ? old.minuteInterval : legacyTotalMinutes;
+
+      return {
+        ...(old as unknown as Settings),
+        minuteInterval: Math.max(5, Math.floor(rawMinuteInterval || 5)),
+        activeDays: [false, true, true, true, true, true, false],
+        timeWindow: { start: '00:00', end: '23:59' },
       };
     },
   },

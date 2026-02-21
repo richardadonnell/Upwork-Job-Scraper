@@ -488,50 +488,45 @@ export function SettingsTab({ settings, onChange }: Props) {
 			<div style={s.card}>
 				<p style={s.cardHeader}>Schedule</p>
 				<p style={{ ...s.label, margin: "0 0 6px" }}>Check every</p>
-				<div style={{ display: "flex", gap: 10 }}>
-					{(["days", "hours", "minutes"] as const).map((unit) => {
-						const max = unit === "days" ? 30 : 59;
-						const short = unit[0];
-						return (
-							<div key={unit} style={{ flex: 1, position: "relative" }}>
-								<input
-									type="number"
-									min={0}
-									max={max}
-									style={{
-										...inputFocusStyle(`freq-${unit}`),
-										paddingRight: 28,
-									}}
-									value={settings.checkFrequency[unit]}
-									onFocus={() => setFocusedInput(`freq-${unit}`)}
-									onBlur={() => setFocusedInput(null)}
-									onChange={(e) =>
-										onChange({
-											...settings,
-											checkFrequency: {
-												...settings.checkFrequency,
-												[unit]: Number(e.target.value),
-											},
-										})
-									}
-								/>
-								<span
-									style={{
-										position: "absolute",
-										right: 10,
-										top: "50%",
-										transform: "translateY(-50%)",
-										fontFamily: "var(--mono)",
-										fontSize: 11,
-										color: "var(--text-muted)",
-										pointerEvents: "none" as const,
-									}}
-								>
-									{short}
-								</span>
-							</div>
-						);
-					})}
+				<div
+					style={{
+						display: "flex",
+						gap: 10,
+						maxWidth: 180,
+						position: "relative",
+					}}
+				>
+					<input
+						type="number"
+						min={5}
+						style={{
+							...inputFocusStyle("freq-minutes"),
+							paddingRight: 50,
+						}}
+						value={settings.minuteInterval}
+						onFocus={() => setFocusedInput("freq-minutes")}
+						onBlur={() => setFocusedInput(null)}
+						onChange={(e) =>
+							onChange({
+								...settings,
+								minuteInterval: Math.max(5, Number(e.target.value) || 5),
+							})
+						}
+					/>
+					<span
+						style={{
+							position: "absolute",
+							right: 10,
+							top: "50%",
+							transform: "translateY(-50%)",
+							fontFamily: "var(--mono)",
+							fontSize: 11,
+							color: "var(--text-muted)",
+							pointerEvents: "none" as const,
+						}}
+					>
+						mins
+					</span>
 				</div>
 			</div>
 
