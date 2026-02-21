@@ -43,6 +43,65 @@ const SETTINGS_PAGES: Page[] = ["search-targets", "schedule", "delivery"];
 
 type SaveState = "idle" | "saved" | "error";
 
+function formatCountdown(totalSeconds: number): string {
+	const safeSeconds = Math.max(0, Math.floor(totalSeconds));
+	const hours = Math.floor(safeSeconds / 3600);
+	const minutes = Math.floor((safeSeconds % 3600) / 60);
+	const seconds = safeSeconds % 60;
+
+	if (hours > 0) {
+		return `${hours}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+	}
+
+	return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+}
+
+function getNextRunTimestamp(settings: Settings, nowMs: number): number | null {
+	if (!settings.masterEnabled) return null;
+
+	const periodMs = Math.max(5, settings.minuteInterval) * 60 * 1000;
+	const lastRunMs = settings.lastRunAt
+		? Date.parse(settings.lastRunAt)
+		: Number.NaN;
+	const baseMs = Number.isFinite(lastRunMs) ? lastRunMs : nowMs;
+
+	if (baseMs >= nowMs) {
+		return baseMs + periodMs;
+	}
+
+	const elapsed = nowMs - baseMs;
+	const intervals = Math.floor(elapsed / periodMs) + 1;
+	return baseMs + intervals * periodMs;
+}
+
+function getNextRunDisplay(args: {
+	canRunScrape: boolean;
+	masterEnabled: boolean;
+	scraping: boolean;
+	nextRunTimestamp: number | null;
+	countdownLabel: string;
+}): { primary: string; primaryColor: "green" | "gray"; secondary?: string } {
+	if (!args.canRunScrape) {
+		return { primary: "No search URL configured", primaryColor: "gray" };
+	}
+
+	if (!args.masterEnabled) {
+		return { primary: "Paused", primaryColor: "gray" };
+	}
+
+	if (args.scraping) {
+		return { primary: "Running now...", primaryColor: "green" };
+	}
+
+	return {
+		primary: `in ${args.countdownLabel}`,
+		primaryColor: "green",
+		secondary: args.nextRunTimestamp
+			? new Date(args.nextRunTimestamp).toLocaleTimeString()
+			: undefined,
+	};
+}
+
 export function OptionsApp() {
 	const [activePage, setActivePage] = useState<Page>("dashboard");
 	const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
@@ -50,6 +109,7 @@ export function OptionsApp() {
 	const [loading, setLoading] = useState(true);
 	const [saving, setSaving] = useState(false);
 	const [scraping, setScraping] = useState(false);
+	const [nowMs, setNowMs] = useState(() => Date.now());
 	const [saveState, setSaveState] = useState<SaveState>("idle");
 	const saveTimeoutRef = useRef<number | null>(null);
 	const saveStatusTimeoutRef = useRef<number | null>(null);
@@ -71,6 +131,14 @@ export function OptionsApp() {
 			unwatchSettings();
 			unwatchJobs();
 		};
+	}, []);
+
+	useEffect(() => {
+		const interval = window.setInterval(() => {
+			setNowMs(Date.now());
+		}, 1000);
+
+		return () => window.clearInterval(interval);
 	}, []);
 
 	useEffect(() => {
@@ -137,6 +205,20 @@ export function OptionsApp() {
 
 	const isSettingsPage = SETTINGS_PAGES.includes(activePage);
 	const canRunScrape = settings.searchTargets.some((t) => t.searchUrl.trim());
+	const nextRunTimestamp = canRunScrape
+		? getNextRunTimestamp(settings, nowMs)
+		: null;
+	const countdownSeconds = nextRunTimestamp
+		? Math.max(0, Math.floor((nextRunTimestamp - nowMs) / 1000))
+		: 0;
+	const countdownLabel = formatCountdown(countdownSeconds);
+	const nextRunDisplay = getNextRunDisplay({
+		canRunScrape,
+		masterEnabled: settings.masterEnabled,
+		scraping,
+		nextRunTimestamp,
+		countdownLabel,
+	});
 	let autoSaveColor: "red" | "gray" | "green" = "green";
 	if (saveState === "error") {
 		autoSaveColor = "red";
@@ -187,6 +269,35 @@ export function OptionsApp() {
 				{/* Scraper controls */}
 				<Box px="4" py="3">
 					<Flex direction="column" gap="2">
+						<Box
+							style={{
+								padding: "8px 10px",
+								border: "1px solid var(--gray-4)",
+								borderRadius: "var(--radius-2)",
+								background:
+									"color-mix(in srgb, var(--gray-2) 70%, transparent)",
+							}}
+						>
+							<Text size="1" color="gray" as="p" m="0">
+								Next scraper run
+							</Text>
+							<Text
+								size="2"
+								weight="medium"
+								color={nextRunDisplay.primaryColor}
+								as="p"
+								m="0"
+								mt="1"
+							>
+								{nextRunDisplay.primary}
+							</Text>
+							{nextRunDisplay.secondary && (
+								<Text size="1" color="gray" as="p" m="0" mt="1">
+									{nextRunDisplay.secondary}
+								</Text>
+							)}
+						</Box>
+
 						<Button
 							size="2"
 							variant="soft"
