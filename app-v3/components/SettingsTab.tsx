@@ -1,5 +1,5 @@
 import type React from "react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { settingsStorage } from "../utils/storage";
 import type { SearchTarget, Settings } from "../utils/types";
 import { EXAMPLE_WEBHOOK_PAYLOAD } from "../utils/types";
@@ -63,6 +63,7 @@ function inputStyle(
 }
 
 type TestStatus = "idle" | "sending" | "ok" | "error";
+type SaveState = "idle" | "saved" | "error";
 
 /** One search-URL + webhook pair */
 function SearchTargetCard({
@@ -371,46 +372,84 @@ function ToggleRow({
 export function SettingsTab({ settings, onChange }: Props) {
 	const [saving, setSaving] = useState(false);
 	const [scraping, setScraping] = useState(false);
-	const [statusMsg, setStatusMsg] = useState("");
-	const [statusOk, setStatusOk] = useState(true);
+	const [saveState, setSaveState] = useState<SaveState>("idle");
 	const [focusedInput, setFocusedInput] = useState<string | null>(null);
+	const saveTimeoutRef = useRef<number | null>(null);
+	const saveStatusTimeoutRef = useRef<number | null>(null);
+	const hasInitializedRef = useRef(false);
+	const lastSavedSnapshotRef = useRef("");
 
-	async function handleSave() {
-		setSaving(true);
-		setStatusMsg("");
-		try {
-			await settingsStorage.setValue(settings);
-			await browser.runtime.sendMessage({ type: "settingsUpdated" });
-			setStatusOk(true);
-			setStatusMsg("Settings saved.");
-		} catch {
-			setStatusOk(false);
-			setStatusMsg("Error saving settings.");
-		} finally {
-			setSaving(false);
+	useEffect(() => {
+		const snapshot = JSON.stringify(settings);
+
+		if (!hasInitializedRef.current) {
+			hasInitializedRef.current = true;
+			lastSavedSnapshotRef.current = snapshot;
+			return;
 		}
-	}
+
+		if (snapshot === lastSavedSnapshotRef.current) return;
+
+		if (saveTimeoutRef.current) {
+			window.clearTimeout(saveTimeoutRef.current);
+		}
+		if (saveStatusTimeoutRef.current) {
+			window.clearTimeout(saveStatusTimeoutRef.current);
+		}
+
+		setSaving(true);
+		setSaveState("idle");
+
+		saveTimeoutRef.current = window.setTimeout(async () => {
+			let saveSucceeded = false;
+			try {
+				await settingsStorage.setValue(settings);
+				await browser.runtime.sendMessage({ type: "settingsUpdated" });
+				lastSavedSnapshotRef.current = snapshot;
+				saveSucceeded = true;
+				setSaveState("saved");
+			} catch {
+				setSaveState("error");
+			} finally {
+				setSaving(false);
+				if (saveSucceeded) {
+					saveStatusTimeoutRef.current = window.setTimeout(() => {
+						setSaveState("idle");
+					}, 2500);
+				}
+			}
+		}, 500);
+
+		return () => {
+			if (saveTimeoutRef.current) {
+				window.clearTimeout(saveTimeoutRef.current);
+			}
+		};
+	}, [settings]);
 
 	async function handleManualScrape() {
 		setScraping(true);
-		setStatusMsg("");
 		try {
-			const res = await browser.runtime.sendMessage({ type: "manualScrape" });
-			setStatusOk(res?.ok ?? false);
-			setStatusMsg(
-				res?.ok
-					? "Scrape complete."
-					: `Scrape failed: ${res?.error ?? "unknown error"}`,
-			);
+			await browser.runtime.sendMessage({ type: "manualScrape" });
 		} catch (err) {
-			setStatusOk(false);
-			setStatusMsg(`Error: ${String(err)}`);
+			console.error("[Upwork Scraper] Manual scrape failed", err);
 		} finally {
 			setScraping(false);
 		}
 	}
 
 	const inputFocusStyle = (id: string) => inputStyle(id, focusedInput);
+	const autoSaveBackground =
+		saveState === "error" ? "var(--danger)" : "var(--accent)";
+	let autoSaveLabel = "Auto-save on";
+	if (saving) {
+		autoSaveLabel = "Auto-saving…";
+	}
+	if (saveState === "saved") {
+		autoSaveLabel = "Auto-saved ✓";
+	} else if (saveState === "error") {
+		autoSaveLabel = "Auto-save failed";
+	}
 
 	return (
 		<div>
@@ -623,23 +662,23 @@ export function SettingsTab({ settings, onChange }: Props) {
 			>
 				<button
 					type="button"
-					onClick={handleSave}
-					disabled={saving}
+					disabled
 					style={{
 						padding: "10px 22px",
-						background: saving ? "var(--accent-dim)" : "var(--accent)",
+						background: saving ? "var(--accent-dim)" : autoSaveBackground,
 						color: "#fff",
 						border: "none",
 						borderRadius: 6,
-						cursor: saving ? "not-allowed" : "pointer",
+						cursor: "default",
 						fontWeight: 600,
 						fontSize: 13,
 						fontFamily: "var(--sans)",
 						transition: "background 0.2s, opacity 0.2s",
 						letterSpacing: "0.01em",
+						opacity: 1,
 					}}
 				>
-					{saving ? "Saving…" : "Save settings"}
+					{autoSaveLabel}
 				</button>
 
 				<button
@@ -671,25 +710,6 @@ export function SettingsTab({ settings, onChange }: Props) {
 				>
 					{scraping ? "Scraping…" : "Run scrape now"}
 				</button>
-
-				{statusMsg && (
-					<span
-						style={{
-							fontSize: 12,
-							fontFamily: "var(--mono)",
-							color: statusOk ? "var(--accent)" : "var(--danger)",
-							padding: "4px 10px",
-							background: statusOk
-								? "rgba(20,168,0,0.08)"
-								: "var(--danger-dim)",
-							borderRadius: 4,
-							border: `1px solid ${statusOk ? "var(--accent-dim)" : "var(--danger)"}`,
-							letterSpacing: "0.02em",
-						}}
-					>
-						{statusMsg}
-					</span>
-				)}
 			</div>
 		</div>
 	);

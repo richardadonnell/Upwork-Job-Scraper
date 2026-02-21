@@ -1,5 +1,4 @@
 import {
-	Badge,
 	Box,
 	Button,
 	Flex,
@@ -9,7 +8,7 @@ import {
 	Switch,
 	Text,
 } from "@radix-ui/themes";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
 	DEFAULT_SETTINGS,
 	jobHistoryStorage,
@@ -43,6 +42,8 @@ const NAV_ITEMS: { id: Page; label: string }[] = [
 
 const SETTINGS_PAGES: Page[] = ["search-targets", "schedule", "delivery"];
 
+type SaveState = "idle" | "saved" | "error";
+
 export function OptionsApp() {
 	const [activePage, setActivePage] = useState<Page>("dashboard");
 	const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
@@ -50,8 +51,10 @@ export function OptionsApp() {
 	const [loading, setLoading] = useState(true);
 	const [saving, setSaving] = useState(false);
 	const [scraping, setScraping] = useState(false);
-	const [statusMsg, setStatusMsg] = useState("");
-	const [statusOk, setStatusOk] = useState(true);
+	const [saveState, setSaveState] = useState<SaveState>("idle");
+	const saveTimeoutRef = useRef<number | null>(null);
+	const saveStatusTimeoutRef = useRef<number | null>(null);
+	const lastSavedSnapshotRef = useRef("");
 
 	useEffect(() => {
 		Promise.all([
@@ -60,6 +63,7 @@ export function OptionsApp() {
 		]).then(([s, j]) => {
 			setSettings(s);
 			setJobs(j);
+			lastSavedSnapshotRef.current = JSON.stringify(s);
 			setLoading(false);
 		});
 		const unwatchSettings = settingsStorage.watch((s) => setSettings(s));
@@ -70,38 +74,57 @@ export function OptionsApp() {
 		};
 	}, []);
 
-	async function handleSave() {
-		setSaving(true);
-		setStatusMsg("");
-		try {
-			await settingsStorage.setValue(settings);
-			await browser.runtime.sendMessage({ type: "settingsUpdated" });
-			setStatusOk(true);
-			setStatusMsg("Saved");
-		} catch {
-			setStatusOk(false);
-			setStatusMsg("Error saving");
-		} finally {
-			setSaving(false);
-			setTimeout(() => setStatusMsg(""), 3000);
+	useEffect(() => {
+		if (loading) return;
+
+		const snapshot = JSON.stringify(settings);
+		if (snapshot === lastSavedSnapshotRef.current) return;
+
+		if (saveTimeoutRef.current) {
+			window.clearTimeout(saveTimeoutRef.current);
 		}
-	}
+		if (saveStatusTimeoutRef.current) {
+			window.clearTimeout(saveStatusTimeoutRef.current);
+		}
+
+		setSaving(true);
+		setSaveState("idle");
+
+		saveTimeoutRef.current = window.setTimeout(async () => {
+			let saveSucceeded = false;
+			try {
+				await settingsStorage.setValue(settings);
+				await browser.runtime.sendMessage({ type: "settingsUpdated" });
+				lastSavedSnapshotRef.current = snapshot;
+				saveSucceeded = true;
+				setSaveState("saved");
+			} catch {
+				setSaveState("error");
+			} finally {
+				setSaving(false);
+				if (saveSucceeded) {
+					saveStatusTimeoutRef.current = window.setTimeout(() => {
+						setSaveState("idle");
+					}, 2500);
+				}
+			}
+		}, 500);
+
+		return () => {
+			if (saveTimeoutRef.current) {
+				window.clearTimeout(saveTimeoutRef.current);
+			}
+		};
+	}, [settings, loading]);
 
 	async function handleManualScrape() {
 		setScraping(true);
-		setStatusMsg("");
 		try {
-			const res = await browser.runtime.sendMessage({ type: "manualScrape" });
-			setStatusOk(res?.ok ?? false);
-			setStatusMsg(
-				res?.ok ? "Scrape complete" : `Failed: ${res?.error ?? "unknown"}`,
-			);
+			await browser.runtime.sendMessage({ type: "manualScrape" });
 		} catch (err) {
-			setStatusOk(false);
-			setStatusMsg(`Error: ${String(err)}`);
+			console.error("[Upwork Scraper] Manual scrape failed", err);
 		} finally {
 			setScraping(false);
-			setTimeout(() => setStatusMsg(""), 4000);
 		}
 	}
 
@@ -114,6 +137,21 @@ export function OptionsApp() {
 	}
 
 	const isSettingsPage = SETTINGS_PAGES.includes(activePage);
+	let autoSaveColor: "red" | "gray" | "green" = "green";
+	if (saveState === "error") {
+		autoSaveColor = "red";
+	} else if (saving) {
+		autoSaveColor = "gray";
+	}
+	let autoSaveLabel = "Auto-save on";
+	if (saving) {
+		autoSaveLabel = "Auto-saving...";
+	}
+	if (saveState === "saved") {
+		autoSaveLabel = "Auto-saved ✓";
+	} else if (saveState === "error") {
+		autoSaveLabel = "Auto-save failed";
+	}
 
 	return (
 		<Flex style={{ minHeight: "100vh" }}>
@@ -235,19 +273,18 @@ export function OptionsApp() {
 						<Flex direction="column" gap="2">
 							<Button
 								size="2"
-								variant="solid"
-								color="green"
-								disabled={saving}
-								onClick={handleSave}
+								variant="soft"
+								color={autoSaveColor}
+								disabled
 								style={{ width: "100%" }}
 							>
 								{saving ? (
 									<Flex align="center" gap="1">
 										<Spinner size="1" />
-										<Text>Saving...</Text>
+										<Text>{autoSaveLabel}</Text>
 									</Flex>
 								) : (
-									"Save settings"
+									autoSaveLabel
 								)}
 							</Button>
 							<Button
@@ -294,14 +331,6 @@ export function OptionsApp() {
 								"Run scrape now"
 							)}
 						</Button>
-					)}
-
-					{statusMsg && (
-						<Box mt="2">
-							<Badge color={statusOk ? "green" : "red"} variant="soft" size="1">
-								{statusMsg}
-							</Badge>
-						</Box>
 					)}
 				</Box>
 			</Box>
