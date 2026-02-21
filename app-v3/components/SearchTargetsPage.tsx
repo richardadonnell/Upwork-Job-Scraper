@@ -9,9 +9,10 @@ import {
 	Text,
 	TextField,
 } from "@radix-ui/themes";
-import { useState } from "react";
 import type { SearchTarget, Settings } from "../utils/types";
+
 import { EXAMPLE_WEBHOOK_PAYLOAD } from "../utils/types";
+import { useState } from "react";
 
 interface Props {
 	readonly settings: Settings;
@@ -61,7 +62,7 @@ function SearchTargetCard({
 	}
 
 	const testLabel = {
-		idle: "Test",
+		idle: "Send Test Webhook Payload",
 		sending: "Sending…",
 		ok: "Sent ✓",
 		error: "Failed ✗",
