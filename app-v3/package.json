@@ -11,6 +11,7 @@
     "build:firefox": "wxt build -b firefox",
     "zip": "wxt zip",
     "zip:firefox": "wxt zip -b firefox",
+    "icons": "node ./scripts/generate-icons.mjs",
     "compile": "tsc --noEmit",
     "postinstall": "wxt prepare"
   },
@@ -24,6 +25,7 @@
     "@types/react": "^19.2.13",
     "@types/react-dom": "^19.2.3",
     "@wxt-dev/module-react": "^1.1.5",
+    "sharp": "^0.34.4",
     "typescript": "^5.9.3",
     "wxt": "^0.20.17"
   }
