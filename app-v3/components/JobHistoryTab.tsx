@@ -2,6 +2,7 @@ import {
 	CaretDownIcon,
 	CaretSortIcon,
 	CaretUpIcon,
+	Cross2Icon,
 } from "@radix-ui/react-icons";
 import {
 	Badge,
@@ -9,11 +10,14 @@ import {
 	Button,
 	Flex,
 	Heading,
+	IconButton,
 	Link,
+	Select,
 	Separator,
 	Spinner,
 	Table,
 	Text,
+	TextField,
 } from "@radix-ui/themes";
 import { useEffect, useState } from "react";
 import { jobHistoryStorage, seenJobIdsStorage } from "../utils/storage";
@@ -28,6 +32,7 @@ type SortCol =
 	| "proposals"
 	| "datePosted";
 type SortDir = "asc" | "desc";
+type VerifiedFilter = "all" | "verified" | "unverified";
 
 const COLUMNS: { key: SortCol; label: string }[] = [
 	{ key: "title", label: "Title" },
@@ -130,11 +135,80 @@ function sortJobs(jobs: Job[], col: SortCol, dir: SortDir): Job[] {
 	});
 }
 
+function normalizeForSearch(value: string): string {
+	return value.trim().toLowerCase();
+}
+
+function matchesSearch(job: Job, query: string): boolean {
+	if (!query) return true;
+
+	const searchPool = [
+		job.title,
+		job.jobType,
+		job.budget,
+		job.experienceLevel,
+		job.proposals,
+		job.datePosted,
+		job.clientRating,
+		job.clientTotalSpent,
+		...job.skills,
+	]
+		.join(" ")
+		.toLowerCase();
+
+	return searchPool.includes(query);
+}
+
+function applyFilters(
+	jobs: Job[],
+	query: string,
+	typeFilter: string,
+	experienceFilter: string,
+	verifiedFilter: VerifiedFilter,
+): Job[] {
+	return jobs.filter((job) => {
+		if (!matchesSearch(job, query)) return false;
+
+		if (typeFilter !== "all" && job.jobType !== typeFilter) return false;
+
+		if (experienceFilter !== "all" && job.experienceLevel !== experienceFilter)
+			return false;
+
+		if (verifiedFilter === "verified" && !job.paymentVerified) return false;
+		if (verifiedFilter === "unverified" && job.paymentVerified) return false;
+
+		return true;
+	});
+}
+
+function getUniqueValues(
+	jobs: Job[],
+	selector: (job: Job) => string,
+): string[] {
+	const values = new Set<string>();
+	for (const job of jobs) {
+		const value = selector(job).trim();
+		if (value) values.add(value);
+	}
+	return [...values].sort((a, b) => a.localeCompare(b));
+}
+
 export function JobHistoryTab() {
 	const [jobs, setJobs] = useState<Job[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [sortCol, setSortCol] = useState<SortCol>("datePosted");
 	const [sortDir, setSortDir] = useState<SortDir>("desc");
+	const [searchQuery, setSearchQuery] = useState("");
+	const [typeFilter, setTypeFilter] = useState("all");
+	const [experienceFilter, setExperienceFilter] = useState("all");
+	const [verifiedFilter, setVerifiedFilter] = useState<VerifiedFilter>("all");
+
+	function clearAllFilters() {
+		setSearchQuery("");
+		setTypeFilter("all");
+		setExperienceFilter("all");
+		setVerifiedFilter("all");
+	}
 
 	useEffect(() => {
 		jobHistoryStorage.getValue().then((j) => {
@@ -181,7 +255,68 @@ export function JobHistoryTab() {
 			? "No jobs scraped yet."
 			: `${jobs.length} job${plural} in history`;
 
-	const sorted = sortJobs(jobs, sortCol, sortDir);
+	const normalizedQuery = normalizeForSearch(searchQuery);
+	const typeOptions = getUniqueValues(jobs, (job) => job.jobType);
+	const experienceOptions = getUniqueValues(jobs, (job) => job.experienceLevel);
+	const filtered = applyFilters(
+		jobs,
+		normalizedQuery,
+		typeFilter,
+		experienceFilter,
+		verifiedFilter,
+	);
+	const sorted = sortJobs(filtered, sortCol, sortDir);
+	const hasActiveFilters =
+		normalizedQuery.length > 0 ||
+		typeFilter !== "all" ||
+		experienceFilter !== "all" ||
+		verifiedFilter !== "all";
+	const shownPlural = sorted.length === 1 ? "" : "s";
+	const filteredLabel =
+		hasActiveFilters && jobs.length > 0
+			? `Showing ${sorted.length} matching job${shownPlural}`
+			: null;
+
+	const activeFilterChips: {
+		key: string;
+		label: string;
+		onRemove: () => void;
+	}[] = [];
+
+	if (normalizedQuery.length > 0) {
+		activeFilterChips.push({
+			key: "search",
+			label: `Search: ${searchQuery.trim()}`,
+			onRemove: () => setSearchQuery(""),
+		});
+	}
+
+	if (typeFilter !== "all") {
+		activeFilterChips.push({
+			key: "type",
+			label: `Type: ${typeFilter}`,
+			onRemove: () => setTypeFilter("all"),
+		});
+	}
+
+	if (experienceFilter !== "all") {
+		activeFilterChips.push({
+			key: "experience",
+			label: `Experience: ${experienceFilter}`,
+			onRemove: () => setExperienceFilter("all"),
+		});
+	}
+
+	if (verifiedFilter !== "all") {
+		activeFilterChips.push({
+			key: "verified",
+			label:
+				verifiedFilter === "verified"
+					? "Client: Payment verified"
+					: "Client: Not verified",
+			onRemove: () => setVerifiedFilter("all"),
+		});
+	}
 
 	return (
 		<Box className="page-shell">
@@ -198,6 +333,11 @@ export function JobHistoryTab() {
 			<Text className="page-subtitle" size="2" color="gray" as="p">
 				{historyLabel}
 			</Text>
+			{filteredLabel && (
+				<Text size="1" color="gray" as="p" mt="1">
+					{filteredLabel}
+				</Text>
+			)}
 
 			<Separator className="page-divider" size="4" />
 
@@ -208,136 +348,237 @@ export function JobHistoryTab() {
 					</Text>
 				</Box>
 			) : (
-				<Box style={{ overflowX: "auto" }}>
-					<Table.Root
-						className="history-table"
-						variant="surface"
-						size="1"
-						style={{ minWidth: 860 }}
-					>
-						<Table.Header>
-							<Table.Row>
-								{COLUMNS.map(({ key, label }) => (
-									<Table.ColumnHeaderCell key={key}>
-										<Flex
-											align="center"
-											gap="1"
-											onClick={() => handleSort(key)}
-											style={{
-												cursor: "pointer",
-												userSelect: "none",
-												whiteSpace: "nowrap",
-											}}
-										>
-											{label}
-											<SortIcon col={key} sortCol={sortCol} sortDir={sortDir} />
-										</Flex>
-									</Table.ColumnHeaderCell>
+				<>
+					<Flex gap="2" align="start" wrap="wrap" mb="3">
+						<Box style={{ flex: "1 1 280px", minWidth: 0 }}>
+							<TextField.Root
+								size="2"
+								placeholder="Search title, skills, budget, client..."
+								value={searchQuery}
+								onChange={(event) => setSearchQuery(event.target.value)}
+							/>
+						</Box>
+
+						<Select.Root value={typeFilter} onValueChange={setTypeFilter}>
+							<Select.Trigger placeholder="All types" />
+							<Select.Content>
+								<Select.Item value="all">All types</Select.Item>
+								{typeOptions.map((value) => (
+									<Select.Item key={value} value={value}>
+										{value}
+									</Select.Item>
 								))}
-								<Table.ColumnHeaderCell>Skills</Table.ColumnHeaderCell>
-								<Table.ColumnHeaderCell>Client</Table.ColumnHeaderCell>
-							</Table.Row>
-						</Table.Header>
+							</Select.Content>
+						</Select.Root>
 
-						<Table.Body>
-							{sorted.map((job) => (
-								<Table.Row key={job.uid} align="start">
-									<Table.Cell style={{ maxWidth: 260 }}>
-										<Link
-											href={job.url}
-											target="_blank"
-											rel="noreferrer"
-											size="2"
-											weight="medium"
-										>
-											{job.title}
-										</Link>
-									</Table.Cell>
+						<Select.Root
+							value={experienceFilter}
+							onValueChange={setExperienceFilter}
+						>
+							<Select.Trigger placeholder="All experience" />
+							<Select.Content>
+								<Select.Item value="all">All experience</Select.Item>
+								{experienceOptions.map((value) => (
+									<Select.Item key={value} value={value}>
+										{value}
+									</Select.Item>
+								))}
+							</Select.Content>
+						</Select.Root>
 
-									<Table.Cell>
-										<Text size="1" color="gray">
-											{job.jobType || "—"}
-										</Text>
-									</Table.Cell>
+						<Select.Root
+							value={verifiedFilter}
+							onValueChange={(value) =>
+								setVerifiedFilter(value as VerifiedFilter)
+							}
+						>
+							<Select.Trigger placeholder="Client payment" />
+							<Select.Content>
+								<Select.Item value="all">All clients</Select.Item>
+								<Select.Item value="verified">Payment verified</Select.Item>
+								<Select.Item value="unverified">Not verified</Select.Item>
+							</Select.Content>
+						</Select.Root>
 
-									<Table.Cell>
-										<Text size="1" color="gray">
-											{job.budget || "—"}
-										</Text>
-									</Table.Cell>
+						{hasActiveFilters && (
+							<Button
+								size="2"
+								variant="soft"
+								color="gray"
+								onClick={clearAllFilters}
+							>
+								Clear filters
+							</Button>
+						)}
+					</Flex>
 
-									<Table.Cell>
-										<Text size="1" color="gray">
-											{job.experienceLevel || "—"}
-										</Text>
-									</Table.Cell>
+					{activeFilterChips.length > 0 && (
+						<Flex gap="2" align="center" wrap="wrap" mb="3">
+							<Text size="1" color="gray">
+								Active filters:
+							</Text>
+							{activeFilterChips.map((chip) => (
+								<Flex key={chip.key} align="center" gap="1">
+									<Badge size="1" variant="soft" color="gray">
+										{chip.label}
+									</Badge>
+									<IconButton
+										size="1"
+										variant="ghost"
+										color="gray"
+										onClick={chip.onRemove}
+										aria-label={`Remove ${chip.label} filter`}
+									>
+										<Cross2Icon />
+									</IconButton>
+								</Flex>
+							))}
+						</Flex>
+					)}
 
-									<Table.Cell>
-										<Text size="1" color="gray">
-											{job.proposals || "—"}
-										</Text>
-									</Table.Cell>
+					{sorted.length === 0 ? (
+						<Box py="6" style={{ textAlign: "center" }}>
+							<Text size="2" color="gray">
+								No jobs match the current search/filter.
+							</Text>
+						</Box>
+					) : null}
 
-									<Table.Cell>
-										<Text
-											size="1"
-											color="gray"
-											style={{ whiteSpace: "nowrap" }}
-										>
-											{job.datePosted}
-										</Text>
-									</Table.Cell>
+					<Box style={{ overflowX: "auto" }}>
+						<Table.Root
+							className="history-table"
+							variant="surface"
+							size="1"
+							style={{ minWidth: 860 }}
+						>
+							<Table.Header>
+								<Table.Row>
+									{COLUMNS.map(({ key, label }) => (
+										<Table.ColumnHeaderCell key={key}>
+											<Flex
+												align="center"
+												gap="1"
+												onClick={() => handleSort(key)}
+												style={{
+													cursor: "pointer",
+													userSelect: "none",
+													whiteSpace: "nowrap",
+												}}
+											>
+												{label}
+												<SortIcon
+													col={key}
+													sortCol={sortCol}
+													sortDir={sortDir}
+												/>
+											</Flex>
+										</Table.ColumnHeaderCell>
+									))}
+									<Table.ColumnHeaderCell>Skills</Table.ColumnHeaderCell>
+									<Table.ColumnHeaderCell>Client</Table.ColumnHeaderCell>
+								</Table.Row>
+							</Table.Header>
 
-									<Table.Cell style={{ maxWidth: 200 }}>
-										{job.skills.length > 0 ? (
-											<Flex gap="1" wrap="wrap">
-												{job.skills.slice(0, 4).map((skill) => (
-													<Badge
-														key={skill}
-														variant="soft"
-														color="green"
-														size="1"
-													>
-														{skill}
-													</Badge>
-												))}
-												{job.skills.length > 4 && (
-													<Badge variant="surface" color="gray" size="1">
-														+{job.skills.length - 4}
+							<Table.Body>
+								{sorted.map((job) => (
+									<Table.Row key={job.uid} align="start">
+										<Table.Cell style={{ maxWidth: 260 }}>
+											<Link
+												href={job.url}
+												target="_blank"
+												rel="noreferrer"
+												size="2"
+												weight="medium"
+											>
+												{job.title}
+											</Link>
+										</Table.Cell>
+
+										<Table.Cell>
+											<Text size="1" color="gray">
+												{job.jobType || "—"}
+											</Text>
+										</Table.Cell>
+
+										<Table.Cell>
+											<Text size="1" color="gray">
+												{job.budget || "—"}
+											</Text>
+										</Table.Cell>
+
+										<Table.Cell>
+											<Text size="1" color="gray">
+												{job.experienceLevel || "—"}
+											</Text>
+										</Table.Cell>
+
+										<Table.Cell>
+											<Text size="1" color="gray">
+												{job.proposals || "—"}
+											</Text>
+										</Table.Cell>
+
+										<Table.Cell>
+											<Text
+												size="1"
+												color="gray"
+												style={{ whiteSpace: "nowrap" }}
+											>
+												{job.datePosted}
+											</Text>
+										</Table.Cell>
+
+										<Table.Cell style={{ maxWidth: 200 }}>
+											{job.skills.length > 0 ? (
+												<Flex gap="1" wrap="wrap">
+													{job.skills.slice(0, 4).map((skill) => (
+														<Badge
+															key={skill}
+															variant="soft"
+															color="green"
+															size="1"
+														>
+															{skill}
+														</Badge>
+													))}
+													{job.skills.length > 4 && (
+														<Badge variant="surface" color="gray" size="1">
+															+{job.skills.length - 4}
+														</Badge>
+													)}
+												</Flex>
+											) : (
+												<Text size="1" color="gray">
+													—
+												</Text>
+											)}
+										</Table.Cell>
+
+										<Table.Cell>
+											<Flex direction="column" gap="1">
+												{job.paymentVerified && (
+													<Badge variant="soft" color="green" size="1">
+														verified
 													</Badge>
 												)}
+												{job.clientRating && (
+													<Text size="1" color="gray">
+														★ {job.clientRating}
+													</Text>
+												)}
+												{job.clientTotalSpent && (
+													<Text size="1" color="gray">
+														{job.clientTotalSpent} spent
+													</Text>
+												)}
 											</Flex>
-										) : (
-											<Text size="1" color="gray">
-												—
-											</Text>
-										)}
-									</Table.Cell>
-
-									<Table.Cell>
-										<Flex direction="column" gap="1">
-											{job.paymentVerified && (
-												<Badge variant="soft" color="green" size="1">
-													verified
-												</Badge>
-											)}
-											{job.clientRating && (
-												<Text size="1" color="gray">
-													★ {job.clientRating}
-												</Text>
-											)}
-											{job.clientTotalSpent && (
-												<Text size="1" color="gray">
-													{job.clientTotalSpent} spent
-												</Text>
-											)}
-										</Flex>
-									</Table.Cell>
-								</Table.Row>
-							))}
-						</Table.Body>
-					</Table.Root>
-				</Box>
+										</Table.Cell>
+									</Table.Row>
+								))}
+							</Table.Body>
+						</Table.Root>
+					</Box>
+				</>
 			)}
 		</Box>
 	);
