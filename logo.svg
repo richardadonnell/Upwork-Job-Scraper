@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="512" height="512">
-  <!-- Deep Navy Blue Background with Rounded Corners (1:1 Canvas) -->
-  <rect x="0" y="0" width="32" height="32" rx="7.2" fill="#0B1B3D" />
+  <!-- Deep Green Background with Rounded Corners (1:1 Canvas) -->
+  <rect x="0" y="0" width="32" height="32" rx="7.2" fill="#3dd68c" />
 
   <!-- Modern Minimal Icon Group -->
   <g stroke="#FFFFFF" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
