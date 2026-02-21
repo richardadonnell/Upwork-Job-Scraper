@@ -1,4 +1,5 @@
 import {
+	Badge,
 	Box,
 	Button,
 	Flex,
@@ -31,11 +32,11 @@ type Page =
 	| "activity";
 
 const NAV_ITEMS: { id: Page; label: string }[] = [
-	{ id: "dashboard", label: "Overview" },
-	{ id: "search-targets", label: "Search Targets" },
-	{ id: "schedule", label: "Schedule" },
-	{ id: "delivery", label: "Delivery" },
-	{ id: "history", label: "Job History" },
+	{ id: "dashboard", label: "Dashboard" },
+	{ id: "search-targets", label: "Search + Webhook URLs" },
+	{ id: "schedule", label: "Set Schedule" },
+	{ id: "delivery", label: "Browser Notifications" },
+	{ id: "history", label: "Scraped Jobs" },
 	{ id: "activity", label: "Activity Logs" },
 ];
 
@@ -352,6 +353,7 @@ export function OptionsApp() {
 
 	const isSettingsPage = SETTINGS_PAGES.includes(activePage);
 	const canRunScrape = settings.searchTargets.some((t) => t.searchUrl.trim());
+	const extensionVersion = browser.runtime.getManifest().version;
 	const nextRunDisplay = getApproximateNextRunDisplay({
 		canRunScrape,
 		masterEnabled: settings.masterEnabled,
@@ -386,23 +388,13 @@ export function OptionsApp() {
 						<img
 							src="/logo.svg"
 							alt="Upwork Job Scraper logo"
-							width={24}
-							height={24}
+							width={48}
+							height={48}
 						/>
 					</Box>
 					<Text size="3" weight="bold" as="p" mt="0" mb="1">
-						Upwork Scraper
+						Upwork Job Scraper + Webhook Extension
 					</Text>
-					<Flex align="center" gap="2">
-						<Box
-							className={`status-dot ${
-								settings.masterEnabled ? "status-dot--on" : "status-dot--off"
-							}`}
-						/>
-						<Text size="1" color="gray">
-							{settings.masterEnabled ? "active" : "paused"}
-						</Text>
-					</Flex>
 				</Box>
 
 				<Separator size="4" />
@@ -496,13 +488,13 @@ export function OptionsApp() {
 					))}
 				</Box>
 
-				<Separator size="4" />
-
 				{/* Bottom action area */}
 				<Box px="4" py="4">
-					<Text size="1" color="gray" mb="3" as="p">
-						v3.0.0 &middot; chrome &middot; mv3
-					</Text>
+					<Flex justify="center" mb="3">
+						<Badge variant="soft" color="grass">
+							{extensionVersion}
+						</Badge>
+					</Flex>
 
 					{isSettingsPage && (
 						<Flex direction="column" gap="2">
