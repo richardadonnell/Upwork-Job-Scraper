@@ -9,10 +9,9 @@ import {
 	Text,
 	TextField,
 } from "@radix-ui/themes";
-import type { SearchTarget, Settings } from "../utils/types";
-
-import { EXAMPLE_WEBHOOK_PAYLOAD } from "../utils/types";
 import { useState } from "react";
+import type { SearchTarget, Settings } from "../utils/types";
+import { EXAMPLE_WEBHOOK_PAYLOAD } from "../utils/types";
 
 interface Props {
 	readonly settings: Settings;
@@ -67,9 +66,22 @@ function SearchTargetCard({
 		ok: "Sent ✓",
 		error: "Failed ✗",
 	}[testStatus];
+	const hasSearchUrl = target.searchUrl.trim().length > 0;
 	let testColor: "gray" | "green" | "red" = "gray";
 	if (testStatus === "ok") testColor = "green";
 	else if (testStatus === "error") testColor = "red";
+
+	function handleOpenSearchUrl() {
+		const searchUrl = target.searchUrl.trim();
+		if (!searchUrl) return;
+		try {
+			const parsed = new URL(searchUrl);
+			if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return;
+			window.open(parsed.toString(), "_blank", "noopener,noreferrer");
+		} catch {
+			return;
+		}
+	}
 
 	return (
 		<Card mb="3">
@@ -99,13 +111,28 @@ function SearchTargetCard({
 				>
 					Search URL
 				</Text>
-				<TextField.Root
-					size="2"
-					type="url"
-					placeholder="https://www.upwork.com/nx/search/jobs/?q=..."
-					value={target.searchUrl}
-					onChange={(e) => onChange({ ...target, searchUrl: e.target.value })}
-				/>
+				<Flex gap="2" align="start">
+					<Box flexGrow="1">
+						<TextField.Root
+							size="2"
+							type="url"
+							placeholder="https://www.upwork.com/nx/search/jobs/?q=..."
+							value={target.searchUrl}
+							onChange={(e) =>
+								onChange({ ...target, searchUrl: e.target.value })
+							}
+						/>
+					</Box>
+					<Button
+						size="2"
+						variant="soft"
+						color="gray"
+						disabled={!hasSearchUrl}
+						onClick={handleOpenSearchUrl}
+					>
+						Open Search URL in New Tab
+					</Button>
+				</Flex>
 			</Box>
 
 			<Separator size="4" mb="3" />
