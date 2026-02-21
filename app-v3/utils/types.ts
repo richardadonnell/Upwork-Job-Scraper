@@ -45,3 +45,29 @@ export interface ScrapeResult {
 export type MessageType =
   | { type: 'manualScrape' }
   | { type: 'settingsUpdated' };
+
+/** Example payload sent by the "Test" button in SettingsTab to verify webhook destinations. */
+export const EXAMPLE_WEBHOOK_PAYLOAD: { jobs: Job[]; timestamp: string } = {
+  jobs: [
+    {
+      uid: '~01exampleJobUid12345',
+      title: 'Senior React Developer Needed',
+      url: 'https://www.upwork.com/jobs/~01exampleJobUid12345',
+      datePosted: 'Posted 2 hours ago',
+      description:
+        'We are looking for an experienced React developer to help build a SaaS dashboard. ' +
+        'You will work closely with our design team to implement pixel-perfect UI components, ' +
+        'integrate REST APIs, and write clean, maintainable TypeScript code.',
+      jobType: 'Fixed-price',
+      budget: '$500',
+      experienceLevel: 'Intermediate',
+      skills: ['React', 'TypeScript', 'Node.js', 'REST APIs', 'Tailwind CSS'],
+      paymentVerified: true,
+      clientRating: '4.95',
+      clientTotalSpent: '$10k+',
+      proposals: '10 to 15',
+      scrapedAt: new Date().toISOString(),
+    },
+  ],
+  timestamp: new Date().toISOString(),
+};

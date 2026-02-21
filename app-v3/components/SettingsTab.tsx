@@ -2,6 +2,7 @@ import type React from "react";
 import { useState } from "react";
 import { settingsStorage } from "../utils/storage";
 import type { SearchTarget, Settings } from "../utils/types";
+import { EXAMPLE_WEBHOOK_PAYLOAD } from "../utils/types";
 
 interface Props {
 	readonly settings: Settings;
@@ -61,6 +62,8 @@ function inputStyle(
 	};
 }
 
+type TestStatus = "idle" | "sending" | "ok" | "error";
+
 /** One search-URL + webhook pair */
 function SearchTargetCard({
 	target,
@@ -84,6 +87,53 @@ function SearchTargetCard({
 	const searchId = `searchUrl-${target.id}`;
 	const webhookId = `webhookUrl-${target.id}`;
 	const toggleId = `webhookEnabled-${target.id}`;
+	const [testStatus, setTestStatus] = useState<TestStatus>("idle");
+
+	async function handleTestWebhook() {
+		if (!target.webhookUrl) return;
+		setTestStatus("sending");
+		const payload = {
+			...EXAMPLE_WEBHOOK_PAYLOAD,
+			timestamp: new Date().toISOString(),
+			jobs: EXAMPLE_WEBHOOK_PAYLOAD.jobs.map((job) => ({
+				...job,
+				scrapedAt: new Date().toISOString(),
+			})),
+		};
+		try {
+			const res = await fetch(target.webhookUrl, {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify(payload),
+			});
+			if (res.ok) {
+				setTestStatus("ok");
+				setTimeout(() => setTestStatus("idle"), 3000);
+			} else {
+				setTestStatus("error");
+				setTimeout(() => setTestStatus("idle"), 4000);
+			}
+		} catch {
+			setTestStatus("error");
+			setTimeout(() => setTestStatus("idle"), 4000);
+		}
+	}
+
+	const testBtnLabels: Record<string, string> = {
+		idle: "test",
+		sending: "sending…",
+		ok: "sent ✓",
+		error: "failed ✗",
+	};
+	const testBtnLabel = testBtnLabels[testStatus] ?? "test";
+
+	function getTestBtnColor(): string {
+		if (testStatus === "ok") return "#000";
+		if (testStatus === "error") return "var(--danger)";
+		if (!target.webhookUrl) return "var(--text-muted)";
+		return "var(--text)";
+	}
+	const testBtnColor = getTestBtnColor();
 
 	return (
 		<div
@@ -153,18 +203,63 @@ function SearchTargetCard({
 						<label style={s.label} htmlFor={webhookId}>
 							Webhook URL
 						</label>
-						<input
-							id={webhookId}
-							type="url"
-							style={inputStyle(webhookId, focusedInput)}
-							value={target.webhookUrl}
-							placeholder="https://hooks.example.com/..."
-							onFocus={() => onFocus(webhookId)}
-							onBlur={onBlur}
-							onChange={(e) =>
-								onChange({ ...target, webhookUrl: e.target.value })
-							}
-						/>
+						<div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+							<input
+								id={webhookId}
+								type="url"
+								style={{ ...inputStyle(webhookId, focusedInput), flex: 1 }}
+								value={target.webhookUrl}
+								placeholder="https://hooks.example.com/..."
+								onFocus={() => onFocus(webhookId)}
+								onBlur={onBlur}
+								onChange={(e) =>
+									onChange({ ...target, webhookUrl: e.target.value })
+								}
+							/>
+							<button
+								type="button"
+								onClick={handleTestWebhook}
+								disabled={!target.webhookUrl || testStatus === "sending"}
+								style={{
+									flexShrink: 0,
+									padding: "9px 12px",
+									background:
+										testStatus === "ok"
+											? "var(--accent)"
+											: "var(--surface-raised)",
+									border:
+										testStatus === "error"
+											? "1px solid var(--danger)"
+											: "1px solid var(--border)",
+									borderRadius: 6,
+									color: testBtnColor,
+									cursor:
+										!target.webhookUrl || testStatus === "sending"
+											? "not-allowed"
+											: "pointer",
+									fontSize: 11,
+									fontFamily: "var(--mono)",
+									letterSpacing: "0.04em",
+									whiteSpace: "nowrap" as const,
+									transition: "background 0.2s, border-color 0.2s, color 0.2s",
+								}}
+							>
+								{testBtnLabel}
+							</button>
+						</div>
+						{testStatus === "error" && (
+							<p
+								style={{
+									margin: "6px 0 0",
+									fontSize: 11,
+									color: "var(--danger)",
+									fontFamily: "var(--mono)",
+								}}
+							>
+								Request failed — check the URL or CORS settings on your
+								endpoint.
+							</p>
+						)}
 					</div>
 				)}
 			</div>
