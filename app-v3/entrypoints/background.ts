@@ -16,7 +16,15 @@ export default defineBackground(() => {
   // Fire scrape on alarm
   browser.alarms.onAlarm.addListener((alarm) => {
     if (alarm.name === 'upwork-scrape') {
-      runScrape();
+      runScrape()
+        .catch((err) => {
+          console.error('[Upwork Scraper] Scheduled scrape failed', err);
+        })
+        .finally(() => {
+          setupAlarm().catch((err) => {
+            console.error('[Upwork Scraper] Failed to re-arm alarm', err);
+          });
+        });
     }
   });
 

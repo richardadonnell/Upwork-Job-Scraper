@@ -8,16 +8,28 @@ import {
 import type { ScrapeResult, SearchTarget } from "./types";
 
 const ALARM_NAME = "upwork-scrape";
+const JITTER_SECONDS = 30;
+const MIN_ALARM_DELAY_MINUTES = 0.5;
+
+function getJitteredDelayMinutes(baseMinutes: number): number {
+	const jitterSeconds = Math.random() * (JITTER_SECONDS * 2) - JITTER_SECONDS;
+	const jitterMinutes = jitterSeconds / 60;
+	return Math.max(MIN_ALARM_DELAY_MINUTES, baseMinutes + jitterMinutes);
+}
 
 export async function setupAlarm(): Promise<void> {
 	const settings = await settingsStorage.getValue();
-	await browser.alarms.clearAll();
+	await browser.alarms.clear(ALARM_NAME);
 
 	if (!settings.masterEnabled) return;
 
-	const periodInMinutes = Math.max(5, Math.floor(settings.minuteInterval || 5));
+	const baseDelayMinutes = Math.max(
+		5,
+		Math.floor(settings.minuteInterval || 5),
+	);
+	const delayInMinutes = getJitteredDelayMinutes(baseDelayMinutes);
 
-	browser.alarms.create(ALARM_NAME, { periodInMinutes });
+	browser.alarms.create(ALARM_NAME, { delayInMinutes });
 }
 
 function parseTimeToMinutes(value: string): number | null {
@@ -101,35 +113,36 @@ async function scrapeTarget(target: SearchTarget): Promise<ScrapeResult> {
 			func: () =>
 				new Promise<{ hasJobCards: boolean; sawCloudflareMarker: boolean }>(
 					(resolve) => {
-					const deadline = Date.now() + 10_000;
-					let sawCloudflareMarker = false;
+						const deadline = Date.now() + 10_000;
+						let sawCloudflareMarker = false;
 
-					const hasCloudflareMarker = (): boolean => {
-						const pageText = document.body?.innerText ?? "";
-						if (/Cloudflare Ray ID/i.test(pageText)) return true;
-						if (
-							/cloudflare/i.test(pageText) &&
-							/verify you are human|security check/i.test(pageText)
-						) {
-							return true;
-						}
-						return false;
-					};
+						const hasCloudflareMarker = (): boolean => {
+							const pageText = document.body?.innerText ?? "";
+							if (/Cloudflare Ray ID/i.test(pageText)) return true;
+							if (
+								/cloudflare/i.test(pageText) &&
+								/verify you are human|security check/i.test(pageText)
+							) {
+								return true;
+							}
+							return false;
+						};
 
-					const check = () => {
-						sawCloudflareMarker = sawCloudflareMarker || hasCloudflareMarker();
-						const hasJobCards = Boolean(
-							document.querySelector("article[data-ev-job-uid]"),
-						);
+						const check = () => {
+							sawCloudflareMarker =
+								sawCloudflareMarker || hasCloudflareMarker();
+							const hasJobCards = Boolean(
+								document.querySelector("article[data-ev-job-uid]"),
+							);
 
-						if (hasJobCards || Date.now() >= deadline) {
-							resolve({ hasJobCards, sawCloudflareMarker });
-						} else {
-							setTimeout(check, 500);
-						}
-					};
-					check();
-				},
+							if (hasJobCards || Date.now() >= deadline) {
+								resolve({ hasJobCards, sawCloudflareMarker });
+							} else {
+								setTimeout(check, 500);
+							}
+						};
+						check();
+					},
 				),
 		});
 
@@ -141,8 +154,7 @@ async function scrapeTarget(target: SearchTarget): Promise<ScrapeResult> {
 			return {
 				ok: false,
 				reason: "captcha_required",
-				error:
-					"Cloudflare challenge did not auto-complete within 10 seconds",
+				error: "Cloudflare challenge did not auto-complete within 10 seconds",
 			};
 		}
 
@@ -302,12 +314,17 @@ async function sendIssueWebhookIfNeeded(
 				reason: result.reason,
 				message:
 					issueMessageByReason[result.reason] ??
-					(result.error ?? "Scrape issue detected."),
+					result.error ??
+					"Scrape issue detected.",
 				targetUrl: target.searchUrl,
 				timestamp: new Date().toISOString(),
 			}),
 		});
-		await appendActivityLog("info", "Issue webhook delivered", target.searchUrl);
+		await appendActivityLog(
+			"info",
+			"Issue webhook delivered",
+			target.searchUrl,
+		);
 	} catch (err) {
 		console.error(
 			`[Upwork Scraper] Issue webhook failed for ${target.searchUrl}:`,
@@ -341,7 +358,11 @@ function isLoggedOutResult(result: ScrapeResult): boolean {
 }
 
 function isErrorResult(result: ScrapeResult): boolean {
-	return !result.ok && result.reason !== "captcha_required" && result.reason !== "logged_out";
+	return (
+		!result.ok &&
+		result.reason !== "captcha_required" &&
+		result.reason !== "logged_out"
+	);
 }
 
 export async function runScrape(options?: { manual?: boolean }): Promise<void> {
