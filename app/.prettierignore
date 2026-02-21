@@ -1,0 +1,11 @@
+# Build outputs
+dist/
+build-ts/
+extension/
+
+# Dependencies
+node_modules/
+
+# Generated files
+*.min.js
+*.min.css
