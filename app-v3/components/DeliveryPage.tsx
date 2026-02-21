@@ -9,15 +9,15 @@ interface Props {
 
 export function DeliveryPage({ settings, onChange }: Props) {
   return (
-    <Box p="6">
-      <Heading size="5" mb="1">Delivery</Heading>
-      <Text size="2" color="gray" mb="5" as="p">
+    <Box className="page-shell">
+      <Heading className="page-title" size="5">Delivery</Heading>
+      <Text className="page-subtitle" size="2" color="gray" as="p">
         Configure how you are notified when new jobs are found.
       </Text>
 
-      <Separator size="4" mb="5" />
+      <Separator className="page-divider" size="4" />
 
-      <Card>
+      <Card className="surface-card">
         <Flex justify="between" align="start" gap="3">
           <Box>
             <Text size="2" weight="medium">Browser notifications</Text>

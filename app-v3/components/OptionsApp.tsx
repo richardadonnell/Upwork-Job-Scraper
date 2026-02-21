@@ -154,20 +154,9 @@ export function OptionsApp() {
 	}
 
 	return (
-		<Flex style={{ minHeight: "100vh" }}>
+		<Flex className="app-shell">
 			{/* Sidebar */}
-			<Box
-				style={{
-					width: 220,
-					minWidth: 220,
-					borderRight: "1px solid var(--gray-4)",
-					display: "flex",
-					flexDirection: "column",
-					position: "sticky",
-					top: 0,
-					height: "100vh",
-				}}
-			>
+			<Box className="app-sidebar">
 				{/* Logo / Title */}
 				<Box px="4" pt="5" pb="4">
 					<Box mb="2">
@@ -183,19 +172,9 @@ export function OptionsApp() {
 					</Text>
 					<Flex align="center" gap="2">
 						<Box
-							style={{
-								width: 6,
-								height: 6,
-								borderRadius: "50%",
-								background: settings.masterEnabled
-									? "var(--accent-9)"
-									: "var(--gray-6)",
-								boxShadow: settings.masterEnabled
-									? "0 0 6px var(--accent-9)"
-									: "none",
-								transition: "all 0.3s",
-								flexShrink: 0,
-							}}
+							className={`status-dot ${
+								settings.masterEnabled ? "status-dot--on" : "status-dot--off"
+							}`}
 						/>
 						<Text size="1" color="gray">
 							{settings.masterEnabled ? "active" : "paused"}
@@ -222,36 +201,17 @@ export function OptionsApp() {
 				<Separator size="4" />
 
 				{/* Nav */}
-				<Box py="2" flexGrow="1">
+				<Box className="app-nav">
 					{NAV_ITEMS.map((item) => (
 						<Box
 							key={item.id}
-							px="4"
-							py="2"
+							className={`app-nav-item ${
+								activePage === item.id ? "app-nav-item--active" : ""
+							}`}
 							onClick={() => setActivePage(item.id)}
-							style={{
-								cursor: "pointer",
-								background:
-									activePage === item.id ? "var(--accent-3)" : "transparent",
-								borderRight:
-									activePage === item.id
-										? "2px solid var(--accent-9)"
-										: "2px solid transparent",
-								transition: "background 0.15s",
-							}}
-							onMouseEnter={(e) => {
-								if (activePage !== item.id)
-									(e.currentTarget as HTMLDivElement).style.background =
-										"var(--gray-3)";
-							}}
-							onMouseLeave={(e) => {
-								if (activePage !== item.id)
-									(e.currentTarget as HTMLDivElement).style.background =
-										"transparent";
-							}}
 						>
 							<Text
-								size="2"
+								size="1"
 								weight={activePage === item.id ? "medium" : "regular"}
 								color={activePage === item.id ? "green" : undefined}
 							>
@@ -336,7 +296,7 @@ export function OptionsApp() {
 			</Box>
 
 			{/* Main content */}
-			<ScrollArea style={{ flex: 1, height: "100vh" }}>
+			<ScrollArea className="main-scroll">
 				{activePage === "dashboard" && (
 					<DashboardPage settings={settings} jobs={jobs} />
 				)}

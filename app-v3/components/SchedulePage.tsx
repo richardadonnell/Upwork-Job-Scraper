@@ -84,15 +84,15 @@ export function SchedulePage({ settings, onChange }: Props) {
   }
 
   return (
-    <Box p="6">
-      <Heading size="5" mb="1">Schedule</Heading>
-      <Text size="2" color="gray" mb="5" as="p">
+    <Box className="page-shell">
+      <Heading className="page-title" size="5">Schedule</Heading>
+      <Text className="page-subtitle" size="2" color="gray" as="p">
         Configure how frequently the extension checks for new jobs.
       </Text>
 
-      <Separator size="4" mb="5" />
+      <Separator className="page-divider" size="4" />
 
-      <Card mb="4">
+      <Card className="surface-card" mb="4">
         <Text size="2" weight="medium" mb="3" as="p">Run the scraper every ...</Text>
         <Box style={{ maxWidth: 180 }}>
           <Text as="label" size="1" weight="medium" color="gray" mb="1" style={{ display: "block" }}>
@@ -111,7 +111,7 @@ export function SchedulePage({ settings, onChange }: Props) {
         </Text>
       </Card>
 
-      <Card mb="4">
+      <Card className="surface-card" mb="4">
         <Text size="2" weight="medium" mb="3" as="p">... on these days ...</Text>
         <Flex gap="2" wrap="nowrap">
           {DAY_LABELS.map((label, index) => (
@@ -140,7 +140,7 @@ export function SchedulePage({ settings, onChange }: Props) {
         </Flex>
       </Card>
 
-      <Card>
+      <Card className="surface-card">
         <Text size="2" weight="medium" mb="3" as="p">... between these times ...</Text>
         <Flex gap="4" mb="3" wrap="wrap">
           <Text size="1" color="gray" as="p">Start time: {formatTimeLabel(startMinutes)}</Text>

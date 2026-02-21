@@ -52,13 +52,11 @@ function LogRow({ log }: Readonly<{ log: ActivityLog }>) {
 
 	return (
 		<Flex
+			className="activity-row"
 			align="start"
 			gap="3"
-			py="3"
-			px="4"
-			style={{
-				borderBottom: "1px solid var(--gray-4)",
-			}}
+			py="2"
+			px="3"
 		>
 			{/* Timestamp */}
 			<Text
@@ -119,12 +117,12 @@ export function ActivityPage() {
 	}
 
 	return (
-		<Box p="6">
+		<Box className="page-shell">
 			<Flex align="center" justify="between" mb="1">
-				<Heading size="5">Activity Logs</Heading>
+				<Heading className="page-title" size="5">Activity Logs</Heading>
 				<Button
 					size="1"
-					variant="soft"
+					variant="outline"
 					color="gray"
 					disabled={logs.length === 0}
 					onClick={handleClear}
@@ -133,15 +131,15 @@ export function ActivityPage() {
 				</Button>
 			</Flex>
 
-			<Text size="2" color="gray" mb="5" as="p">
+			<Text className="page-subtitle" size="2" color="gray" as="p">
 				A live record of scrape runs, webhook calls, and errors. Stores up to
 				200 entries locally.
 			</Text>
 
-			<Separator size="4" mb="5" />
+			<Separator className="page-divider" size="4" />
 
 			{!loading && logs.length === 0 && (
-				<Card>
+				<Card className="surface-card">
 					<Flex
 						direction="column"
 						align="center"
@@ -160,7 +158,7 @@ export function ActivityPage() {
 			)}
 
 			{!loading && logs.length > 0 && (
-				<Card style={{ padding: 0, overflow: "hidden" }}>
+				<Card className="surface-card" style={{ padding: 0, overflow: "hidden" }}>
 					<ScrollArea style={{ maxHeight: 560 }}>
 						{logs.map((log) => (
 							<LogRow key={log.id} log={log} />

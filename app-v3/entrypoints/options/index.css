@@ -12,6 +12,139 @@ html, body {
   height: 100%;
 }
 
+body {
+  background: radial-gradient(
+      1200px 600px at 15% -20%,
+      color-mix(in srgb, var(--accent-7) 12%, transparent),
+      transparent 70%
+    ),
+    var(--gray-1);
+}
+
+.app-shell {
+  min-height: 100vh;
+}
+
+.app-sidebar {
+  width: 228px;
+  min-width: 228px;
+  border-right: 1px solid var(--gray-4);
+  display: flex;
+  flex-direction: column;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  backdrop-filter: blur(6px);
+  background: color-mix(in srgb, var(--gray-1) 82%, transparent);
+}
+
+.status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  transition: all 180ms ease;
+  flex-shrink: 0;
+}
+
+.status-dot--on {
+  background: var(--accent-9);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--accent-9) 80%, transparent);
+}
+
+.status-dot--off {
+  background: var(--gray-6);
+}
+
+.app-nav {
+  padding: var(--space-2) 0;
+  flex-grow: 1;
+}
+
+.app-nav-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 32px;
+  padding: 0 var(--space-3);
+  cursor: pointer;
+  border-right: 2px solid transparent;
+  transition: background-color 140ms ease, border-color 140ms ease;
+}
+
+.app-nav-item:hover {
+  background: color-mix(in srgb, var(--gray-4) 55%, transparent);
+}
+
+.app-nav-item--active {
+  background: color-mix(in srgb, var(--accent-4) 72%, transparent);
+  border-right-color: var(--accent-9);
+}
+
+.app-nav-item--active:hover {
+  background: color-mix(in srgb, var(--accent-5) 75%, transparent);
+}
+
+.main-scroll {
+  flex: 1;
+  height: 100vh;
+}
+
+.page-shell {
+  width: min(1040px, 100%);
+  margin: 0 auto;
+  padding: var(--space-5);
+}
+
+.page-title {
+  margin-bottom: 2px;
+  line-height: 1.25;
+  font-weight: 600;
+}
+
+.page-subtitle {
+  margin: 0 0 var(--space-4) 0;
+  line-height: 1.35;
+}
+
+.page-divider {
+  margin-bottom: var(--space-4);
+}
+
+.surface-card {
+  transition: background-color 160ms ease, border-color 160ms ease;
+  border: 1px solid color-mix(in srgb, var(--gray-6) 30%, transparent);
+}
+
+.surface-card:hover {
+  background: color-mix(in srgb, var(--gray-3) 48%, transparent);
+}
+
+.activity-row {
+  border-bottom: 1px solid var(--gray-4);
+  transition: background-color 140ms ease;
+  line-height: 1.3;
+}
+
+.activity-row:last-child {
+  border-bottom: 0;
+}
+
+.activity-row:hover {
+  background: color-mix(in srgb, var(--gray-3) 62%, transparent);
+}
+
+.history-table thead tr {
+  background: color-mix(in srgb, var(--gray-3) 50%, transparent);
+}
+
+.history-table tbody tr {
+  transition: background-color 120ms ease;
+}
+
+.history-table tbody tr:hover {
+  background: color-mix(in srgb, var(--gray-3) 58%, transparent);
+}
+
 input[type='number'] {
   appearance: none;
   -moz-appearance: textfield;

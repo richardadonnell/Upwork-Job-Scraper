@@ -23,14 +23,14 @@ export function DashboardPage({ settings, jobs }: Props) {
   const scheduleSummary = `${activeDaysDisplay} · ${settings.timeWindow.start}-${settings.timeWindow.end}`;
 
   return (
-    <Box p="6">
-      <Heading size="5" mb="1">Overview</Heading>
-      <Text size="2" color="gray" mb="5" as="p">Extension status and activity at a glance.</Text>
+    <Box className="page-shell">
+      <Heading className="page-title" size="5">Overview</Heading>
+      <Text className="page-subtitle" size="2" color="gray" as="p">Extension status and activity at a glance.</Text>
 
-      <Separator size="4" mb="5" />
+      <Separator className="page-divider" size="4" />
 
       <Grid columns="2" gap="4" mb="5">
-        <Card>
+        <Card className="surface-card">
           <Flex direction="column" gap="1">
             <Text size="1" color="gray" weight="medium">Status</Text>
             <Flex align="center" gap="2">
@@ -49,21 +49,21 @@ export function DashboardPage({ settings, jobs }: Props) {
           </Flex>
         </Card>
 
-        <Card>
+        <Card className="surface-card">
           <Flex direction="column" gap="1">
             <Text size="1" color="gray" weight="medium">Jobs in History</Text>
             <Text size="4" weight="bold">{jobs.length}</Text>
           </Flex>
         </Card>
 
-        <Card>
+        <Card className="surface-card">
           <Flex direction="column" gap="1">
             <Text size="1" color="gray" weight="medium">Search Targets</Text>
             <Text size="4" weight="bold">{targetCount}</Text>
           </Flex>
         </Card>
 
-        <Card>
+        <Card className="surface-card">
           <Flex direction="column" gap="1">
             <Text size="1" color="gray" weight="medium">Check Frequency</Text>
             <Text size="4" weight="bold">{freqDisplay}</Text>
@@ -73,7 +73,7 @@ export function DashboardPage({ settings, jobs }: Props) {
       </Grid>
 
       {settings.lastRunAt && (
-        <Card>
+        <Card className="surface-card">
           <Flex align="center" justify="between" gap="3">
             <Flex direction="column" gap="1">
               <Text size="1" color="gray" weight="medium">Last Run</Text>
@@ -83,10 +83,11 @@ export function DashboardPage({ settings, jobs }: Props) {
               const s = settings.lastRunStatus;
               let badgeColor: "green" | "amber" | "red" = "red";
               if (s === "success") badgeColor = "green";
-              else if (s === "logged_out") badgeColor = "amber";
+              else if (s === "logged_out" || s === "captcha_required") badgeColor = "amber";
+              const statusLabel = s === "captcha_required" ? "captcha required" : s;
               return (
                 <Badge color={badgeColor} variant="soft" size="2">
-                  {settings.lastRunStatus}
+                  {statusLabel}
                 </Badge>
               );
             })()}
@@ -96,7 +97,7 @@ export function DashboardPage({ settings, jobs }: Props) {
 
       {webhookCount > 0 && (
         <Box mt="4">
-          <Card>
+          <Card className="surface-card">
             <Flex direction="column" gap="1">
               <Text size="1" color="gray" weight="medium">Webhook Delivery</Text>
               <Text size="2">{webhookCount} active webhook{webhookCount !== 1 ? "s" : ""} configured</Text>

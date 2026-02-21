@@ -9,10 +9,9 @@ import {
 	Text,
 	TextField,
 } from "@radix-ui/themes";
-import type { SearchTarget, Settings } from "../utils/types";
-
-import { EXAMPLE_WEBHOOK_PAYLOAD } from "../utils/types";
 import { useState } from "react";
+import type { SearchTarget, Settings } from "../utils/types";
+import { EXAMPLE_WEBHOOK_PAYLOAD } from "../utils/types";
 
 interface Props {
 	readonly settings: Settings;
@@ -100,7 +99,7 @@ function SearchTargetCard({
 	}
 
 	return (
-		<Card mb="3">
+		<Card className="surface-card" mb="3">
 			<Flex justify="between" align="center" mb="3">
 				<Text size="2" weight="bold" color="gray">
 					Target {index + 1}
@@ -143,7 +142,7 @@ function SearchTargetCard({
 					</Box>
 					<Button
 						size="2"
-						variant="soft"
+						variant="outline"
 						color="gray"
 						disabled={!canOpenSearchUrl}
 						onClick={handleOpenSearchUrl}
@@ -223,16 +222,16 @@ function SearchTargetCard({
 
 export function SearchTargetsPage({ settings, onChange }: Props) {
 	return (
-		<Box p="6">
-			<Heading size="5" mb="1">
+		<Box className="page-shell">
+			<Heading className="page-title" size="5">
 				Search Targets
 			</Heading>
-			<Text size="2" color="gray" mb="5" as="p">
+			<Text className="page-subtitle" size="2" color="gray" as="p">
 				Configure the Upwork search URLs to monitor, and optional webhooks to
 				notify.
 			</Text>
 
-			<Separator size="4" mb="5" />
+			<Separator className="page-divider" size="4" />
 
 			{settings.searchTargets.map((target, i) => (
 				<SearchTargetCard

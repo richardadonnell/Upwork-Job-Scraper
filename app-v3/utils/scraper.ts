@@ -69,11 +69,6 @@ async function scrapeTarget(target: SearchTarget): Promise<ScrapeResult> {
 		const expectedBase = origin + pathname;
 
 		await new Promise<void>((resolve, reject) => {
-			const timeout = setTimeout(
-				() => reject(new Error("Tab load timeout")),
-				60_000,
-			);
-
 			const listener = (
 				id: number,
 				_changeInfo: unknown,
@@ -90,30 +85,66 @@ async function scrapeTarget(target: SearchTarget): Promise<ScrapeResult> {
 				}
 			};
 
+			const timeout = setTimeout(() => {
+				browser.tabs.onUpdated.removeListener(listener);
+				reject(new Error("Tab load timeout"));
+			}, 60_000);
+
 			browser.tabs.onUpdated.addListener(listener);
 		});
 
 		// Upwork is a React SPA — job cards are rendered asynchronously after the
 		// browser fires status:complete. Use an inline executeScript (MV3 awaits
 		// the returned Promise) to poll for up to 10s before running the scraper.
-		await browser.scripting.executeScript({
+		const pageCheckResult = await browser.scripting.executeScript({
 			target: { tabId },
 			func: () =>
-				new Promise<void>((resolve) => {
+				new Promise<{ hasJobCards: boolean; sawCloudflareMarker: boolean }>(
+					(resolve) => {
 					const deadline = Date.now() + 10_000;
-					const check = () => {
+					let sawCloudflareMarker = false;
+
+					const hasCloudflareMarker = (): boolean => {
+						const pageText = document.body?.innerText ?? "";
+						if (/Cloudflare Ray ID/i.test(pageText)) return true;
 						if (
-							document.querySelector("article[data-ev-job-uid]") ||
-							Date.now() >= deadline
+							/cloudflare/i.test(pageText) &&
+							/verify you are human|security check/i.test(pageText)
 						) {
-							resolve();
+							return true;
+						}
+						return false;
+					};
+
+					const check = () => {
+						sawCloudflareMarker = sawCloudflareMarker || hasCloudflareMarker();
+						const hasJobCards = Boolean(
+							document.querySelector("article[data-ev-job-uid]"),
+						);
+
+						if (hasJobCards || Date.now() >= deadline) {
+							resolve({ hasJobCards, sawCloudflareMarker });
 						} else {
 							setTimeout(check, 500);
 						}
 					};
 					check();
-				}),
+				},
+				),
 		});
+
+		const pageCheck = pageCheckResult?.[0]?.result as
+			| { hasJobCards: boolean; sawCloudflareMarker: boolean }
+			| undefined;
+
+		if (pageCheck?.sawCloudflareMarker && !pageCheck.hasJobCards) {
+			return {
+				ok: false,
+				reason: "captcha_required",
+				error:
+					"Cloudflare challenge did not auto-complete within 10 seconds",
+			};
+		}
 
 		const results = await browser.scripting.executeScript({
 			target: { tabId },
@@ -138,7 +169,11 @@ async function processTargetResult(
 	result: ScrapeResult,
 	notificationsEnabled: boolean,
 ): Promise<number> {
-	if (!result.ok || !result.jobs) return 0;
+	if (!result.ok || !result.jobs) {
+		await sendIssueWebhookIfNeeded(target, result);
+
+		return 0;
+	}
 
 	const preferFreshString = (current: string, fresh: string): string =>
 		current.trim() !== "" ? current : fresh;
@@ -238,13 +273,75 @@ async function processTargetResult(
 	return newJobs.length;
 }
 
+async function sendIssueWebhookIfNeeded(
+	target: SearchTarget,
+	result: ScrapeResult,
+): Promise<void> {
+	if (
+		!target.webhookEnabled ||
+		!target.webhookUrl ||
+		!result.reason ||
+		result.reason === "no_results"
+	) {
+		return;
+	}
+
+	const issueMessageByReason: Record<string, string> = {
+		captcha_required:
+			"Cloudflare verification requires manual interaction before scraping can continue.",
+		logged_out: "User appears to be logged out of Upwork.",
+		error: result.error ?? "An unknown scrape error occurred.",
+	};
+
+	try {
+		await fetch(target.webhookUrl, {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({
+				type: "issue",
+				reason: result.reason,
+				message:
+					issueMessageByReason[result.reason] ??
+					(result.error ?? "Scrape issue detected."),
+				targetUrl: target.searchUrl,
+				timestamp: new Date().toISOString(),
+			}),
+		});
+		await appendActivityLog("info", "Issue webhook delivered", target.searchUrl);
+	} catch (err) {
+		console.error(
+			`[Upwork Scraper] Issue webhook failed for ${target.searchUrl}:`,
+			err,
+		);
+		await appendActivityLog(
+			"error",
+			`Issue webhook failed: ${String(err)}`,
+			target.searchUrl,
+		);
+	}
+}
+
 function resolveRunStatus(
+	anyCaptchaRequired: boolean,
 	anyLoggedOut: boolean,
 	anyError: boolean,
-): "success" | "error" | "logged_out" {
+): "success" | "error" | "logged_out" | "captcha_required" {
+	if (anyCaptchaRequired) return "captcha_required";
 	if (anyLoggedOut) return "logged_out";
 	if (anyError) return "error";
 	return "success";
+}
+
+function isCaptchaRequiredResult(result: ScrapeResult): boolean {
+	return !result.ok && result.reason === "captcha_required";
+}
+
+function isLoggedOutResult(result: ScrapeResult): boolean {
+	return !result.ok && result.reason === "logged_out";
+}
+
+function isErrorResult(result: ScrapeResult): boolean {
+	return !result.ok && result.reason !== "captcha_required" && result.reason !== "logged_out";
 }
 
 export async function runScrape(options?: { manual?: boolean }): Promise<void> {
@@ -288,20 +385,28 @@ export async function runScrape(options?: { manual?: boolean }): Promise<void> {
 
 	let anyError = false;
 	let anyLoggedOut = false;
+	let anyCaptchaRequired = false;
 
 	const scrapeOutcomes = await Promise.all(
 		activeTargets.map(async (target) => {
 			try {
 				const result = await scrapeTarget(target);
+				const newCount = await processTargetResult(
+					target,
+					result,
+					settings.notificationsEnabled,
+				);
+
 				if (result.ok && result.jobs) {
-					const newCount = await processTargetResult(
-						target,
-						result,
-						settings.notificationsEnabled,
-					);
 					await appendActivityLog(
 						"info",
 						`Scraped: ${newCount} new job${newCount !== 1 ? "s" : ""} found`,
+						target.searchUrl,
+					);
+				} else if (result.reason === "captcha_required") {
+					await appendActivityLog(
+						"warn",
+						"Cloudflare verification required — complete captcha manually to resume scraping",
 						target.searchUrl,
 					);
 				} else if (result.reason === "logged_out") {
@@ -336,15 +441,24 @@ export async function runScrape(options?: { manual?: boolean }): Promise<void> {
 	);
 
 	for (const result of scrapeOutcomes) {
-		if (!result.ok) {
-			if (result.reason === "logged_out") anyLoggedOut = true;
-			else anyError = true;
-		}
+		if (isCaptchaRequiredResult(result)) anyCaptchaRequired = true;
+		else if (isLoggedOutResult(result)) anyLoggedOut = true;
+		else if (isErrorResult(result)) anyError = true;
+	}
+
+	if (settings.notificationsEnabled && anyCaptchaRequired) {
+		browser.notifications.create({
+			type: "basic",
+			iconUrl: "/icon/128.png",
+			title: "Upwork Scraper needs action",
+			message:
+				"Cloudflare verification is blocking scraping. Open Upwork and complete the captcha check.",
+		});
 	}
 
 	await settingsStorage.setValue({
 		...settings,
 		lastRunAt: new Date().toISOString(),
-		lastRunStatus: resolveRunStatus(anyLoggedOut, anyError),
+		lastRunStatus: resolveRunStatus(anyCaptchaRequired, anyLoggedOut, anyError),
 	});
 }

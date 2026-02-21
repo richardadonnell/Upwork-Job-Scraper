@@ -94,7 +94,7 @@ export function JobHistoryTab() {
 
 	if (loading) {
 		return (
-			<Box p="6">
+			<Box className="page-shell">
 				<Flex align="center" gap="2">
 					<Spinner size="2" />
 					<Text size="2" color="gray">
@@ -114,20 +114,20 @@ export function JobHistoryTab() {
 	const sorted = sortJobs(jobs, sortCol, sortDir);
 
 	return (
-		<Box p="6">
+		<Box className="page-shell">
 			<Flex justify="between" align="start" mb="1">
-				<Heading size="5">Job History</Heading>
+				<Heading className="page-title" size="5">Job History</Heading>
 				{jobs.length > 0 && (
-					<Button size="2" variant="ghost" color="red" onClick={handleClear}>
+					<Button size="2" variant="outline" color="red" onClick={handleClear}>
 						Clear history
 					</Button>
 				)}
 			</Flex>
-			<Text size="2" color="gray" mb="5" as="p">
+			<Text className="page-subtitle" size="2" color="gray" as="p">
 				{historyLabel}
 			</Text>
 
-			<Separator size="4" mb="5" />
+			<Separator className="page-divider" size="4" />
 
 			{jobs.length === 0 ? (
 				<Box py="9" style={{ textAlign: "center" }}>
@@ -136,7 +136,7 @@ export function JobHistoryTab() {
 					</Text>
 				</Box>
 			) : (
-				<Table.Root variant="surface" size="2">
+				<Table.Root className="history-table" variant="surface" size="1">
 					<Table.Header>
 						<Table.Row>
 							{COLUMNS.map(({ key, label }) => (

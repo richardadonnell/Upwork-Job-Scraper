@@ -33,13 +33,13 @@ export interface Settings {
   };
   notificationsEnabled: boolean;
   lastRunAt: string | null;
-  lastRunStatus: 'success' | 'error' | 'logged_out' | null;
+  lastRunStatus: 'success' | 'error' | 'logged_out' | 'captcha_required' | null;
 }
 
 export interface ScrapeResult {
   ok: boolean;
   jobs?: Job[];
-  reason?: 'logged_out' | 'no_results' | 'error';
+  reason?: 'logged_out' | 'no_results' | 'error' | 'captcha_required';
   error?: string;
 }
 
