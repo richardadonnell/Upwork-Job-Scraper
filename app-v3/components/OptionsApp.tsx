@@ -34,7 +34,7 @@ type Page =
 const NAV_ITEMS: { id: Page; label: string }[] = [
 	{ id: "dashboard", label: "Dashboard" },
 	{ id: "search-targets", label: "Search + Webhook URLs" },
-	{ id: "schedule", label: "Set Schedule" },
+	{ id: "schedule", label: "Scrape Schedule" },
 	{ id: "delivery", label: "Browser Notifications" },
 	{ id: "history", label: "Scraped Jobs" },
 	{ id: "activity", label: "Activity Logs" },
