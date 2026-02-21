@@ -15,16 +15,21 @@ export interface Job {
   scrapedAt: string;
 }
 
+export interface SearchTarget {
+  id: string;
+  searchUrl: string;
+  webhookEnabled: boolean;
+  webhookUrl: string;
+}
+
 export interface Settings {
   masterEnabled: boolean;
-  searchUrl: string;
+  searchTargets: SearchTarget[];
   checkFrequency: {
     days: number;
     hours: number;
     minutes: number;
   };
-  webhookEnabled: boolean;
-  webhookUrl: string;
   notificationsEnabled: boolean;
   lastRunAt: string | null;
   lastRunStatus: 'success' | 'error' | 'logged_out' | null;

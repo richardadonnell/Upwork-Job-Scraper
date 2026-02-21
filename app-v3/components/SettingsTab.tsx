@@ -1,7 +1,7 @@
 import type React from "react";
 import { useState } from "react";
 import { settingsStorage } from "../utils/storage";
-import type { Settings } from "../utils/types";
+import type { SearchTarget, Settings } from "../utils/types";
 
 interface Props {
 	readonly settings: Settings;
@@ -49,6 +49,128 @@ const s = {
 		letterSpacing: "0.02em",
 	} as React.CSSProperties,
 };
+
+function inputStyle(
+	id: string,
+	focusedInput: string | null,
+): React.CSSProperties {
+	return {
+		...s.input,
+		borderColor: focusedInput === id ? "var(--border-focus)" : "var(--border)",
+		boxShadow: focusedInput === id ? "0 0 0 3px var(--accent-glow)" : "none",
+	};
+}
+
+/** One search-URL + webhook pair */
+function SearchTargetCard({
+	target,
+	index,
+	total,
+	focusedInput,
+	onFocus,
+	onBlur,
+	onChange,
+	onRemove,
+}: {
+	readonly target: SearchTarget;
+	readonly index: number;
+	readonly total: number;
+	readonly focusedInput: string | null;
+	readonly onFocus: (id: string) => void;
+	readonly onBlur: () => void;
+	readonly onChange: (updated: SearchTarget) => void;
+	readonly onRemove: () => void;
+}) {
+	const searchId = `searchUrl-${target.id}`;
+	const webhookId = `webhookUrl-${target.id}`;
+	const toggleId = `webhookEnabled-${target.id}`;
+
+	return (
+		<div
+			style={{
+				...s.card,
+				marginBottom: 8,
+				borderLeft: "3px solid var(--accent-dim)",
+			}}
+		>
+			<div
+				style={{
+					display: "flex",
+					alignItems: "center",
+					justifyContent: "space-between",
+					marginBottom: 14,
+				}}
+			>
+				<span style={{ ...s.cardHeader, marginBottom: 0 }}>
+					Target {index + 1}
+				</span>
+				<button
+					type="button"
+					onClick={onRemove}
+					disabled={total <= 1}
+					style={{
+						background: "transparent",
+						border: "1px solid var(--border)",
+						borderRadius: 4,
+						color: total <= 1 ? "var(--text-muted)" : "var(--danger)",
+						cursor: total <= 1 ? "not-allowed" : "pointer",
+						fontSize: 11,
+						fontFamily: "var(--mono)",
+						padding: "3px 8px",
+						letterSpacing: "0.04em",
+					}}
+				>
+					remove
+				</button>
+			</div>
+
+			<div style={{ marginBottom: 14 }}>
+				<label style={s.label} htmlFor={searchId}>
+					Search URL
+				</label>
+				<input
+					id={searchId}
+					type="url"
+					style={inputStyle(searchId, focusedInput)}
+					value={target.searchUrl}
+					placeholder="https://www.upwork.com/nx/search/jobs/?q=..."
+					onFocus={() => onFocus(searchId)}
+					onBlur={onBlur}
+					onChange={(e) => onChange({ ...target, searchUrl: e.target.value })}
+				/>
+			</div>
+
+			<div style={{ borderTop: "1px solid var(--border)", paddingTop: 14 }}>
+				<ToggleRow
+					id={toggleId}
+					label="Send to webhook"
+					description="POST new jobs as JSON to a custom endpoint"
+					checked={target.webhookEnabled}
+					onChange={(v) => onChange({ ...target, webhookEnabled: v })}
+				/>
+				{target.webhookEnabled && (
+					<div style={{ marginTop: 12 }}>
+						<label style={s.label} htmlFor={webhookId}>
+							Webhook URL
+						</label>
+						<input
+							id={webhookId}
+							type="url"
+							style={inputStyle(webhookId, focusedInput)}
+							value={target.webhookUrl}
+							placeholder="https://hooks.example.com/..."
+							onFocus={() => onFocus(webhookId)}
+							onBlur={onBlur}
+							onChange={(e) =>
+								onChange({ ...target, webhookUrl: e.target.value })
+							}
+						/>
+					</div>
+				)}
+			</div>
+		</div>
+	);
+}
 
 /** Custom toggle switch rendered entirely with inline styles */
 function Toggle({
@@ -193,11 +315,7 @@ export function SettingsTab({ settings, onChange }: Props) {
 		}
 	}
 
-	const inputFocusStyle = (id: string): React.CSSProperties => ({
-		...s.input,
-		borderColor: focusedInput === id ? "var(--border-focus)" : "var(--border)",
-		boxShadow: focusedInput === id ? "0 0 0 3px var(--accent-glow)" : "none",
-	});
+	const inputFocusStyle = (id: string) => inputStyle(id, focusedInput);
 
 	return (
 		<div>
@@ -213,22 +331,62 @@ export function SettingsTab({ settings, onChange }: Props) {
 				/>
 			</div>
 
-			{/* Section 2 — Target */}
+			{/* Section 2 — Search Targets */}
 			<div style={s.card}>
-				<p style={s.cardHeader}>Search Target</p>
-				<label style={s.label} htmlFor="searchUrl">
-					Upwork search URL
-				</label>
-				<input
-					id="searchUrl"
-					type="url"
-					style={inputFocusStyle("searchUrl")}
-					value={settings.searchUrl}
-					placeholder="https://www.upwork.com/nx/search/jobs/?q=..."
-					onFocus={() => setFocusedInput("searchUrl")}
-					onBlur={() => setFocusedInput(null)}
-					onChange={(e) => onChange({ ...settings, searchUrl: e.target.value })}
-				/>
+				<p style={s.cardHeader}>Search Targets</p>
+				{settings.searchTargets.map((target, i) => (
+					<SearchTargetCard
+						key={target.id}
+						target={target}
+						index={i}
+						total={settings.searchTargets.length}
+						focusedInput={focusedInput}
+						onFocus={setFocusedInput}
+						onBlur={() => setFocusedInput(null)}
+						onChange={(updated) => {
+							const next = settings.searchTargets.map((t) =>
+								t.id === updated.id ? updated : t,
+							);
+							onChange({ ...settings, searchTargets: next });
+						}}
+						onRemove={() => {
+							const next = settings.searchTargets.filter(
+								(t) => t.id !== target.id,
+							);
+							onChange({ ...settings, searchTargets: next });
+						}}
+					/>
+				))}
+				<button
+					type="button"
+					onClick={() => {
+						const newTarget = {
+							id: crypto.randomUUID(),
+							searchUrl: "",
+							webhookEnabled: false,
+							webhookUrl: "",
+						};
+						onChange({
+							...settings,
+							searchTargets: [...settings.searchTargets, newTarget],
+						});
+					}}
+					style={{
+						marginTop: 4,
+						padding: "8px 16px",
+						background: "transparent",
+						border: "1px dashed var(--border)",
+						borderRadius: 6,
+						color: "var(--text-mid)",
+						cursor: "pointer",
+						fontSize: 12,
+						fontFamily: "var(--mono)",
+						width: "100%",
+						letterSpacing: "0.04em",
+					}}
+				>
+					+ add target
+				</button>
 			</div>
 
 			{/* Section 3 — Schedule */}
@@ -285,43 +443,13 @@ export function SettingsTab({ settings, onChange }: Props) {
 			{/* Section 4 — Delivery */}
 			<div style={s.card}>
 				<p style={s.cardHeader}>Delivery</p>
-				<div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-					<ToggleRow
-						id="notificationsEnabled"
-						label="Browser notifications"
-						description="Show a desktop notification when new jobs are found"
-						checked={settings.notificationsEnabled}
-						onChange={(v) => onChange({ ...settings, notificationsEnabled: v })}
-					/>
-					<div style={{ borderTop: "1px solid var(--border)", paddingTop: 16 }}>
-						<ToggleRow
-							id="webhookEnabled"
-							label="Send to webhook"
-							description="POST new jobs as JSON to a custom endpoint"
-							checked={settings.webhookEnabled}
-							onChange={(v) => onChange({ ...settings, webhookEnabled: v })}
-						/>
-						{settings.webhookEnabled && (
-							<div style={{ marginTop: 14 }}>
-								<label style={s.label} htmlFor="webhookUrl">
-									Webhook URL
-								</label>
-								<input
-									id="webhookUrl"
-									type="url"
-									style={inputFocusStyle("webhookUrl")}
-									value={settings.webhookUrl}
-									placeholder="https://hooks.example.com/..."
-									onFocus={() => setFocusedInput("webhookUrl")}
-									onBlur={() => setFocusedInput(null)}
-									onChange={(e) =>
-										onChange({ ...settings, webhookUrl: e.target.value })
-									}
-								/>
-							</div>
-						)}
-					</div>
-				</div>
+				<ToggleRow
+					id="notificationsEnabled"
+					label="Browser notifications"
+					description="Show a desktop notification when new jobs are found"
+					checked={settings.notificationsEnabled}
+					onChange={(v) => onChange({ ...settings, notificationsEnabled: v })}
+				/>
 			</div>
 
 			{/* Last run status */}
@@ -427,17 +555,24 @@ export function SettingsTab({ settings, onChange }: Props) {
 				<button
 					type="button"
 					onClick={handleManualScrape}
-					disabled={scraping || !settings.searchUrl}
+					disabled={
+						scraping || settings.searchTargets.every((t) => !t.searchUrl.trim())
+					}
 					style={{
 						padding: "10px 22px",
 						background: "transparent",
 						color:
-							scraping || !settings.searchUrl
+							scraping ||
+							settings.searchTargets.every((t) => !t.searchUrl.trim())
 								? "var(--text-muted)"
 								: "var(--text)",
-						border: `1px solid ${scraping || !settings.searchUrl ? "var(--border)" : "var(--text-mid)"}`,
+						border: `1px solid ${scraping || settings.searchTargets.every((t) => !t.searchUrl.trim()) ? "var(--border)" : "var(--text-mid)"}`,
 						borderRadius: 6,
-						cursor: scraping || !settings.searchUrl ? "not-allowed" : "pointer",
+						cursor:
+							scraping ||
+							settings.searchTargets.every((t) => !t.searchUrl.trim())
+								? "not-allowed"
+								: "pointer",
 						fontWeight: 500,
 						fontSize: 13,
 						fontFamily: "var(--sans)",
