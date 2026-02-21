@@ -59,8 +59,3 @@ npm run dev       # Watch mode with HMR for the options page
 npm run build     # Production build
 npm run compile   # TypeScript type-check only (no output)
 ```
-
-## Docs
-
-- [WXT](https://context7.com/websites/wxt_dev)
-- [React](https://context7.com/websites/react_dev)

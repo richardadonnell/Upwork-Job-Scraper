@@ -4,6 +4,14 @@
 
 Chrome MV3 extension built with **WXT + React 19 + TypeScript**. All active source lives in `app-v3/`. The `KEEP-DO-NOT-DELETE/` folder contains the legacy v1 extension for reference only — do not modify it.
 
+**ALWAYS** use `context7` mcp tools to check the official docs and reference code examples before writing new code. The docs are comprehensive and up-to-date, and the tools can save you a lot of time.
+
+## Context7 URLs to Official Docs
+
+- [WXT](https://context7.com/websites/wxt_dev)
+- [React](https://context7.com/websites/react_dev)
+- [TypeScript](https://context7.com/websites/typescriptlang)
+
 ## Architecture
 
 Three layers communicate via Chrome messaging APIs:
