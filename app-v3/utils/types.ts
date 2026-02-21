@@ -42,6 +42,16 @@ export interface ScrapeResult {
   error?: string;
 }
 
+export type ActivityLogLevel = 'info' | 'warn' | 'error';
+
+export interface ActivityLog {
+  id: string;
+  timestamp: number;
+  level: ActivityLogLevel;
+  event: string;
+  detail?: string;
+}
+
 export type MessageType =
   | { type: 'manualScrape' }
   | { type: 'settingsUpdated' };

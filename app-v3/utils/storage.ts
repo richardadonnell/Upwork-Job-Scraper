@@ -1,4 +1,4 @@
-import type { Job, Settings } from './types';
+import type { ActivityLog, Job, Settings } from './types';
 
 export const DEFAULT_SETTINGS: Settings = {
   masterEnabled: false,
@@ -36,3 +36,25 @@ export const jobHistoryStorage = storage.defineItem<Job[]>('local:jobHistory', {
 });
 
 export const JOB_HISTORY_MAX = 100;
+
+export const activityLogsStorage = storage.defineItem<ActivityLog[]>('local:activityLogs', {
+  fallback: [],
+});
+
+export const ACTIVITY_LOG_MAX = 200;
+
+export async function appendActivityLog(
+  level: ActivityLog['level'],
+  event: string,
+  detail?: string,
+): Promise<void> {
+  const entry: ActivityLog = {
+    id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    timestamp: Date.now(),
+    level,
+    event,
+    detail,
+  };
+  const current = await activityLogsStorage.getValue();
+  await activityLogsStorage.setValue([entry, ...current].slice(0, ACTIVITY_LOG_MAX));
+}

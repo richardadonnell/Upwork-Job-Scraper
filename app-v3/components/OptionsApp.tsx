@@ -17,6 +17,7 @@ import {
 } from "../utils/storage";
 import type { Job, Settings } from "../utils/types";
 
+import { ActivityPage } from "./ActivityPage";
 import { DashboardPage } from "./DashboardPage";
 import { DeliveryPage } from "./DeliveryPage";
 import { JobHistoryTab } from "./JobHistoryTab";
@@ -28,7 +29,8 @@ type Page =
 	| "search-targets"
 	| "schedule"
 	| "delivery"
-	| "history";
+	| "history"
+	| "activity";
 
 const NAV_ITEMS: { id: Page; label: string }[] = [
 	{ id: "dashboard", label: "Overview" },
@@ -36,6 +38,7 @@ const NAV_ITEMS: { id: Page; label: string }[] = [
 	{ id: "schedule", label: "Schedule" },
 	{ id: "delivery", label: "Delivery" },
 	{ id: "history", label: "Job History" },
+	{ id: "activity", label: "Activity Logs" },
 ];
 
 const SETTINGS_PAGES: Page[] = ["search-targets", "schedule", "delivery"];
@@ -318,6 +321,7 @@ export function OptionsApp() {
 					<DeliveryPage settings={settings} onChange={setSettings} />
 				)}
 				{activePage === "history" && <JobHistoryTab />}
+				{activePage === "activity" && <ActivityPage />}
 			</ScrollArea>
 		</Flex>
 	);
