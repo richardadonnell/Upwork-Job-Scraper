@@ -1,3 +1,15 @@
+import {
+	Badge,
+	Box,
+	Button,
+	Card,
+	Flex,
+	Heading,
+	Link,
+	Separator,
+	Spinner,
+	Text,
+} from "@radix-ui/themes";
 import { useEffect, useState } from "react";
 import { jobHistoryStorage, seenJobIdsStorage } from "../utils/storage";
 
@@ -26,255 +38,130 @@ export function JobHistoryTab() {
 
 	if (loading) {
 		return (
-			<div
-				style={{
-					display: "flex",
-					gap: 8,
-					alignItems: "center",
-					padding: "40px 0",
-				}}
-			>
-				<div
-					style={{
-						width: 6,
-						height: 6,
-						borderRadius: "50%",
-						background: "var(--accent)",
-						animation: "pulse 1s ease-in-out infinite",
-					}}
-				/>
-				<span
-					style={{
-						fontFamily: "var(--mono)",
-						fontSize: 12,
-						color: "var(--text-mid)",
-					}}
-				>
-					loading history...
-				</span>
-			</div>
+			<Box p="6">
+				<Flex align="center" gap="2">
+					<Spinner size="2" />
+					<Text size="2" color="gray">
+						Loading history...
+					</Text>
+				</Flex>
+			</Box>
 		);
 	}
 
-	const jobWord = jobs.length === 1 ? "job" : "jobs";
+	const plural = jobs.length === 1 ? "" : "s";
 	const historyLabel =
 		jobs.length === 0
-			? "> no jobs scraped yet"
-			: `> ${jobs.length} ${jobWord} in history`;
+			? "No jobs scraped yet."
+			: `${jobs.length} job${plural} in history`;
 
 	return (
-		<div>
-			{/* Header bar */}
-			<div
-				style={{
-					display: "flex",
-					justifyContent: "space-between",
-					alignItems: "center",
-					marginBottom: 20,
-				}}
-			>
-				<span
-					style={{
-						fontFamily: "var(--mono)",
-						fontSize: 12,
-						color: "var(--text-mid)",
-					}}
-				>
-					{historyLabel}
-				</span>
+		<Box p="6">
+			<Flex justify="between" align="start" mb="1">
+				<Heading size="5">Job History</Heading>
 				{jobs.length > 0 && (
-					<button
-						type="button"
-						onClick={handleClear}
-						style={{
-							padding: "5px 12px",
-							background: "transparent",
-							color: "var(--danger)",
-							border: "1px solid var(--danger)",
-							borderRadius: 5,
-							cursor: "pointer",
-							fontSize: 11,
-							fontFamily: "var(--mono)",
-							letterSpacing: "0.04em",
-							transition: "background 0.2s, color 0.2s",
-						}}
-						onMouseEnter={(e) => {
-							(e.currentTarget as HTMLButtonElement).style.background =
-								"var(--danger-dim)";
-						}}
-						onMouseLeave={(e) => {
-							(e.currentTarget as HTMLButtonElement).style.background =
-								"transparent";
-						}}
-					>
-						clear history
-					</button>
+					<Button size="2" variant="ghost" color="red" onClick={handleClear}>
+						Clear history
+					</Button>
 				)}
-			</div>
+			</Flex>
+			<Text size="2" color="gray" mb="5" as="p">
+				{historyLabel}
+			</Text>
 
-			{jobs.length === 0 && (
-				<div
-					style={{
-						textAlign: "center",
-						padding: "60px 0",
-						color: "var(--text-muted)",
-						fontFamily: "var(--mono)",
-					}}
-				>
-					<div style={{ fontSize: 32, marginBottom: 12, opacity: 0.4 }}>
-						[ ]
-					</div>
-					<p style={{ margin: 0, fontSize: 12, letterSpacing: "0.05em" }}>
-						run a scrape to populate job history
-					</p>
-				</div>
-			)}
+			<Separator size="4" mb="5" />
 
-			{jobs.map((job) => (
-				<div
-					key={job.uid}
-					style={{
-						border: "1px solid var(--border)",
-						borderRadius: 8,
-						padding: "18px 20px",
-						marginBottom: 10,
-						background: "var(--surface)",
-					}}
-				>
-					{/* Title row */}
-					<div
-						style={{
-							display: "flex",
-							justifyContent: "space-between",
-							alignItems: "flex-start",
-							gap: 12,
-						}}
-					>
-						<a
-							href={job.url}
-							target="_blank"
-							rel="noreferrer"
-							style={{
-								color: "var(--accent)",
-								fontWeight: 600,
-								fontSize: 14,
-								textDecoration: "none",
-								lineHeight: 1.4,
-								fontFamily: "var(--mono)",
-							}}
-						>
-							{job.title}
-						</a>
-						<span
-							style={{
-								fontSize: 11,
-								color: "var(--text-muted)",
-								whiteSpace: "nowrap",
-								fontFamily: "var(--mono)",
-								letterSpacing: "0.03em",
-							}}
-						>
-							{job.datePosted}
-						</span>
-					</div>
-
-					{/* Meta chips */}
-					{(job.jobType || job.budget || job.experienceLevel) && (
-						<div
-							style={{
-								marginTop: 8,
-								display: "flex",
-								gap: 6,
-								flexWrap: "wrap",
-							}}
-						>
-							{[job.jobType, job.budget, job.experienceLevel]
-								.filter(Boolean)
-								.map((val) => (
-									<span
-										key={val}
-										style={{
-											padding: "2px 8px",
-											background: "var(--surface-raised)",
-											border: "1px solid var(--border)",
-											borderRadius: 4,
-											fontSize: 11,
-											color: "var(--text-mid)",
-											fontFamily: "var(--mono)",
-										}}
-									>
-										{val}
-									</span>
-								))}
-						</div>
-					)}
-
-					{/* Description */}
-					{job.description && (
-						<p
-							style={{
-								margin: "10px 0 0",
-								fontSize: 12,
-								color: "var(--text-mid)",
-								lineHeight: 1.6,
-								letterSpacing: "0.01em",
-							}}
-						>
-							{job.description.length > 200
-								? `${job.description.slice(0, 200)}…`
-								: job.description}
-						</p>
-					)}
-
-					{/* Skills */}
-					{job.skills.length > 0 && (
-						<div
-							style={{
-								marginTop: 10,
-								display: "flex",
-								flexWrap: "wrap",
-								gap: 5,
-							}}
-						>
-							{job.skills.map((skill) => (
-								<span
-									key={skill}
-									style={{
-										padding: "2px 8px",
-										background: "rgba(20,168,0,0.06)",
-										border: "1px solid var(--accent-dim)",
-										borderRadius: 4,
-										fontSize: 11,
-										color: "var(--accent)",
-										fontFamily: "var(--mono)",
-									}}
+			{jobs.length === 0 ? (
+				<Box py="9" style={{ textAlign: "center" }}>
+					<Text size="2" color="gray">
+						Run a scrape to populate job history.
+					</Text>
+				</Box>
+			) : (
+				<Flex direction="column" gap="3">
+					{jobs.map((job) => (
+						<Card key={job.uid}>
+							<Flex justify="between" align="start" gap="3" mb="2">
+								<Link
+									href={job.url}
+									target="_blank"
+									rel="noreferrer"
+									size="2"
+									weight="bold"
 								>
-									{skill}
-								</span>
-							))}
-						</div>
-					)}
+									{job.title}
+								</Link>
+								<Text
+									size="1"
+									color="gray"
+									style={{ whiteSpace: "nowrap", flexShrink: 0 }}
+								>
+									{job.datePosted}
+								</Text>
+							</Flex>
 
-					{/* Client metadata */}
-					<div
-						style={{
-							marginTop: 10,
-							fontSize: 11,
-							color: "var(--text-muted)",
-							display: "flex",
-							gap: 14,
-							fontFamily: "var(--mono)",
-						}}
-					>
-						{job.paymentVerified && (
-							<span style={{ color: "var(--accent)" }}>✓ verified</span>
-						)}
-						{job.clientRating && <span>★ {job.clientRating}</span>}
-						{job.clientTotalSpent && <span>{job.clientTotalSpent} spent</span>}
-						{job.proposals && <span>{job.proposals} proposals</span>}
-					</div>
-				</div>
-			))}
-		</div>
+							{(job.jobType || job.budget || job.experienceLevel) && (
+								<Flex gap="2" mb="2" wrap="wrap">
+									{[job.jobType, job.budget, job.experienceLevel]
+										.filter(Boolean)
+										.map((val) => (
+											<Badge key={val} variant="surface" color="gray" size="1">
+												{val}
+											</Badge>
+										))}
+								</Flex>
+							)}
+
+							{job.description && (
+								<Text
+									as="p"
+									size="1"
+									color="gray"
+									mb="2"
+									style={{ lineHeight: "1.6" }}
+								>
+									{job.description.length > 200
+										? `${job.description.slice(0, 200)}...`
+										: job.description}
+								</Text>
+							)}
+
+							{job.skills.length > 0 && (
+								<Flex gap="1" mb="2" wrap="wrap">
+									{job.skills.map((skill) => (
+										<Badge key={skill} variant="soft" color="green" size="1">
+											{skill}
+										</Badge>
+									))}
+								</Flex>
+							)}
+
+							<Flex gap="3">
+								{job.paymentVerified && (
+									<Text size="1" color="green">
+										verified
+									</Text>
+								)}
+								{job.clientRating && (
+									<Text size="1" color="gray">
+										* {job.clientRating}
+									</Text>
+								)}
+								{job.clientTotalSpent && (
+									<Text size="1" color="gray">
+										{job.clientTotalSpent} spent
+									</Text>
+								)}
+								{job.proposals && (
+									<Text size="1" color="gray">
+										{job.proposals} proposals
+									</Text>
+								)}
+							</Flex>
+						</Card>
+					))}
+				</Flex>
+			)}
+		</Box>
 	);
 }
