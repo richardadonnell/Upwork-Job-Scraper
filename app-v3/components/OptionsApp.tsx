@@ -5,7 +5,6 @@ import {
 	ScrollArea,
 	Separator,
 	Spinner,
-	Switch,
 	Text,
 } from "@radix-ui/themes";
 import { useEffect, useRef, useState } from "react";
@@ -137,6 +136,7 @@ export function OptionsApp() {
 	}
 
 	const isSettingsPage = SETTINGS_PAGES.includes(activePage);
+	const canRunScrape = settings.searchTargets.some((t) => t.searchUrl.trim());
 	let autoSaveColor: "red" | "gray" | "green" = "green";
 	if (saveState === "error") {
 		autoSaveColor = "red";
@@ -184,19 +184,42 @@ export function OptionsApp() {
 
 				<Separator size="4" />
 
-				{/* Enable toggle */}
-				<Flex align="center" justify="between" px="4" py="3" gap="2">
-					<Text size="1" color="gray">
-						Auto-scrape
-					</Text>
-					<Switch
-						size="1"
-						checked={settings.masterEnabled}
-						onCheckedChange={(v) =>
-							setSettings({ ...settings, masterEnabled: v })
-						}
-					/>
-				</Flex>
+				{/* Scraper controls */}
+				<Box px="4" py="3">
+					<Flex direction="column" gap="2">
+						<Button
+							size="2"
+							variant="soft"
+							color={settings.masterEnabled ? "green" : "gray"}
+							onClick={() =>
+								setSettings({
+									...settings,
+									masterEnabled: !settings.masterEnabled,
+								})
+							}
+							style={{ width: "100%" }}
+						>
+							{settings.masterEnabled ? "Scraper Enabled" : "Scraper Disabled"}
+						</Button>
+						<Button
+							size="2"
+							variant="outline"
+							color="gray"
+							disabled={scraping || !canRunScrape}
+							onClick={handleManualScrape}
+							style={{ width: "100%" }}
+						>
+							{scraping ? (
+								<Flex align="center" gap="1">
+									<Spinner size="1" />
+									<Text>Scraping...</Text>
+								</Flex>
+							) : (
+								"Run scrape now"
+							)}
+						</Button>
+					</Flex>
+				</Box>
 
 				<Separator size="4" />
 
@@ -247,50 +270,7 @@ export function OptionsApp() {
 									autoSaveLabel
 								)}
 							</Button>
-							<Button
-								size="2"
-								variant="outline"
-								color="gray"
-								disabled={
-									scraping ||
-									settings.searchTargets.every((t) => !t.searchUrl.trim())
-								}
-								onClick={handleManualScrape}
-								style={{ width: "100%" }}
-							>
-								{scraping ? (
-									<Flex align="center" gap="1">
-										<Spinner size="1" />
-										<Text>Scraping...</Text>
-									</Flex>
-								) : (
-									"Run scrape now"
-								)}
-							</Button>
 						</Flex>
-					)}
-
-					{!isSettingsPage && (
-						<Button
-							size="2"
-							variant="outline"
-							color="gray"
-							disabled={
-								scraping ||
-								settings.searchTargets.every((t) => !t.searchUrl.trim())
-							}
-							onClick={handleManualScrape}
-							style={{ width: "100%" }}
-						>
-							{scraping ? (
-								<Flex align="center" gap="1">
-									<Spinner size="1" />
-									<Text>Scraping...</Text>
-								</Flex>
-							) : (
-								"Run scrape now"
-							)}
-						</Button>
 					)}
 				</Box>
 			</Box>
