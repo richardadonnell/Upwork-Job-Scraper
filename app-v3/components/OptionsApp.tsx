@@ -40,46 +40,129 @@ const NAV_ITEMS: { id: Page; label: string }[] = [
 ];
 
 const SETTINGS_PAGES: Page[] = ["search-targets", "schedule", "delivery"];
+const SCRAPE_ALARM_NAME = "upwork-scrape";
 
 type SaveState = "idle" | "saved" | "error";
 
-function formatCountdown(totalSeconds: number): string {
-	const safeSeconds = Math.max(0, Math.floor(totalSeconds));
-	const hours = Math.floor(safeSeconds / 3600);
-	const minutes = Math.floor((safeSeconds % 3600) / 60);
-	const seconds = safeSeconds % 60;
+function parseTimeToMinutes(value: string): number | null {
+	const match = /^(\d{2}):(\d{2})$/.exec(value);
+	if (!match) return null;
 
-	if (hours > 0) {
-		return `${hours}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
-	}
+	const hours = Number(match[1]);
+	const minutes = Number(match[2]);
+	if (!Number.isInteger(hours) || !Number.isInteger(minutes)) return null;
+	if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) return null;
 
-	return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+	return hours * 60 + minutes;
 }
 
-function getNextRunTimestamp(settings: Settings, nowMs: number): number | null {
-	if (!settings.masterEnabled) return null;
-
-	const periodMs = Math.max(5, settings.minuteInterval) * 60 * 1000;
-	const lastRunMs = settings.lastRunAt
-		? Date.parse(settings.lastRunAt)
-		: Number.NaN;
-	const baseMs = Number.isFinite(lastRunMs) ? lastRunMs : nowMs;
-
-	if (baseMs >= nowMs) {
-		return baseMs + periodMs;
-	}
-
-	const elapsed = nowMs - baseMs;
-	const intervals = Math.floor(elapsed / periodMs) + 1;
-	return baseMs + intervals * periodMs;
+function getMinutesInDay(date: Date): number {
+	return date.getHours() * 60 + date.getMinutes();
 }
 
-function getNextRunDisplay(args: {
+function formatApproximateAbsoluteTime(timestamp: number): string {
+	const target = new Date(timestamp);
+	const now = new Date();
+	const sameDay = now.toDateString() === target.toDateString();
+	const dayLabel = sameDay
+		? "Today"
+		: target.toLocaleDateString(undefined, { weekday: "short" });
+	return `${dayLabel} ${target.toLocaleTimeString([], {
+		hour: "numeric",
+		minute: "2-digit",
+	})}`;
+}
+
+function getStartTimestampForDate(
+	baseDate: Date,
+	startMinutes: number,
+): number {
+	const candidate = new Date(baseDate);
+	candidate.setHours(0, 0, 0, 0);
+	candidate.setMinutes(startMinutes, 0, 0);
+	return candidate.getTime();
+}
+
+function getNextActiveWindowStartTimestamp(
+	settings: Settings,
+	now: Date,
+	startMinutes: number,
+): number | null {
+	for (let dayOffset = 0; dayOffset <= 7; dayOffset += 1) {
+		const candidate = new Date(now);
+		candidate.setHours(0, 0, 0, 0);
+		candidate.setDate(candidate.getDate() + dayOffset);
+		const dayIndex = candidate.getDay();
+		if (!settings.activeDays[dayIndex]) continue;
+
+		candidate.setMinutes(startMinutes, 0, 0);
+		if (candidate.getTime() > now.getTime()) {
+			return candidate.getTime();
+		}
+	}
+
+	return null;
+}
+
+function getApproximateCandidateTimestamp(args: {
+	settings: Settings;
+	now: Date;
+	nowMs: number;
+	startMinutes: number;
+	endMinutes: number;
+	scheduledAlarmTimestamp: number | null;
+}): { candidateTimestamp: number | null; inCurrentWindow: boolean } {
+	const nowMinutes = getMinutesInDay(args.now);
+	const dayIndex = args.now.getDay();
+	const inActiveDay = args.settings.activeDays[dayIndex];
+	const inTimeWindow =
+		nowMinutes >= args.startMinutes && nowMinutes <= args.endMinutes;
+	const inCurrentWindow = inActiveDay && inTimeWindow;
+	const intervalMs =
+		Math.max(5, Math.floor(args.settings.minuteInterval || 5)) * 60 * 1000;
+
+	if (inActiveDay && nowMinutes < args.startMinutes) {
+		return {
+			candidateTimestamp: getStartTimestampForDate(args.now, args.startMinutes),
+			inCurrentWindow,
+		};
+	}
+
+	if (inCurrentWindow) {
+		if (
+			args.scheduledAlarmTimestamp !== null &&
+			args.scheduledAlarmTimestamp > args.nowMs
+		) {
+			return {
+				candidateTimestamp: args.scheduledAlarmTimestamp,
+				inCurrentWindow,
+			};
+		}
+
+		const nextIntervalTimestamp = args.nowMs + intervalMs;
+		const endTimestamp = getStartTimestampForDate(args.now, args.endMinutes);
+		if (nextIntervalTimestamp <= endTimestamp) {
+			return { candidateTimestamp: nextIntervalTimestamp, inCurrentWindow };
+		}
+	}
+
+	return {
+		candidateTimestamp: getNextActiveWindowStartTimestamp(
+			args.settings,
+			args.now,
+			args.startMinutes,
+		),
+		inCurrentWindow,
+	};
+}
+
+function getApproximateNextRunDisplay(args: {
 	canRunScrape: boolean;
 	masterEnabled: boolean;
 	scraping: boolean;
-	nextRunTimestamp: number | null;
-	countdownLabel: string;
+	settings: Settings;
+	nowMs: number;
+	scheduledAlarmTimestamp: number | null;
 }): { primary: string; primaryColor: "green" | "gray"; secondary?: string } {
 	if (!args.canRunScrape) {
 		return { primary: "No search URL configured", primaryColor: "gray" };
@@ -93,12 +176,48 @@ function getNextRunDisplay(args: {
 		return { primary: "Running now...", primaryColor: "green" };
 	}
 
+	if (!args.settings.activeDays.some(Boolean)) {
+		return { primary: "No active days selected", primaryColor: "gray" };
+	}
+
+	const startMinutes = parseTimeToMinutes(args.settings.timeWindow.start);
+	const endMinutes = parseTimeToMinutes(args.settings.timeWindow.end);
+	if (
+		startMinutes === null ||
+		endMinutes === null ||
+		startMinutes > endMinutes
+	) {
+		return { primary: "Schedule window invalid", primaryColor: "gray" };
+	}
+
+	const now = new Date(args.nowMs);
+	const { candidateTimestamp, inCurrentWindow } =
+		getApproximateCandidateTimestamp({
+			settings: args.settings,
+			now,
+			nowMs: args.nowMs,
+			startMinutes,
+			endMinutes,
+			scheduledAlarmTimestamp: args.scheduledAlarmTimestamp,
+		});
+
+	if (candidateTimestamp === null) {
+		return { primary: "No upcoming schedule window", primaryColor: "gray" };
+	}
+
+	const roundedToMinute = Math.round(candidateTimestamp / 60_000) * 60_000;
+	const secondsUntilRun = Math.floor((roundedToMinute - args.nowMs) / 1000);
+
+	if (secondsUntilRun <= 60) {
+		return {
+			primary: "Starting soon",
+			primaryColor: "green",
+		};
+	}
+
 	return {
-		primary: `in ${args.countdownLabel}`,
-		primaryColor: "green",
-		secondary: args.nextRunTimestamp
-			? new Date(args.nextRunTimestamp).toLocaleTimeString()
-			: undefined,
+		primary: `~ ${formatApproximateAbsoluteTime(roundedToMinute)}`,
+		primaryColor: inCurrentWindow ? "green" : "gray",
 	};
 }
 
@@ -110,6 +229,9 @@ export function OptionsApp() {
 	const [saving, setSaving] = useState(false);
 	const [scraping, setScraping] = useState(false);
 	const [nowMs, setNowMs] = useState(() => Date.now());
+	const [scheduledAlarmTimestamp, setScheduledAlarmTimestamp] = useState<
+		number | null
+	>(null);
 	const [saveState, setSaveState] = useState<SaveState>("idle");
 	const saveTimeoutRef = useRef<number | null>(null);
 	const saveStatusTimeoutRef = useRef<number | null>(null);
@@ -136,9 +258,34 @@ export function OptionsApp() {
 	useEffect(() => {
 		const interval = window.setInterval(() => {
 			setNowMs(Date.now());
-		}, 1000);
+		}, 30_000);
 
 		return () => window.clearInterval(interval);
+	}, []);
+
+	useEffect(() => {
+		let cancelled = false;
+
+		const refreshScheduledAlarm = async () => {
+			try {
+				const alarm = await browser.alarms.get(SCRAPE_ALARM_NAME);
+				if (!cancelled) {
+					setScheduledAlarmTimestamp(alarm?.scheduledTime ?? null);
+				}
+			} catch {
+				if (!cancelled) {
+					setScheduledAlarmTimestamp(null);
+				}
+			}
+		};
+
+		refreshScheduledAlarm();
+		const interval = window.setInterval(refreshScheduledAlarm, 15_000);
+
+		return () => {
+			cancelled = true;
+			window.clearInterval(interval);
+		};
 	}, []);
 
 	useEffect(() => {
@@ -205,19 +352,13 @@ export function OptionsApp() {
 
 	const isSettingsPage = SETTINGS_PAGES.includes(activePage);
 	const canRunScrape = settings.searchTargets.some((t) => t.searchUrl.trim());
-	const nextRunTimestamp = canRunScrape
-		? getNextRunTimestamp(settings, nowMs)
-		: null;
-	const countdownSeconds = nextRunTimestamp
-		? Math.max(0, Math.floor((nextRunTimestamp - nowMs) / 1000))
-		: 0;
-	const countdownLabel = formatCountdown(countdownSeconds);
-	const nextRunDisplay = getNextRunDisplay({
+	const nextRunDisplay = getApproximateNextRunDisplay({
 		canRunScrape,
 		masterEnabled: settings.masterEnabled,
 		scraping,
-		nextRunTimestamp,
-		countdownLabel,
+		settings,
+		nowMs,
+		scheduledAlarmTimestamp,
 	});
 	let autoSaveColor: "red" | "gray" | "green" = "green";
 	if (saveState === "error") {

@@ -16,6 +16,11 @@
       "sourceType": "github",
       "computedHash": "53050903051c0718a82c0f4decdb34e8adbc7cd871b8407d83c46b08d4599357"
     },
+    "typescript-advanced-types": {
+      "source": "wshobson/agents",
+      "sourceType": "github",
+      "computedHash": "c1ab3a923710ec04670f7fb81919d7c5a3783c00ccaad6ce367f62d4d004aeba"
+    },
     "wxt-browser-extensions": {
       "source": "pproenca/dot-skills",
       "sourceType": "github",
