@@ -10,9 +10,9 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
 	<React.StrictMode>
 		<Theme
 			appearance="dark"
-			accentColor="green"
-			grayColor="slate"
-			radius="medium"
+			accentColor="grass"
+			grayColor="olive"
+			radius="small"
 		>
 			<OptionsApp />
 		</Theme>
