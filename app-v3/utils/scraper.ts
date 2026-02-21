@@ -67,6 +67,28 @@ async function scrapeTarget(target: SearchTarget): Promise<ScrapeResult> {
 			browser.tabs.onUpdated.addListener(listener);
 		});
 
+		// Upwork is a React SPA — job cards are rendered asynchronously after the
+		// browser fires status:complete. Use an inline executeScript (MV3 awaits
+		// the returned Promise) to poll for up to 10s before running the scraper.
+		await browser.scripting.executeScript({
+			target: { tabId },
+			func: () =>
+				new Promise<void>((resolve) => {
+					const deadline = Date.now() + 10_000;
+					const check = () => {
+						if (
+							document.querySelector("article[data-ev-job-uid]") ||
+							Date.now() >= deadline
+						) {
+							resolve();
+						} else {
+							setTimeout(check, 500);
+						}
+					};
+					check();
+				}),
+		});
+
 		const results = await browser.scripting.executeScript({
 			target: { tabId },
 			files: ["content-scripts/upwork-scraper.js"],
