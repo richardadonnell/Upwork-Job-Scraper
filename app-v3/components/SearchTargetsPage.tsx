@@ -1,4 +1,8 @@
-import { DownloadIcon, InfoCircledIcon } from "@radix-ui/react-icons";
+import {
+	DownloadIcon,
+	ExternalLinkIcon,
+	InfoCircledIcon,
+} from "@radix-ui/react-icons";
 import {
 	Box,
 	Button,
@@ -274,6 +278,7 @@ export function SearchTargetsPage({ settings, onChange }: Props) {
 								rel="noopener noreferrer"
 							>
 								Open Upwork Base Search URL
+								<ExternalLinkIcon />
 							</a>
 						</Button>
 					</Box>
@@ -294,7 +299,7 @@ export function SearchTargetsPage({ settings, onChange }: Props) {
 								href="/example-n8n-workflow.json"
 								download="example-n8n-workflow.json"
 							>
-								<DownloadIcon style={{ marginRight: "0.5rem" }} />
+								<DownloadIcon />
 								Download n8n Example Workflow JSON File
 							</a>
 						</Button>
