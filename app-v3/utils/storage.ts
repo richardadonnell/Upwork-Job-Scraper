@@ -10,7 +10,7 @@ export const DEFAULT_SETTINGS: Settings = {
 };
 
 export const settingsStorage = storage.defineItem<Settings>('sync:settings', {
-  defaultValue: DEFAULT_SETTINGS,
+  fallback: DEFAULT_SETTINGS,
   version: 2,
   migrations: {
     2: (old: Record<string, unknown>): Settings => {
@@ -28,11 +28,11 @@ export const settingsStorage = storage.defineItem<Settings>('sync:settings', {
 });
 
 export const seenJobIdsStorage = storage.defineItem<string[]>('local:seenJobIds', {
-  defaultValue: [],
+  fallback: [],
 });
 
 export const jobHistoryStorage = storage.defineItem<Job[]>('local:jobHistory', {
-  defaultValue: [],
+  fallback: [],
 });
 
 export const JOB_HISTORY_MAX = 100;

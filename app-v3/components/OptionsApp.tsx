@@ -16,6 +16,8 @@ export function OptionsApp() {
 			setSettings(s);
 			setLoading(false);
 		});
+		const unwatch = settingsStorage.watch((s) => setSettings(s));
+		return () => unwatch();
 	}, []);
 
 	if (loading) {

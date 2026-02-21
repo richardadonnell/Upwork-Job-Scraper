@@ -126,33 +126,43 @@ function resolveRunStatus(
   return 'success';
 }
 
-export async function runScrape(): Promise<void> {
+export async function runScrape(options?: { manual?: boolean }): Promise<void> {
   const settings = await settingsStorage.getValue();
 
   const activeTargets = settings.searchTargets.filter((t) => t.searchUrl.trim() !== '');
 
-  if (!settings.masterEnabled || activeTargets.length === 0) {
-    console.warn('[Upwork Scraper] Skipping scrape — disabled or no search URLs configured.');
+  if (activeTargets.length === 0) {
+    console.warn('[Upwork Scraper] Skipping scrape — no search URLs configured.');
+    return;
+  }
+
+  if (!options?.manual && !settings.masterEnabled) {
+    console.warn('[Upwork Scraper] Skipping scrape — automatic scraping is disabled.');
     return;
   }
 
   let anyError = false;
   let anyLoggedOut = false;
 
-  for (const target of activeTargets) {
-    try {
-      const result = await scrapeTarget(target);
-
-      if (!result.ok || !result.jobs) {
-        if (result.reason === 'logged_out') anyLoggedOut = true;
-        else anyError = true;
-        continue;
+  const scrapeOutcomes = await Promise.all(
+    activeTargets.map(async (target) => {
+      try {
+        const result = await scrapeTarget(target);
+        if (result.ok && result.jobs) {
+          await processTargetResult(target, result, settings.notificationsEnabled);
+        }
+        return result;
+      } catch (err) {
+        console.error(`[Upwork Scraper] Scrape error for ${target.searchUrl}:`, err);
+        return { ok: false, reason: 'error' } as ScrapeResult;
       }
+    }),
+  );
 
-      await processTargetResult(target, result, settings.notificationsEnabled);
-    } catch (err) {
-      console.error(`[Upwork Scraper] Scrape error for ${target.searchUrl}:`, err);
-      anyError = true;
+  for (const result of scrapeOutcomes) {
+    if (!result.ok) {
+      if (result.reason === 'logged_out') anyLoggedOut = true;
+      else anyError = true;
     }
   }
 
