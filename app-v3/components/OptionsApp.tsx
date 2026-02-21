@@ -8,13 +8,13 @@ import {
 	Spinner,
 	Text,
 } from "@radix-ui/themes";
+import { useEffect, useRef, useState } from "react";
 import {
 	DEFAULT_SETTINGS,
 	jobHistoryStorage,
 	settingsStorage,
 } from "../utils/storage";
 import type { Job, Settings } from "../utils/types";
-import { useEffect, useRef, useState } from "react";
 
 import { ActivityPage } from "./ActivityPage";
 import { DashboardPage } from "./DashboardPage";
@@ -234,6 +234,7 @@ export function OptionsApp() {
 		number | null
 	>(null);
 	const [saveState, setSaveState] = useState<SaveState>("idle");
+	const [showSaveSuccess, setShowSaveSuccess] = useState(false);
 	const saveTimeoutRef = useRef<number | null>(null);
 	const saveStatusTimeoutRef = useRef<number | null>(null);
 	const lastSavedSnapshotRef = useRef("");
@@ -313,12 +314,14 @@ export function OptionsApp() {
 				lastSavedSnapshotRef.current = snapshot;
 				saveSucceeded = true;
 				setSaveState("saved");
+				setShowSaveSuccess(true);
 			} catch {
 				setSaveState("error");
 			} finally {
 				setSaving(false);
 				if (saveSucceeded) {
 					saveStatusTimeoutRef.current = window.setTimeout(() => {
+						setShowSaveSuccess(false);
 						setSaveState("idle");
 					}, 2500);
 				}
@@ -362,16 +365,19 @@ export function OptionsApp() {
 		nowMs,
 		scheduledAlarmTimestamp,
 	});
-	let autoSaveColor: "red" | "gray" | "green" = "green";
+	let autoSaveColor: "red" | "gray" | "green" | "grass" = "green";
 	if (saveState === "error") {
 		autoSaveColor = "red";
 	} else if (saving) {
 		autoSaveColor = "gray";
+	} else if (showSaveSuccess) {
+		autoSaveColor = "grass";
 	}
 	let autoSaveLabel = "Auto-save on";
 	if (saving) {
 		autoSaveLabel = "Auto-saving...";
 	}
+	// TODO: when save state success is shown change button from "soft" to "solid" variant for better emphasis
 	if (saveState === "saved") {
 		autoSaveLabel = "Auto-saved ✓";
 	} else if (saveState === "error") {
@@ -500,7 +506,7 @@ export function OptionsApp() {
 						<Flex direction="column" gap="2">
 							<Button
 								size="2"
-								variant="soft"
+								variant={saveState === "saved" ? "solid" : "soft"}
 								color={autoSaveColor}
 								disabled
 								style={{ width: "100%" }}

@@ -23,6 +23,8 @@ interface Props {
 type TestStatus = "idle" | "sending" | "ok" | "error";
 
 const UPWORK_SEARCH_PREFIX = "https://www.upwork.com/nx/search/jobs/";
+const BASE_UPWORK_SEARCH_URL =
+	"https://www.upwork.com/nx/search/jobs/?sort=recency&page=1&per_page=50";
 
 function isProgressivelyAllowedSearchUrl(value: string) {
 	return (
@@ -251,6 +253,32 @@ export function SearchTargetsPage({ settings, onChange }: Props) {
 			</Text>
 
 			<Separator className="page-divider" size="4" />
+
+			<Callout.Root mb="4" size="2" variant="soft" color="blue">
+				<Callout.Icon>
+					<InfoCircledIcon />
+				</Callout.Icon>
+				<Callout.Text>
+					<strong>How to use this extension:</strong> open the base Upwork
+					search URL (pre-configured to Most Recent and 50 jobs per page), then
+					customize the search settings however you like. When you are happy
+					with the results, copy the full URL from Upwork and paste it into the{" "}
+					<strong>Search URL</strong> field below. The extension will scrape
+					jobs using those exact settings, and advanced users can optionally add
+					a webhook URL for automation platforms like n8n or Make.com.
+					<Box mt="2">
+						<Button asChild size="1" variant="soft" color="blue">
+							<a
+								href={BASE_UPWORK_SEARCH_URL}
+								target="_blank"
+								rel="noopener noreferrer"
+							>
+								Open Upwork Base Search URL
+							</a>
+						</Button>
+					</Box>
+				</Callout.Text>
+			</Callout.Root>
 
 			<Callout.Root mb="4" size="2" variant="soft" color="gray">
 				<Callout.Icon>
