@@ -18,8 +18,8 @@ export function DeliveryPage({ settings, onChange }: Props) {
       <Separator className="page-divider" size="4" />
 
       <Card className="surface-card">
-        <Flex justify="between" align="start" gap="3">
-          <Box>
+        <Flex justify="between" align="start" gap="3" wrap="wrap">
+          <Box style={{ flex: "1 1 280px", minWidth: 0 }}>
             <Text size="2" weight="medium">Browser notifications</Text>
             <Text size="1" color="gray" as="p" mt="0">
               Show a desktop notification when new jobs are found

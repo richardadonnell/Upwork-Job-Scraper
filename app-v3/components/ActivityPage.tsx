@@ -51,13 +51,7 @@ function LogRow({ log }: Readonly<{ log: ActivityLog }>) {
 	}, [log.timestamp]);
 
 	return (
-		<Flex
-			className="activity-row"
-			align="start"
-			gap="3"
-			py="2"
-			px="3"
-		>
+		<Flex className="activity-row" align="start" gap="3" py="2" px="3">
 			{/* Timestamp */}
 			<Text
 				size="1"
@@ -89,7 +83,7 @@ function LogRow({ log }: Readonly<{ log: ActivityLog }>) {
 						color="gray"
 						as="p"
 						mt="1"
-						style={{ wordBreak: "break-all" }}
+						style={{ overflowWrap: "anywhere" }}
 					>
 						{log.detail}
 					</Text>
@@ -119,7 +113,9 @@ export function ActivityPage() {
 	return (
 		<Box className="page-shell">
 			<Flex align="center" justify="between" mb="1">
-				<Heading className="page-title" size="5">Activity Logs</Heading>
+				<Heading className="page-title" size="5">
+					Activity Logs
+				</Heading>
 				<Button
 					size="1"
 					variant="outline"
@@ -158,7 +154,10 @@ export function ActivityPage() {
 			)}
 
 			{!loading && logs.length > 0 && (
-				<Card className="surface-card" style={{ padding: 0, overflow: "hidden" }}>
+				<Card
+					className="surface-card"
+					style={{ padding: 0, overflow: "hidden" }}
+				>
 					<ScrollArea style={{ maxHeight: 560 }}>
 						{logs.map((log) => (
 							<LogRow key={log.id} log={log} />

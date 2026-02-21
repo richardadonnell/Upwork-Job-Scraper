@@ -116,7 +116,9 @@ export function JobHistoryTab() {
 	return (
 		<Box className="page-shell">
 			<Flex justify="between" align="start" mb="1">
-				<Heading className="page-title" size="5">Job History</Heading>
+				<Heading className="page-title" size="5">
+					Job History
+				</Heading>
 				{jobs.length > 0 && (
 					<Button size="2" variant="outline" color="red" onClick={handleClear}>
 						Clear history
@@ -136,125 +138,136 @@ export function JobHistoryTab() {
 					</Text>
 				</Box>
 			) : (
-				<Table.Root className="history-table" variant="surface" size="1">
-					<Table.Header>
-						<Table.Row>
-							{COLUMNS.map(({ key, label }) => (
-								<Table.ColumnHeaderCell key={key}>
-									<Flex
-										align="center"
-										gap="1"
-										onClick={() => handleSort(key)}
-										style={{
-											cursor: "pointer",
-											userSelect: "none",
-											whiteSpace: "nowrap",
-										}}
-									>
-										{label}
-										<SortIcon col={key} sortCol={sortCol} sortDir={sortDir} />
-									</Flex>
-								</Table.ColumnHeaderCell>
-							))}
-							<Table.ColumnHeaderCell>Skills</Table.ColumnHeaderCell>
-							<Table.ColumnHeaderCell>Client</Table.ColumnHeaderCell>
-						</Table.Row>
-					</Table.Header>
+				<Box style={{ overflowX: "auto" }}>
+					<Table.Root
+						className="history-table"
+						variant="surface"
+						size="1"
+						style={{ minWidth: 860 }}
+					>
+						<Table.Header>
+							<Table.Row>
+								{COLUMNS.map(({ key, label }) => (
+									<Table.ColumnHeaderCell key={key}>
+										<Flex
+											align="center"
+											gap="1"
+											onClick={() => handleSort(key)}
+											style={{
+												cursor: "pointer",
+												userSelect: "none",
+												whiteSpace: "nowrap",
+											}}
+										>
+											{label}
+											<SortIcon col={key} sortCol={sortCol} sortDir={sortDir} />
+										</Flex>
+									</Table.ColumnHeaderCell>
+								))}
+								<Table.ColumnHeaderCell>Skills</Table.ColumnHeaderCell>
+								<Table.ColumnHeaderCell>Client</Table.ColumnHeaderCell>
+							</Table.Row>
+						</Table.Header>
 
-					<Table.Body>
-						{sorted.map((job) => (
-							<Table.Row key={job.uid} align="start">
-								<Table.Cell style={{ maxWidth: 260 }}>
-									<Link
-										href={job.url}
-										target="_blank"
-										rel="noreferrer"
-										size="2"
-										weight="medium"
-									>
-										{job.title}
-									</Link>
-								</Table.Cell>
+						<Table.Body>
+							{sorted.map((job) => (
+								<Table.Row key={job.uid} align="start">
+									<Table.Cell style={{ maxWidth: 260 }}>
+										<Link
+											href={job.url}
+											target="_blank"
+											rel="noreferrer"
+											size="2"
+											weight="medium"
+										>
+											{job.title}
+										</Link>
+									</Table.Cell>
 
-								<Table.Cell>
-									<Text size="1" color="gray">
-										{job.jobType || "—"}
-									</Text>
-								</Table.Cell>
+									<Table.Cell>
+										<Text size="1" color="gray">
+											{job.jobType || "—"}
+										</Text>
+									</Table.Cell>
 
-								<Table.Cell>
-									<Text size="1" color="gray">
-										{job.budget || "—"}
-									</Text>
-								</Table.Cell>
+									<Table.Cell>
+										<Text size="1" color="gray">
+											{job.budget || "—"}
+										</Text>
+									</Table.Cell>
 
-								<Table.Cell>
-									<Text size="1" color="gray">
-										{job.experienceLevel || "—"}
-									</Text>
-								</Table.Cell>
+									<Table.Cell>
+										<Text size="1" color="gray">
+											{job.experienceLevel || "—"}
+										</Text>
+									</Table.Cell>
 
-								<Table.Cell>
-									<Text size="1" color="gray">
-										{job.proposals || "—"}
-									</Text>
-								</Table.Cell>
+									<Table.Cell>
+										<Text size="1" color="gray">
+											{job.proposals || "—"}
+										</Text>
+									</Table.Cell>
 
-								<Table.Cell>
-									<Text size="1" color="gray" style={{ whiteSpace: "nowrap" }}>
-										{job.datePosted}
-									</Text>
-								</Table.Cell>
+									<Table.Cell>
+										<Text
+											size="1"
+											color="gray"
+											style={{ whiteSpace: "nowrap" }}
+										>
+											{job.datePosted}
+										</Text>
+									</Table.Cell>
 
-								<Table.Cell style={{ maxWidth: 200 }}>
-									{job.skills.length > 0 ? (
-										<Flex gap="1" wrap="wrap">
-											{job.skills.slice(0, 4).map((skill) => (
-												<Badge
-													key={skill}
-													variant="soft"
-													color="green"
-													size="1"
-												>
-													{skill}
-												</Badge>
-											))}
-											{job.skills.length > 4 && (
-												<Badge variant="surface" color="gray" size="1">
-													+{job.skills.length - 4}
+									<Table.Cell style={{ maxWidth: 200 }}>
+										{job.skills.length > 0 ? (
+											<Flex gap="1" wrap="wrap">
+												{job.skills.slice(0, 4).map((skill) => (
+													<Badge
+														key={skill}
+														variant="soft"
+														color="green"
+														size="1"
+													>
+														{skill}
+													</Badge>
+												))}
+												{job.skills.length > 4 && (
+													<Badge variant="surface" color="gray" size="1">
+														+{job.skills.length - 4}
+													</Badge>
+												)}
+											</Flex>
+										) : (
+											<Text size="1" color="gray">
+												—
+											</Text>
+										)}
+									</Table.Cell>
+
+									<Table.Cell>
+										<Flex direction="column" gap="1">
+											{job.paymentVerified && (
+												<Badge variant="soft" color="green" size="1">
+													verified
 												</Badge>
 											)}
+											{job.clientRating && (
+												<Text size="1" color="gray">
+													★ {job.clientRating}
+												</Text>
+											)}
+											{job.clientTotalSpent && (
+												<Text size="1" color="gray">
+													{job.clientTotalSpent} spent
+												</Text>
+											)}
 										</Flex>
-									) : (
-										<Text size="1" color="gray">
-											—
-										</Text>
-									)}
-								</Table.Cell>
-
-								<Table.Cell>
-									<Flex direction="column" gap="1">
-										{job.paymentVerified && (
-											<Badge variant="soft" color="green" size="1">
-												verified
-											</Badge>
-										)}
-										{job.clientRating && (
-											<Text size="1" color="gray">
-												★ {job.clientRating}
-											</Text>
-										)}
-										{job.clientTotalSpent && (
-											<Text size="1" color="gray">
-												{job.clientTotalSpent} spent
-											</Text>
-										)}
-									</Flex>
-								</Table.Cell>
-							</Table.Row>
-						))}
-					</Table.Body>
-				</Table.Root>
+									</Table.Cell>
+								</Table.Row>
+							))}
+						</Table.Body>
+					</Table.Root>
+				</Box>
 			)}
 		</Box>
 	);

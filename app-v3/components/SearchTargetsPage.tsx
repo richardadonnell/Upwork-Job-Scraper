@@ -81,9 +81,6 @@ function SearchTargetCard({
 		error: "Failed ✗",
 	}[testStatus];
 	const canOpenSearchUrl = isValidSearchUrl(target.searchUrl);
-	let testColor: "gray" | "green" | "red" = "gray";
-	if (testStatus === "ok") testColor = "green";
-	else if (testStatus === "error") testColor = "red";
 
 	function handleOpenSearchUrl() {
 		const searchUrl = target.searchUrl.trim();
@@ -126,8 +123,8 @@ function SearchTargetCard({
 				>
 					Search URL
 				</Text>
-				<Flex gap="2" align="start">
-					<Box flexGrow="1">
+				<Flex gap="2" align="start" wrap="wrap">
+					<Box style={{ flex: "1 1 320px", minWidth: 0 }}>
 						<TextField.Root
 							size="2"
 							type="url"
@@ -187,8 +184,8 @@ function SearchTargetCard({
 					>
 						Webhook URL
 					</Text>
-					<Flex gap="2" align="start">
-						<Box flexGrow="1">
+					<Flex gap="2" align="start" wrap="wrap">
+						<Box style={{ flex: "1 1 320px", minWidth: 0 }}>
 							<TextField.Root
 								size="2"
 								type="url"
@@ -201,8 +198,8 @@ function SearchTargetCard({
 						</Box>
 						<Button
 							size="2"
-							variant="soft"
-							color={testColor}
+							variant="outline"
+							color="gray"
 							disabled={!target.webhookUrl || testStatus === "sending"}
 							onClick={handleTestWebhook}
 						>

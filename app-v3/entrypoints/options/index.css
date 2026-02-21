@@ -87,6 +87,7 @@ body {
 .main-scroll {
   flex: 1;
   height: 100vh;
+  min-width: 0;
 }
 
 .page-shell {
@@ -143,6 +144,13 @@ body {
 
 .history-table tbody tr:hover {
   background: color-mix(in srgb, var(--gray-3) 58%, transparent);
+}
+
+@media (max-width: 900px) {
+  .app-sidebar {
+    width: 200px;
+    min-width: 200px;
+  }
 }
 
 input[type='number'] {

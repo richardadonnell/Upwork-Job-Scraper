@@ -113,7 +113,7 @@ export function SchedulePage({ settings, onChange }: Props) {
 
       <Card className="surface-card" mb="4">
         <Text size="2" weight="medium" mb="3" as="p">... on these days ...</Text>
-        <Flex gap="2" wrap="nowrap">
+        <Flex gap="2" wrap="wrap">
           {DAY_LABELS.map((label, index) => (
             <Button
               key={label}
