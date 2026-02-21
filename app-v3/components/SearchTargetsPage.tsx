@@ -9,9 +9,10 @@ import {
 	Text,
 	TextField,
 } from "@radix-ui/themes";
-import { useState } from "react";
 import type { SearchTarget, Settings } from "../utils/types";
+
 import { EXAMPLE_WEBHOOK_PAYLOAD } from "../utils/types";
+import { useState } from "react";
 
 interface Props {
 	readonly settings: Settings;
@@ -19,6 +20,20 @@ interface Props {
 }
 
 type TestStatus = "idle" | "sending" | "ok" | "error";
+
+const UPWORK_SEARCH_PREFIX = "https://www.upwork.com/nx/search/jobs/";
+
+function isProgressivelyAllowedSearchUrl(value: string) {
+	return (
+		value === "" ||
+		UPWORK_SEARCH_PREFIX.startsWith(value) ||
+		value.startsWith(UPWORK_SEARCH_PREFIX)
+	);
+}
+
+function isValidSearchUrl(value: string) {
+	return value.startsWith(UPWORK_SEARCH_PREFIX);
+}
 
 function SearchTargetCard({
 	target,
@@ -66,7 +81,7 @@ function SearchTargetCard({
 		ok: "Sent ✓",
 		error: "Failed ✗",
 	}[testStatus];
-	const hasSearchUrl = target.searchUrl.trim().length > 0;
+	const canOpenSearchUrl = isValidSearchUrl(target.searchUrl);
 	let testColor: "gray" | "green" | "red" = "gray";
 	if (testStatus === "ok") testColor = "green";
 	else if (testStatus === "error") testColor = "red";
@@ -74,6 +89,7 @@ function SearchTargetCard({
 	function handleOpenSearchUrl() {
 		const searchUrl = target.searchUrl.trim();
 		if (!searchUrl) return;
+		if (!isValidSearchUrl(searchUrl)) return;
 		try {
 			const parsed = new URL(searchUrl);
 			if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return;
@@ -116,18 +132,20 @@ function SearchTargetCard({
 						<TextField.Root
 							size="2"
 							type="url"
-							placeholder="https://www.upwork.com/nx/search/jobs/?q=..."
+							placeholder="https://www.upwork.com/nx/search/jobs/..."
 							value={target.searchUrl}
-							onChange={(e) =>
-								onChange({ ...target, searchUrl: e.target.value })
-							}
+							onChange={(e) => {
+								const next = e.target.value;
+								if (!isProgressivelyAllowedSearchUrl(next)) return;
+								onChange({ ...target, searchUrl: next });
+							}}
 						/>
 					</Box>
 					<Button
 						size="2"
 						variant="soft"
 						color="gray"
-						disabled={!hasSearchUrl}
+						disabled={!canOpenSearchUrl}
 						onClick={handleOpenSearchUrl}
 					>
 						Open Search URL in New Tab

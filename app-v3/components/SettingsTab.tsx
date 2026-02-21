@@ -184,7 +184,7 @@ function SearchTargetCard({
 					type="url"
 					style={inputStyle(searchId, focusedInput)}
 					value={target.searchUrl}
-					placeholder="https://www.upwork.com/nx/search/jobs/?q=..."
+					placeholder="https://www.upwork.com/nx/search/jobs/..."
 					onFocus={() => onFocus(searchId)}
 					onBlur={onBlur}
 					onChange={(e) => onChange({ ...target, searchUrl: e.target.value })}
