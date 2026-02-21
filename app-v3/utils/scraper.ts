@@ -245,6 +245,7 @@ async function processTargetResult(
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
 				body: JSON.stringify({
+					targetName: target.name,
 					jobs: newJobs,
 					timestamp: new Date().toISOString(),
 				}),
@@ -311,6 +312,7 @@ async function sendIssueWebhookIfNeeded(
 			headers: { "Content-Type": "application/json" },
 			body: JSON.stringify({
 				type: "issue",
+				targetName: target.name,
 				reason: result.reason,
 				message:
 					issueMessageByReason[result.reason] ??

@@ -2,7 +2,15 @@ import type { ActivityLog, Job, Settings } from './types';
 
 export const DEFAULT_SETTINGS: Settings = {
   masterEnabled: false,
-  searchTargets: [{ id: crypto.randomUUID(), searchUrl: '', webhookEnabled: false, webhookUrl: '' }],
+  searchTargets: [
+    {
+      id: crypto.randomUUID(),
+      name: 'Target 1',
+      searchUrl: '',
+      webhookEnabled: false,
+      webhookUrl: '',
+    },
+  ],
   minuteInterval: 5,
   activeDays: [false, true, true, true, true, true, false],
   timeWindow: { start: '00:00', end: '23:59' },
@@ -13,7 +21,7 @@ export const DEFAULT_SETTINGS: Settings = {
 
 export const settingsStorage = storage.defineItem<Settings>('sync:settings', {
   fallback: DEFAULT_SETTINGS,
-  version: 3,
+  version: 4,
   migrations: {
     2: (old: Record<string, unknown>): Settings => {
       // Migrate from the v1 flat shape (searchUrl / webhookUrl / webhookEnabled)
@@ -23,7 +31,15 @@ export const settingsStorage = storage.defineItem<Settings>('sync:settings', {
       const webhookEnabled = typeof old.webhookEnabled === 'boolean' ? old.webhookEnabled : false;
       return {
         ...(old as unknown as Settings),
-        searchTargets: [{ id: crypto.randomUUID(), searchUrl, webhookEnabled, webhookUrl }],
+        searchTargets: [
+          {
+            id: crypto.randomUUID(),
+            name: 'Target 1',
+            searchUrl,
+            webhookEnabled,
+            webhookUrl,
+          },
+        ],
       };
     },
     3: (old: Record<string, unknown>): Settings => {
@@ -45,6 +61,31 @@ export const settingsStorage = storage.defineItem<Settings>('sync:settings', {
         minuteInterval: Math.max(5, Math.floor(rawMinuteInterval || 5)),
         activeDays: [false, true, true, true, true, true, false],
         timeWindow: { start: '00:00', end: '23:59' },
+      };
+    },
+    4: (old: Record<string, unknown>): Settings => {
+      const base = old as unknown as Settings;
+      const priorTargets = Array.isArray(base.searchTargets)
+        ? base.searchTargets
+        : DEFAULT_SETTINGS.searchTargets;
+
+      const searchTargets = priorTargets.map((target, index) => {
+        const typed = target as Partial<Settings['searchTargets'][number]>;
+        const existingName = typeof typed.name === 'string' ? typed.name.trim() : '';
+        return {
+          id: typeof typed.id === 'string' ? typed.id : crypto.randomUUID(),
+          name: existingName || `Target ${index + 1}`,
+          searchUrl: typeof typed.searchUrl === 'string' ? typed.searchUrl : '',
+          webhookEnabled:
+            typeof typed.webhookEnabled === 'boolean' ? typed.webhookEnabled : false,
+          webhookUrl: typeof typed.webhookUrl === 'string' ? typed.webhookUrl : '',
+        };
+      });
+
+      return {
+        ...base,
+        searchTargets:
+          searchTargets.length > 0 ? searchTargets : DEFAULT_SETTINGS.searchTargets,
       };
     },
   },

@@ -8,13 +8,13 @@ import {
 	Spinner,
 	Text,
 } from "@radix-ui/themes";
-import { useEffect, useRef, useState } from "react";
 import {
 	DEFAULT_SETTINGS,
 	jobHistoryStorage,
 	settingsStorage,
 } from "../utils/storage";
 import type { Job, Settings } from "../utils/types";
+import { useEffect, useRef, useState } from "react";
 
 import { ActivityPage } from "./ActivityPage";
 import { DashboardPage } from "./DashboardPage";
@@ -447,7 +447,7 @@ export function OptionsApp() {
 						</Button>
 						<Button
 							size="2"
-							variant="outline"
+							variant="soft"
 							color="gray"
 							disabled={scraping || !canRunScrape}
 							onClick={handleManualScrape}

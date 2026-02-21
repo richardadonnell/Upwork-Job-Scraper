@@ -1,6 +1,8 @@
+import { DownloadIcon, InfoCircledIcon } from "@radix-ui/react-icons";
 import {
 	Box,
 	Button,
+	Callout,
 	Card,
 	Flex,
 	Heading,
@@ -54,6 +56,7 @@ function SearchTargetCard({
 		setTestStatus("sending");
 		const payload = {
 			...EXAMPLE_WEBHOOK_PAYLOAD,
+			targetName: target.name.trim() || `Target ${index + 1}`,
 			timestamp: new Date().toISOString(),
 			jobs: EXAMPLE_WEBHOOK_PAYLOAD.jobs.map((job) => ({
 				...job,
@@ -99,7 +102,7 @@ function SearchTargetCard({
 		<Card className="surface-card" mb="3">
 			<Flex justify="between" align="center" mb="3">
 				<Text size="2" weight="bold" color="gray">
-					Target {index + 1}
+					{target.name.trim() || `Target ${index + 1}`}
 				</Text>
 				<Button
 					size="1"
@@ -111,6 +114,25 @@ function SearchTargetCard({
 					Remove
 				</Button>
 			</Flex>
+
+			<Box mb="3">
+				<Text
+					as="label"
+					size="1"
+					weight="medium"
+					color="gray"
+					mb="1"
+					style={{ display: "block" }}
+				>
+					Name
+				</Text>
+				<TextField.Root
+					size="2"
+					placeholder={`Target ${index + 1}`}
+					value={target.name}
+					onChange={(e) => onChange({ ...target, name: e.target.value })}
+				/>
+			</Box>
 
 			<Box mb="3">
 				<Text
@@ -139,7 +161,7 @@ function SearchTargetCard({
 					</Box>
 					<Button
 						size="2"
-						variant="outline"
+						variant="soft"
 						color="gray"
 						disabled={!canOpenSearchUrl}
 						onClick={handleOpenSearchUrl}
@@ -198,7 +220,7 @@ function SearchTargetCard({
 						</Box>
 						<Button
 							size="2"
-							variant="outline"
+							variant="soft"
 							color="gray"
 							disabled={!target.webhookUrl || testStatus === "sending"}
 							onClick={handleTestWebhook}
@@ -230,6 +252,28 @@ export function SearchTargetsPage({ settings, onChange }: Props) {
 
 			<Separator className="page-divider" size="4" />
 
+			<Callout.Root mb="4" size="2" variant="soft" color="gray">
+				<Callout.Icon>
+					<InfoCircledIcon />
+				</Callout.Icon>
+				<Callout.Text>
+					<strong>Starter workflow for n8n:</strong> download this starter
+					workflow, create a new workflow in n8n, then open the three-dot menu
+					in the upper-right and select "Import from file…" to get started.
+					<Box mt="2">
+						<Button asChild size="1" variant="soft" color="gray">
+							<a
+								href="/example-n8n-workflow.json"
+								download="example-n8n-workflow.json"
+							>
+								<DownloadIcon style={{ marginRight: "0.5rem" }} />
+								Download n8n Example Workflow JSON File
+							</a>
+						</Button>
+					</Box>
+				</Callout.Text>
+			</Callout.Root>
+
 			{settings.searchTargets.map((target, i) => (
 				<SearchTargetCard
 					key={target.id}
@@ -252,12 +296,13 @@ export function SearchTargetsPage({ settings, onChange }: Props) {
 			))}
 
 			<Button
-				variant="outline"
-				color="gray"
+				variant="soft"
+				color="grass"
 				style={{ width: "100%" }}
 				onClick={() => {
 					const newTarget: SearchTarget = {
 						id: crypto.randomUUID(),
+						name: `Target ${settings.searchTargets.length + 1}`,
 						searchUrl: "",
 						webhookEnabled: false,
 						webhookUrl: "",
@@ -268,7 +313,7 @@ export function SearchTargetsPage({ settings, onChange }: Props) {
 					});
 				}}
 			>
-				+ Add target
+				+ Add
 			</Button>
 		</Box>
 	);

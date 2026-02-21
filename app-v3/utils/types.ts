@@ -17,6 +17,7 @@ export interface Job {
 
 export interface SearchTarget {
   id: string;
+  name: string;
   searchUrl: string;
   webhookEnabled: boolean;
   webhookUrl: string;
@@ -58,7 +59,12 @@ export type MessageType =
   | { type: 'settingsUpdated' };
 
 /** Example payload sent by the "Test" button in SettingsTab to verify webhook destinations. */
-export const EXAMPLE_WEBHOOK_PAYLOAD: { jobs: Job[]; timestamp: string } = {
+export const EXAMPLE_WEBHOOK_PAYLOAD: {
+  targetName: string;
+  jobs: Job[];
+  timestamp: string;
+} = {
+  targetName: 'Example Target',
   jobs: [
     {
       uid: '~01exampleJobUid12345',
