@@ -36,11 +36,20 @@ async function scrapeTarget(target: SearchTarget): Promise<ScrapeResult> {
     const tabId = tab.id;
     tabIdToRemove = tabId;
 
-    await new Promise<void>((resolve, reject) => {
-      const timeout = setTimeout(() => reject(new Error('Tab load timeout')), 30_000);
+    // Build the base URL (origin + pathname) so we wait for the actual search
+    // results page, not an intermediate Cloudflare challenge redirect.
+    const { origin, pathname } = new URL(target.searchUrl);
+    const expectedBase = origin + pathname;
 
-      const listener = (id: number, _changeInfo: unknown, updatedTab: { status?: string }) => {
-        if (id === tabId && updatedTab.status === 'complete') {
+    await new Promise<void>((resolve, reject) => {
+      const timeout = setTimeout(() => reject(new Error('Tab load timeout')), 60_000);
+
+      const listener = (id: number, _changeInfo: unknown, updatedTab: { status?: string; url?: string }) => {
+        if (
+          id === tabId &&
+          updatedTab.status === 'complete' &&
+          updatedTab.url?.startsWith(expectedBase)
+        ) {
           clearTimeout(timeout);
           browser.tabs.onUpdated.removeListener(listener);
           resolve();
