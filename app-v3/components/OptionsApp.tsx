@@ -170,14 +170,14 @@ export function OptionsApp() {
 			>
 				{/* Logo / Title */}
 				<Box px="4" pt="5" pb="4">
-					<Text
-						size="1"
-						color="green"
-						weight="bold"
-						style={{ letterSpacing: "0.05em", fontFamily: "monospace" }}
-					>
-						&gt;_
-					</Text>
+					<Box mb="2">
+						<img
+							src="/logo.svg"
+							alt="Upwork Job Scraper logo"
+							width={24}
+							height={24}
+						/>
+					</Box>
 					<Text size="3" weight="bold" as="p" mt="0" mb="1">
 						Upwork Scraper
 					</Text>
