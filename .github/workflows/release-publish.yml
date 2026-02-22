@@ -96,8 +96,8 @@ jobs:
           SENTRY_RELEASE: ${{ steps.meta.outputs.release }}
         shell: bash
         run: |
-          npx --yes sentry-cli sourcemaps inject app-v3/.output/chrome-mv3
-          npx --yes sentry-cli sourcemaps upload \
+          npx --yes @sentry/cli sourcemaps inject app-v3/.output/chrome-mv3
+          npx --yes @sentry/cli sourcemaps upload \
             --release "$SENTRY_RELEASE" \
             --url-prefix "~/" \
             app-v3/.output/chrome-mv3
