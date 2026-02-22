@@ -5,7 +5,7 @@ import {
 	seenJobIdsStorage,
 	settingsStorage,
 } from "./storage";
-import type { ScrapeResult, SearchTarget } from "./types";
+import type { Job, ScrapeResult, SearchTarget, WebhookJob } from "./types";
 
 const ALARM_NAME = "upwork-scrape";
 const JITTER_SECONDS = 30;
@@ -16,6 +16,13 @@ function getPostedSourceRank(source: string): number {
 	if (source === "relative_estimate") return 2;
 	if (source === "fallback_scraped_at") return 1;
 	return 0;
+}
+
+function toWebhookJob(job: Job): WebhookJob {
+	return {
+		...job,
+		postedAtIso: new Date(job.postedAtMs).toISOString(),
+	};
 }
 
 function getJitteredDelayMinutes(baseMinutes: number): number {
@@ -258,6 +265,8 @@ async function processTargetResult(
 	if (newJobs.length === 0) return 0;
 
 	if (target.webhookEnabled && target.webhookUrl) {
+		const webhookJobs = newJobs.map(toWebhookJob);
+
 		try {
 			await fetch(target.webhookUrl, {
 				method: "POST",
@@ -265,7 +274,7 @@ async function processTargetResult(
 				body: JSON.stringify({
 					status: "success",
 					targetName: target.name,
-					jobs: newJobs,
+					jobs: webhookJobs,
 					timestamp: new Date().toISOString(),
 				}),
 			});

@@ -67,6 +67,7 @@ function SearchTargetCard({
 			jobs: EXAMPLE_WEBHOOK_PAYLOAD.jobs.map((job) => ({
 				...job,
 				scrapedAt: new Date().toISOString(),
+				postedAtIso: new Date(job.postedAtMs).toISOString(),
 			})),
 		};
 		try {

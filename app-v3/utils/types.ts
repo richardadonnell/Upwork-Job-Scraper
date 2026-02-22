@@ -22,6 +22,17 @@ export interface Job {
   scrapedAt: string;
 }
 
+export interface WebhookJob extends Job {
+  postedAtIso: string;
+}
+
+export interface WebhookSuccessPayload {
+  status: 'success';
+  targetName: string;
+  jobs: WebhookJob[];
+  timestamp: string;
+}
+
 export interface SearchTarget {
   id: string;
   name: string;
@@ -69,7 +80,7 @@ export type MessageType =
 export const EXAMPLE_WEBHOOK_PAYLOAD: {
   status: 'success';
   targetName: string;
-  jobs: Job[];
+  jobs: WebhookJob[];
   timestamp: string;
 } = {
   status: 'success',
@@ -82,6 +93,7 @@ export const EXAMPLE_WEBHOOK_PAYLOAD: {
       datePosted: 'Posted 2 hours ago',
       postedAtMs: Date.now() - 2 * 60 * 60 * 1000,
       postedAtSource: 'upwork_absolute',
+      postedAtIso: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
       description:
         'We are looking for an experienced React developer to help build a SaaS dashboard. ' +
         'You will work closely with our design team to implement pixel-perfect UI components, ' +

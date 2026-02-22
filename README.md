@@ -33,7 +33,7 @@ Minimal success payload:
 {
   "status": "success",
   "targetName": "...",
-  "jobs": [{ "uid": "...", "title": "...", "url": "..." }],
+  "jobs": [{ "uid": "...", "title": "...", "url": "...", "postedAtMs": 1700000000000, "postedAtIso": "2026-02-21T12:34:56.000Z", "postedAtSource": "upwork_absolute" }],
   "timestamp": "..."
 }
 ```
@@ -51,6 +51,15 @@ Minimal issue payload:
   "timestamp": "..."
 }
 ```
+
+### Webhook field reference (posted time)
+
+- `postedAtMs`: Canonical posted time as Unix epoch milliseconds (UTC). Use this for sorting, filtering, and numeric comparisons.
+- `postedAtIso`: Same canonical posted time encoded as an ISO-8601 UTC string. Use this for human-readable logs and systems that prefer string datetimes.
+- `postedAtSource`: Confidence/source marker for the canonical posted time:
+  - `upwork_absolute` → extracted from Upwork absolute timestamp data (most reliable)
+  - `relative_estimate` → derived from Upwork relative text like "17 minutes ago"
+  - `fallback_scraped_at` → fallback to scrape run time when no posted-time signal is available
 
 ## Project structure
 
