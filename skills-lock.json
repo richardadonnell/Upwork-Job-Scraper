@@ -1,0 +1,135 @@
+{
+  "version": 1,
+  "skills": {
+    "find-skills": {
+      "source": "vercel-labs/skills",
+      "sourceType": "github",
+      "computedHash": "25872a21881a950edc3db1f3329664d60405d539660ce05b3265db2de06a7dfd"
+    },
+    "frontend-design": {
+      "source": "anthropics/skills",
+      "sourceType": "github",
+      "computedHash": "516bd2154eb843a8240e43d5b285229129853114ad7075a5e141e1c08e408c84"
+    },
+    "git-advanced-workflows": {
+      "source": "wshobson/agents",
+      "sourceType": "github",
+      "computedHash": "96274c5eff703074436e1e4ab1f388117f3d79fdc0e6df8fec9ae00c70f47d73"
+    },
+    "n8n-code-javascript": {
+      "source": "czlonkowski/n8n-skills",
+      "sourceType": "github",
+      "computedHash": "2aa77ad6c61f2cfb7b266ffe061575352579034b37a4b6d4bb68a11f8d4cf0a1"
+    },
+    "n8n-code-python": {
+      "source": "czlonkowski/n8n-skills",
+      "sourceType": "github",
+      "computedHash": "c78742588e54c422aa9bb25a2af31b9b37b0b1565c5dc6fff2282372802cbbd8"
+    },
+    "n8n-expression-syntax": {
+      "source": "czlonkowski/n8n-skills",
+      "sourceType": "github",
+      "computedHash": "3e28711cdf2a53dae95f3b79b7f329304f68c7bb97c1778badf1f30ff6d897af"
+    },
+    "n8n-mcp-tools-expert": {
+      "source": "czlonkowski/n8n-skills",
+      "sourceType": "github",
+      "computedHash": "7b72bbbbc2f475e35f5697069046d46417997c054442ee46ade10abd4224d32b"
+    },
+    "n8n-node-configuration": {
+      "source": "czlonkowski/n8n-skills",
+      "sourceType": "github",
+      "computedHash": "367423ff617612507094c6f3f0cedff8440a1efe21f1b0c820de459726b2cab0"
+    },
+    "n8n-validation-expert": {
+      "source": "czlonkowski/n8n-skills",
+      "sourceType": "github",
+      "computedHash": "51022efd848545c0494c04fa05864360f2c9832fdfbdf69ce9b24b8079de7ebc"
+    },
+    "n8n-workflow-patterns": {
+      "source": "czlonkowski/n8n-skills",
+      "sourceType": "github",
+      "computedHash": "52998bacfadee37835bfa434d08a23c76fa04092f757660708fe014c3594877c"
+    },
+    "radix-ui-design-system": {
+      "source": "sickn33/antigravity-awesome-skills",
+      "sourceType": "github",
+      "computedHash": "53050903051c0718a82c0f4decdb34e8adbc7cd871b8407d83c46b08d4599357"
+    },
+    "sentry-create-alert": {
+      "source": "getsentry/sentry-agent-skills",
+      "sourceType": "github",
+      "computedHash": "dd0385b20be33d9f872fa05f8b396e52273b0f7bdf8f17e37b81d3aa9f30a995"
+    },
+    "sentry-fix-issues": {
+      "source": "getsentry/sentry-agent-skills",
+      "sourceType": "github",
+      "computedHash": "6dcf01ec6a3abb3f6754d1c202437503006cbafae49e99a1f09af3b5ac1069e9"
+    },
+    "sentry-pr-code-review": {
+      "source": "getsentry/sentry-agent-skills",
+      "sourceType": "github",
+      "computedHash": "b5fe59c669bd4e633745786d41a9e4c5d0be930a69eeca2d69e45c6ddd9069b9"
+    },
+    "sentry-react-setup": {
+      "source": "getsentry/sentry-agent-skills",
+      "sourceType": "github",
+      "computedHash": "c13354984e5cc4d97e77875a49fb74e4460671292c87f0c3c3488c4d566dcdfb"
+    },
+    "sentry-setup-ai-monitoring": {
+      "source": "getsentry/sentry-agent-skills",
+      "sourceType": "github",
+      "computedHash": "46fe09cbca41f959d464bc446b0a3b6058968635ef658203da5e540b6764a5ac"
+    },
+    "sentry-setup-logging": {
+      "source": "getsentry/sentry-agent-skills",
+      "sourceType": "github",
+      "computedHash": "6cdc767fd3e75ab58dd748024e21cdb89cbae50245b4cb65418031229b1fb6c3"
+    },
+    "sentry-setup-metrics": {
+      "source": "getsentry/sentry-agent-skills",
+      "sourceType": "github",
+      "computedHash": "e6d1092c42af12cceb89d1cffa41edf197febd10754953948784002b4e56b849"
+    },
+    "sentry-setup-tracing": {
+      "source": "getsentry/sentry-agent-skills",
+      "sourceType": "github",
+      "computedHash": "cacfe3de677538a2c611345f4ab059b829faf7d882fba1f8da0e266f21a4fb2c"
+    },
+    "trigger-agents": {
+      "source": "triggerdotdev/skills",
+      "sourceType": "github",
+      "computedHash": "54171ea9ca464f537292f8d8aeec1a0bab2319e1030aeed2ffb5fc6ff07cf7a9"
+    },
+    "trigger-config": {
+      "source": "triggerdotdev/skills",
+      "sourceType": "github",
+      "computedHash": "0da4d2718b736032a018bc8302959246c21af6ec21d64b42db429eca3c0c96fd"
+    },
+    "trigger-realtime": {
+      "source": "triggerdotdev/skills",
+      "sourceType": "github",
+      "computedHash": "24f7a4be42df1b7220eccad4fd5c8188ec844c9dd8352f9f84b5164a6da4882c"
+    },
+    "trigger-setup": {
+      "source": "triggerdotdev/skills",
+      "sourceType": "github",
+      "computedHash": "24e7a670526144a278a7d0c9c7df2204408d3c9894aae290f1e9a3c4664a863b"
+    },
+    "trigger-tasks": {
+      "source": "triggerdotdev/skills",
+      "sourceType": "github",
+      "computedHash": "471b0183afc35a7f8cf03472c0140cdc7cbd662776881882fb65814dff40ecec"
+    },
+    "typescript-advanced-types": {
+      "source": "wshobson/agents",
+      "sourceType": "github",
+      "computedHash": "c1ab3a923710ec04670f7fb81919d7c5a3783c00ccaad6ce367f62d4d004aeba"
+    },
+    "wxt-browser-extensions": {
+      "source": "pproenca/dot-skills",
+      "sourceType": "github",
+      "computedHash": "6c3f7488a0b0dc3805d8f2d2cd2ebb61c32e620c8b1a26eb4663b0f115a87bcc"
+    }
+  }
+}

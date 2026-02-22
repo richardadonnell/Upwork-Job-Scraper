@@ -73,12 +73,16 @@ node_modules/
 .DS_Store
 # Task files
 tasks.json
-tasks/ 
+tasks/
 
 .windsurfrules
 README-task-master.md
 .cursor/mcp.json
 .cursor/*
 scripts/
-.env.example
 PLANNING.md
+node_modules/
+tasks/
+extension-v1/
+KEEP-DO-NOT-DELETE/upwork-job-scraper-1.59.15
+KEEP-DO-NOT-DELETE/last-public-release/upwork-job-scraper

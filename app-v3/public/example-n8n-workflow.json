@@ -1,0 +1,149 @@
+{
+  "name": "Upwork Job Scraper Starter Example",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "upwork-job-scraper-webhook",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "ebab9c63-606d-46b3-9071-dd9abd170f22",
+      "name": "Webhook",
+      "webhookId": "37d8b5d4-38c2-4224-a39e-dd93c9423008"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "6a75ad15-c44b-4709-a841-bb3f67220827",
+              "name": "timestamp_now",
+              "value": "={{ $now.format('yyyy-MM-dd hh:mm:ss') }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        208,
+        0
+      ],
+      "id": "79bd7352-3363-4ac0-903d-0e48b1d713da",
+      "name": "Set Current Date & Time"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('Webhook').item.json.body }}",
+                    "rightValue": "={{ $('Webhook').item.json.body.type }}",
+                    "operator": {
+                      "type": "string",
+                      "operation": "notContains"
+                    },
+                    "id": "b1f79073-7d31-46ce-8151-c37d1639eee8"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "True"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "9db5c3f8-b03b-4eb5-bdd8-146bcfa53d80",
+                    "leftValue": "={{ $('Webhook').item.json.body }}",
+                    "rightValue": "={{ $('Webhook').item.json.body.type }}",
+                    "operator": {
+                      "type": "string",
+                      "operation": "contains"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "False"
+            }
+          ]
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        416,
+        0
+      ],
+      "id": "e12ee7f7-c2c7-4022-ba18-e52a34f2dcf2",
+      "name": "No errors or issues?"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Set Current Date & Time",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Current Date & Time": {
+      "main": [
+        [
+          {
+            "node": "No errors or issues?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "4d1385cd-54fe-4aa3-aa22-ee3c2be31df5",
+  "meta": {
+    "instanceId": "ee80817403cc895b536f0dd74844c31381d9f0a69a684b7356490bcb63c3e53b"
+  },
+  "id": "Ygoyqy07eZxaLLl2",
+  "tags": []
+}

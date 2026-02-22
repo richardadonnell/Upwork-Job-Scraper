@@ -1,185 +1,252 @@
-<p align="center">
-    <h1 align="center">‼️ NOTE: THIS IS UNDER DEVELOPMENT ‼️</h1>
-    <h3 align="center">Got questions, feedback, or ideas? Run into any hiccups? Feel free to drop an <a href="https://github.com/richardadonnell/Upwork-Job-Scraper/issues">issue here</a>.</h3>
-    <p align="center">Things might be a little buggy, but hang tight—I'm working hard to keep improving it!</p>
-<br>
-<br>
-<p align="center">
-  <img src="upwork-job-scraper/icon128.png" width="128" height="128" alt="UPWORK-JOB-SCRAPER-logo">
-</p>
-<p align="center">
-    <h1 align="center">UPWORK JOB SCRAPER + WEBHOOK</h1>
-</p>
-<p align="center">
-    <em><code>⭐ Chrome Browser Extension ⭐</code></em>
-</p>
-<p align="center">
-	<img src="https://img.shields.io/github/license/warezit/Upwork-Job-Scraper?style=default&logo=opensourceinitiative&logoColor=white&color=0080ff" alt="license">
-	<img src="https://img.shields.io/github/last-commit/warezit/Upwork-Job-Scraper?style=default&logo=git&logoColor=white&color=0080ff" alt="last-commit">
-	<img src="https://img.shields.io/github/languages/top/warezit/Upwork-Job-Scraper?style=default&color=0080ff" alt="repo-top-language">
-	<img src="https://img.shields.io/github/languages/count/warezit/Upwork-Job-Scraper?style=default&color=0080ff" alt="repo-language-count">
-</p>
-<p align="center">
-  <a href="https://chromewebstore.google.com/detail/upwork-job-scraper-+-webh/mojpfejnpifdgjjknalhghclnaifnjkg?authuser=0&hl=en" target="_blank">
-    <img src="https://storage.googleapis.com/web-dev-uploads/image/WlD8wC6g8khYWPJUsQceQkhXSlv1/iNEddTyWiMfLSwFD6qGq.png" alt="Available in the Chrome Web Store" width="248" height="75">
-  </a>
-</p>
+# Upwork Job Scraper Extension
 
-<p align="center">
-  Simply click the button above to visit the Chrome Web Store and click "Add to Chrome" to install the extension.
-</p>
+A Chrome extension (MV3) that automatically scrapes Upwork job listings from a saved search URL and delivers new results via browser notifications and/or a webhook.
 
-# Upwork Job Scraper + Webhook Chrome Extension
+## How it works
 
-## 🔴👇 HOW TO SETUP VIDEO BELOW 👇🔴
-
-[![Watch the video](https://img.youtube.com/vi/FMH1QU0lz0Y/0.jpg)](https://www.youtube.com/watch?v=FMH1QU0lz0Y)
-
-## 🔴👆 HOW TO SETUP VIDEO ABOVE 👆🔴
-
-![Upwork Job Scraper Screenshot](upwork-job-scraper/screenshot-1.30.png)
-
-## Overview
-
-This Chrome extension automatically scrapes job listings from Upwork and sends them to a specified webhook URL. It provides a user-friendly interface for configuring settings, viewing scraped jobs, and monitoring the extension's activity.
+1. You provide a search URL from Upwork (e.g. a filtered job search)
+2. The extension opens a hidden background tab to that URL on a set schedule
+3. It injects a content script, extracts job listings, and closes the tab
+4. New jobs (not seen before) are saved to history, and optionally sent to a webhook or shown as browser notifications
 
 ## Features
 
-1. 🔍 **Job Scraping**: Automatically scrapes job listings from Upwork at regular intervals.
-2. 📊 **Multiple Feed Sources**: Supports scraping from "Most Recent Jobs" or a custom search URL.
-3. 🔗 **Webhook Integration**: Sends newly scraped jobs to a user-defined webhook URL.
-4. ⏱️ **Customizable Check Frequency**: Allows users to set how often the extension checks for new jobs (in days, hours, and minutes).
-5. 🔔 **Browser Notifications**: Optional push notifications for new job alerts.
-6. 📝 **Activity Logging**: Keeps a log of the extension's activities for user review.
-7. 👀 **View Stored Jobs**: Displays jobs stored locally within the extension's interface.
-8. 🔛 **Webhook Toggle**: Enable or disable webhook functionality.
-9. 🖱️ **Manual Scraping**: Allows users to trigger a job scrape manually.
-10. 🔢 **Badge Notifications**: Shows the number of new jobs since last viewed on the extension icon.
-11. 🎛️ **Master Toggle**: Enable or disable all extension functionality.
-12. ⏳ **Next Check Countdown**: Displays a countdown to the next scheduled job check.
-13. 🐞 **Error Reporting**: Automatically reports errors using Sentry for debugging and logs details to the browser console.
-14. ✨ **Job Deduplication**: Avoids sending or notifying about jobs that have already been processed.
-15. 🧹 **Data Management**: Provides options within settings to clear stored job data and activity logs.
+- Scheduled automatic scraping (configurable days / hours / minutes)
+- Manual "Run scrape now" trigger from the options page
+- Job deduplication — only new listings are surfaced per run
+- Job history view (last 100 jobs)
+- Webhook delivery (HTTP POST with job data as JSON)
+- Browser notifications for new jobs
+- Master enable/disable toggle
 
-## Installation
+## v1 → v3 migration (settings + compatibility)
 
-Install the Upwork Job Scraper + Webhook extension directly from the Chrome Web Store:
+Version `3.x` includes a one-time migration that imports key user data from the legacy `1.x` storage format.
 
-<a href="https://chromewebstore.google.com/detail/upwork-job-scraper-+-webh/mojpfejnpifdgjjknalhghclnaifnjkg?authuser=0&hl=en" target="_blank">
-  <img src="https://storage.googleapis.com/web-dev-uploads/image/WlD8wC6g8khYWPJUsQceQkhXSlv1/iNEddTyWiMfLSwFD6qGq.png" alt="Available in the Chrome Web Store" width="248" height="75">
-</a>
+- Migrated from v1: search targets, webhook URLs, enable flags, schedule/frequency, notifications, and legacy job history
+- Migration is idempotent: it runs once and stores a completion marker
+- Imported legacy targets default to `legacy-v1` webhook payload mode to avoid breaking existing automations
+- Newly created targets default to `v3` payload mode
 
-Simply click the button above to visit the Chrome Web Store and click "Add to Chrome" to install the extension.
+Important: this migration only works when users update the **same Chrome Web Store extension listing** (same extension ID).
 
-## Usage
+## Release identity gate (required)
 
-### Accessing Settings
+Before publishing `3.x`, verify release identity:
 
-Click on the extension icon in Chrome to open the settings page.
+- Publish as an update to the same Web Store item used by `1.x`
+- Do not change extension identity between public versions (ID continuity is required for storage continuity)
+- Treat identity continuity as a hard gate before release
 
-### Master Toggle
+## Webhook payload contract
 
-Use the master toggle at the top of the settings page to enable or disable all extension functionality.
+For n8n filtering, branch on the top-level `status` field.
 
-### Webhook Configuration
+Per target, you can choose one of two webhook payload modes:
 
-1. Toggle the switch to enable or disable webhook functionality.
-2. Enter your webhook URL in the provided input field.
-3. Click "Save" to store the URL.
-4. Use the "Test Webhook" button to verify your webhook is working correctly.
+- `v3` (default): object envelope with `status`, `targetName`, `jobs`, `timestamp`
+- `legacy-v1`: array payload compatible with existing `1.x` automations
 
-### Job Check Frequency
+- `status: "success"` → successful scrape payload with new jobs
+- `status: "captcha_required" | "logged_out" | "error"` → issue payload
+- `status: "no_results"` is not sent to webhook
 
-Set the frequency for job checks using the following fields:
+### Complete v3 success payload (all keys)
 
-- Days
-- Hours
-- Minutes
+```json
+{
+  "status": "success",
+  "targetName": "Frontend React Jobs",
+  "jobs": [
+    {
+      "uid": "~01exampleJobUid12345",
+      "title": "Senior React Developer Needed",
+      "url": "https://www.upwork.com/jobs/~01exampleJobUid12345",
+      "datePosted": "Posted 2 hours ago",
+      "postedAtMs": 1763901296000,
+      "postedAtSource": "upwork_absolute",
+      "description": "We are looking for an experienced React developer...",
+      "jobType": "Fixed-price",
+      "budget": "$500",
+      "experienceLevel": "Intermediate",
+      "skills": ["React", "TypeScript", "Node.js"],
+      "paymentVerified": true,
+      "clientRating": "4.95",
+      "clientTotalSpent": "$10k+",
+      "proposals": "10 to 15",
+      "scrapedAt": "2026-02-22T11:34:56.000Z",
+      "postedAtIso": "2026-02-22T09:34:56.000Z"
+    }
+  ],
+  "timestamp": "2026-02-22T11:34:56.000Z"
+}
+```
 
-Click "Save Frequency" to apply the changes.
+Legacy v1-compatible success payload (array):
 
-### Feed Sources
+```json
+[
+  {
+    "title": "...",
+    "url": "...",
+    "jobType": "...",
+    "skillLevel": "...",
+    "budget": "...",
+    "description": "...",
+    "source": {
+      "name": "...",
+      "searchUrl": "...",
+      "webhookUrl": "..."
+    }
+  }
+]
+```
 
-Choose between:
+### Complete v3 issue payload (all keys)
 
-1. Most Recent Jobs
-2. Custom Search URL
+```json
+{
+  "status": "captcha_required",
+  "type": "issue",
+  "targetName": "Frontend React Jobs",
+  "reason": "captcha_required",
+  "message": "Cloudflare verification requires manual interaction before scraping can continue.",
+  "targetUrl": "https://www.upwork.com/nx/search/jobs/?sort=recency&page=1&per_page=50",
+  "timestamp": "2026-02-22T11:34:56.000Z"
+}
+```
 
-For Custom Search URL:
+Issue payload status/reason values are one of:
 
-1. Select "Custom Search URL" option.
-2. Enter the Upwork search URL in the provided field.
-3. Click "Save Feed Sources" to apply the changes.
+- `captcha_required`
+- `logged_out`
+- `error`
 
-### Notifications
+### v3 field-by-field schema table (n8n/Make mapping)
 
-Toggle the switch to enable or disable browser push notifications for new jobs.
+Use the **JSON Path** column as your mapping reference in n8n/Make.
 
-### Manual Scraping
+#### Envelope fields
 
-Use the "Manually Scrape Jobs" button to initiate an immediate job scrape.
+| JSON Path | Type | Sent on | Notes |
+| --- | --- | --- | --- |
+| `status` | string | success + issue | `success` for job payloads, otherwise `captcha_required \| logged_out \| error` |
+| `targetName` | string | success + issue | Name of the configured search target |
+| `jobs` | array | success only | Array of job objects; omitted on issue payloads |
+| `timestamp` | string (ISO-8601) | success + issue | Webhook send timestamp |
+| `type` | string | issue only | Always `issue` |
+| `reason` | string | issue only | Same value as issue `status` |
+| `message` | string | issue only | Human-readable issue detail |
+| `targetUrl` | string | issue only | Search URL for the affected target |
+
+#### Success job fields (`jobs[]`)
+
+| JSON Path | Type | Notes |
+| --- | --- | --- |
+| `jobs[].uid` | string | Stable unique job identifier used for dedupe |
+| `jobs[].title` | string | Job title |
+| `jobs[].url` | string | Job posting URL |
+| `jobs[].datePosted` | string | Upwork posted text (human-readable) |
+| `jobs[].postedAtMs` | number | Canonical posted time (epoch ms, UTC) |
+| `jobs[].postedAtSource` | string | `upwork_absolute \| relative_estimate \| fallback_scraped_at` |
+| `jobs[].description` | string | Job description text |
+| `jobs[].jobType` | string | E.g. `Fixed-price`, `Hourly` |
+| `jobs[].budget` | string | Budget/range text from listing |
+| `jobs[].experienceLevel` | string | Upwork experience level |
+| `jobs[].skills` | string[] | Extracted skills/tags |
+| `jobs[].paymentVerified` | boolean | Client payment verification flag |
+| `jobs[].clientRating` | string | Client rating text |
+| `jobs[].clientTotalSpent` | string | Client spend text |
+| `jobs[].proposals` | string | Proposal range text |
+| `jobs[].scrapedAt` | string (ISO-8601) | Scrape timestamp |
+| `jobs[].postedAtIso` | string (ISO-8601) | Same canonical posted time as `postedAtMs`, formatted as ISO |
+
+### Webhook field reference (posted time)
+
+- `postedAtMs`: Best available posted timestamp as Unix epoch milliseconds (UTC). Use this for sorting, filtering, and numeric comparisons.
+- `postedAtIso`: Same best-available posted timestamp encoded as an ISO-8601 UTC string (`new Date(postedAtMs).toISOString()`). Use this for human-readable logs and systems that prefer string datetimes.
+- `postedAtSource`: Indicates how `postedAtMs` / `postedAtIso` were derived:
+  - `upwork_absolute` → extracted from Upwork absolute timestamp data (most reliable)
+  - `relative_estimate` → derived from Upwork relative text like "17 minutes ago"
+  - `fallback_scraped_at` → fallback to scrape run time when no posted-time signal is available
+
+## Project structure
+
+```text (WXT + React + TypeScript)
+  entrypoints/
+    background.ts           # Service worker — alarms, messages, toolbar click
+    upwork-scraper.content.ts  # Content script injected into Upwork tabs
+    options/                # Options page (settings + job history)
+  components/               # React UI components
+  utils/
+    types.ts                # Shared TypeScript interfaces
+    storage.ts              # WXT typed storage wrappers
+    scraper.ts              # Core scrape pipeline
+  wxt.config.ts             # WXT build config + manifest metadata
+KEEP-DO-NOT-DELETE/         # legacy v1 codebase (reference only)
+build.ps1                   # Build script (see below)
+```
+
+## Building & loading
+
+Run the build script from the project root:
+
+```powershell
+.\build.ps1
+```
+
+Then load (or reload) the extension in Chrome:
+
+1. Open `chrome://extensions`
+2. Enable **Developer mode**
+3. Click **Load unpacked** and select `app-v3/.output/chrome-mv3/`
+4. On subsequent builds, click the **refresh icon** on the extension card
 
 ## Development
 
-The extension consists of the following main components:
+```powershell
+cd app-v3
+npm run dev       # Watch mode with HMR for the options page
+npm run build     # Production build
+npm run compile   # TypeScript type-check only (no output)
+```
 
-1. `manifest.json`: Defines the extension's permissions and structure.
-2. `background.js`: Handles background processes, job scraping, webhook communication, and error logging.
-3. `settings.html` and `settings.js`: Manage the user interface and settings.
-4. `settings.css`: Styles the settings page.
+## Sentry (v3)
 
-To modify the extension:
+The v3 extension integrates Sentry in all runtime contexts:
 
-1. Edit the relevant files.
-2. Reload the extension in `chrome://extensions/` to apply changes.
+- Background service worker
+- Runtime-injected content script
+- Options React page
 
-## Testing
+Runtime configuration uses WXT environment variables:
 
-To test the webhook functionality:
+- `WXT_SENTRY_DSN` (required to send events)
+- `WXT_SENTRY_ENVIRONMENT` (optional, defaults to `development`)
+- `WXT_SENTRY_RELEASE` (optional, defaults to extension version)
+- `WXT_SENTRY_TRACES_SAMPLE_RATE` (optional, defaults to `0`)
+- `WXT_SENTRY_ENABLE_LOGS` (optional, `true`/`false`)
 
-1. Enable the webhook in the settings.
-2. Enter a webhook URL in the settings.
-3. Click the "Test Webhook" button.
-4. Check your webhook endpoint for the received test data.
+Source-map upload configuration uses build-time env vars:
 
-To test job scraping:
+- `SENTRY_AUTH_TOKEN`
+- `SENTRY_ORG`
+- `SENTRY_PROJECT`
 
-1. Configure your desired feed source.
-2. Click the "Manually Scrape Jobs" button.
-3. Check the Activity Log and Scraped Jobs sections for results.
+Release workflow notes:
 
-## Permissions
+- CI validates on pull requests via `.github/workflows/ci-validate.yml`.
+- Production release runs on pushes to `main` via `.github/workflows/release-publish.yml`.
+- Sourcemaps are uploaded in CI with `sentry-cli`.
+- Chrome Web Store integration is upload-only in CI; publish remains manual in dashboard.
 
-This extension requires the following permissions:
+GitHub settings required for release workflow:
 
-- `storage`: To save user preferences and scraped job data
-- `alarms`: For scheduling periodic job checks
-- `scripting`: To run scripts on the Upwork website
-- `notifications`: For sending browser notifications
+- Create a GitHub Environment named `production` and require reviewers.
+- Add environment secrets: `SENTRY_AUTH_TOKEN`, `CWS_CLIENT_ID`, `CWS_CLIENT_SECRET`, `CWS_REFRESH_TOKEN`.
+- Add repository variables: `WXT_SENTRY_DSN`, `SENTRY_ORG`, `SENTRY_PROJECT`, `CWS_PUBLISHER_ID`, `CWS_EXTENSION_ID`.
 
-## Limitations
+Optional local flags for source maps:
 
-- The extension is designed to work specifically with Upwork's job listing pages.
-- Frequent scraping may be detected by Upwork and could lead to IP blocking.
-- The extension relies on Upwork's current HTML structure; changes to their website may break the scraping functionality.
-
-## Star History
-
-<a href="https://star-history.com/#richardadonnell/Upwork-Job-Scraper&Date">
- <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=richardadonnell/Upwork-Job-Scraper&type=Date&theme=dark" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=richardadonnell/Upwork-Job-Scraper&type=Date" />
-   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=richardadonnell/Upwork-Job-Scraper&type=Date" />
- </picture>
-</a>
-
-## Support
-
-If you found this project helpful, consider supporting the developer:
-
-<a href="https://buymeacoffee.com/richardadonnell" target="_blank">
-          <img
-            src="https://img.buymeacoffee.com/button-api/?text=Buy%20me%20a%20coffee&emoji=&slug=richardadonnell&button_colour=24292e&font_colour=ffffff&font_family=Cookie&outline_colour=000000&coffee_colour=ffffff"
-            alt="Buy Me A Coffee"
-          />
-        </a>
+- `SENTRY_SOURCEMAPS=true` enables hidden source maps for local/release builds.
+- `SENTRY_UPLOAD_SOURCEMAPS_VITE=true` enables Vite plugin upload path (off by default).
