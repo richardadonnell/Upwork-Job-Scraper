@@ -56,6 +56,20 @@ jobs:
           SENTRY_UPLOAD_SOURCEMAPS_VITE: "false"
         run: npm run zip
 
+      - name: Verify manifest version matches package version
+        shell: bash
+        run: |
+          PACKAGE_VERSION="$(node -p "require('./app-v3/package.json').version")"
+          MANIFEST_VERSION="$(node -p "require('./app-v3/.output/chrome-mv3/manifest.json').version")"
+
+          echo "package.json version: $PACKAGE_VERSION"
+          echo "manifest version: $MANIFEST_VERSION"
+
+          if [[ "$PACKAGE_VERSION" != "$MANIFEST_VERSION" ]]; then
+            echo "Version mismatch: app-v3/package.json and built manifest.json differ."
+            exit 1
+          fi
+
       - name: Create or update GitHub release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

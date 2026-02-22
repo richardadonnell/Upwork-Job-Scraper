@@ -2,7 +2,7 @@
   "name": "upwork-job-scraper",
   "description": "A Chrome extension (MV3) that automatically scrapes Upwork job listings from a saved search URL and delivers new results via browser notifications and/or a webhook.",
   "private": true,
-  "version": "3.0.0",
+  "version": "3.0.1",
   "type": "module",
   "scripts": {
     "dev": "wxt",
@@ -13,6 +13,7 @@
     "zip:firefox": "wxt zip -b firefox",
     "icons": "node ./scripts/generate-icons.mjs",
     "compile": "tsc --noEmit",
+    "verify:version": "node -e \"const pkg=require('./package.json').version; const man=require('./.output/chrome-mv3/manifest.json').version; if(pkg!==man){console.error('Version mismatch: package.json='+pkg+' manifest='+man); process.exit(1)} console.log('Version OK: '+pkg)\"",
     "postinstall": "wxt prepare"
   },
   "dependencies": {

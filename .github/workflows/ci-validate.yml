@@ -39,6 +39,20 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Verify manifest version matches package version
+        shell: bash
+        run: |
+          PACKAGE_VERSION="$(node -p "require('./package.json').version")"
+          MANIFEST_VERSION="$(node -p "require('./.output/chrome-mv3/manifest.json').version")"
+
+          echo "package.json version: $PACKAGE_VERSION"
+          echo "manifest version: $MANIFEST_VERSION"
+
+          if [[ "$PACKAGE_VERSION" != "$MANIFEST_VERSION" ]]; then
+            echo "Version mismatch: package.json and generated manifest.json differ."
+            exit 1
+          fi
+
       - name: Package ZIP
         run: npm run zip
 

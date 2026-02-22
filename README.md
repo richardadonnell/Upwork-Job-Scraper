@@ -229,6 +229,7 @@ Release workflow notes:
 
 - CI validates on pull requests via `.github/workflows/ci-validate.yml`.
 - Production release runs on pushes to `main` via `.github/workflows/release-publish.yml`.
+- Extension version source of truth is `app-v3/package.json`; WXT derives manifest version automatically.
 - Sourcemaps are uploaded in CI with `sentry-cli`.
 - Chrome Web Store integration is upload-only in CI; publish remains manual in dashboard.
 

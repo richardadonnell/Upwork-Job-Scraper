@@ -1,14 +1,13 @@
 import { sentryVitePlugin } from "@sentry/vite-plugin";
 import { defineConfig } from "wxt";
 
-const EXTENSION_VERSION = "3.0.0";
-const DEFAULT_SENTRY_RELEASE = `upwork-job-scraper@${EXTENSION_VERSION}`;
+const PACKAGE_VERSION = process.env.npm_package_version ?? "0.0.0";
+const DEFAULT_SENTRY_RELEASE = `upwork-job-scraper@${PACKAGE_VERSION}`;
 
 export default defineConfig({
 	modules: ["@wxt-dev/module-react"],
 	manifest: () => ({
 		name: "Upwork Job Scraper",
-		version: EXTENSION_VERSION,
 		description:
 			"Automatically scrape Upwork job listings and send them to a webhook.",
 		permissions: ["storage", "tabs", "scripting", "alarms", "notifications"],
