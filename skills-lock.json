@@ -1,6 +1,11 @@
 {
   "version": 1,
   "skills": {
+    "changelog-automation": {
+      "source": "wshobson/agents",
+      "sourceType": "github",
+      "computedHash": "87e8104a7842f5fff034e926ae7ae6fa20708a2735284b6e6906f681bc060f74"
+    },
     "find-skills": {
       "source": "vercel-labs/skills",
       "sourceType": "github",
