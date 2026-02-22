@@ -59,13 +59,14 @@ function SearchTargetCard({
 	readonly onRemove: () => void;
 }) {
 	const [testStatus, setTestStatus] = useState<TestStatus>("idle");
+	const canUseLegacyPayload = target.legacyCompatibilityEligible;
 
 	async function handleTestWebhook() {
 		if (!target.webhookUrl) return;
 		setTestStatus("sending");
 		const targetName = target.name.trim() || `Target ${index + 1}`;
 		const payload =
-			target.payloadMode === "legacy-v1"
+			target.payloadMode === "legacy-v1" && canUseLegacyPayload
 				? EXAMPLE_LEGACY_WEBHOOK_PAYLOAD.map((job) => ({
 						...job,
 						scrapedAt: Date.now(),
@@ -258,26 +259,41 @@ function SearchTargetCard({
 						</Text>
 					)}
 
-					<Flex justify="between" align="start" gap="3" mt="3">
-						<Box>
-							<Text size="2" weight="medium">
-								Legacy payload compatibility
+					{canUseLegacyPayload ? (
+						<>
+							<Flex justify="between" align="start" gap="3" mt="3">
+								<Box>
+									<Text size="2" weight="medium">
+										Legacy payload compatibility
+									</Text>
+									<Text size="1" color="gray" as="p" mt="0">
+										Use legacy webhook JSON array to keep older automations
+										working.
+									</Text>
+								</Box>
+								<Switch
+									size="2"
+									checked={target.payloadMode === "legacy-v1"}
+									onCheckedChange={(enabled) =>
+										onChange({
+											...target,
+											payloadMode: enabled ? "legacy-v1" : "v3",
+										})
+									}
+								/>
+							</Flex>
+
+							<Text size="1" color="gray" mt="2" as="p">
+								{target.payloadMode === "legacy-v1"
+									? "Current mode: Legacy payload (safest for existing automations). Switch to New payload for richer fields and structured status payloads."
+									: "Current mode: New payload (recommended). If you switch from Legacy payload, update your automation field mappings first."}
 							</Text>
-							<Text size="1" color="gray" as="p" mt="0">
-								Send v1-style webhook JSON array for existing automations.
-							</Text>
-						</Box>
-						<Switch
-							size="2"
-							checked={target.payloadMode === "legacy-v1"}
-							onCheckedChange={(enabled) =>
-								onChange({
-									...target,
-									payloadMode: enabled ? "legacy-v1" : "v3",
-								})
-							}
-						/>
-					</Flex>
+						</>
+					) : (
+						<Text size="1" color="gray" mt="2" as="p">
+							New targets use the New payload format by default.
+						</Text>
+					)}
 				</Box>
 			)}
 		</Card>
@@ -379,6 +395,7 @@ export function SearchTargetsPage({ settings, onChange }: Props) {
 						webhookEnabled: false,
 						webhookUrl: "",
 						payloadMode: "v3",
+						legacyCompatibilityEligible: false,
 					};
 					onChange({
 						...settings,

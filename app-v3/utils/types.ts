@@ -68,6 +68,7 @@ export interface SearchTarget {
   webhookEnabled: boolean;
   webhookUrl: string;
   payloadMode: WebhookPayloadMode;
+  legacyCompatibilityEligible: boolean;
 }
 
 export interface Settings {

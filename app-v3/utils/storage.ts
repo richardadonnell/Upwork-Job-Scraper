@@ -10,6 +10,7 @@ export const DEFAULT_SETTINGS: Settings = {
       webhookEnabled: false,
       webhookUrl: '',
       payloadMode: 'v3',
+      legacyCompatibilityEligible: false,
     },
   ],
   minuteInterval: 5,
@@ -22,7 +23,7 @@ export const DEFAULT_SETTINGS: Settings = {
 
 export const settingsStorage = storage.defineItem<Settings>('sync:settings', {
   fallback: DEFAULT_SETTINGS,
-  version: 5,
+  version: 6,
   migrations: {
     2: (old: Record<string, unknown>): Settings => {
       // Migrate from the v1 flat shape (searchUrl / webhookUrl / webhookEnabled)
@@ -40,6 +41,7 @@ export const settingsStorage = storage.defineItem<Settings>('sync:settings', {
             webhookEnabled,
             webhookUrl,
             payloadMode: 'v3',
+            legacyCompatibilityEligible: false,
           },
         ],
       };
@@ -76,6 +78,10 @@ export const settingsStorage = storage.defineItem<Settings>('sync:settings', {
         const existingName = typeof typed.name === 'string' ? typed.name.trim() : '';
         const payloadMode: Settings['searchTargets'][number]['payloadMode'] =
           typed.payloadMode === 'legacy-v1' ? 'legacy-v1' : 'v3';
+        const legacyCompatibilityEligible =
+          typeof typed.legacyCompatibilityEligible === 'boolean'
+            ? typed.legacyCompatibilityEligible
+            : payloadMode === 'legacy-v1';
         return {
           id: typeof typed.id === 'string' ? typed.id : crypto.randomUUID(),
           name: existingName || `Target ${index + 1}`,
@@ -84,6 +90,7 @@ export const settingsStorage = storage.defineItem<Settings>('sync:settings', {
             typeof typed.webhookEnabled === 'boolean' ? typed.webhookEnabled : false,
           webhookUrl: typeof typed.webhookUrl === 'string' ? typed.webhookUrl : '',
           payloadMode,
+          legacyCompatibilityEligible,
         };
       });
 
@@ -104,6 +111,10 @@ export const settingsStorage = storage.defineItem<Settings>('sync:settings', {
         const existingName = typeof typed.name === 'string' ? typed.name.trim() : '';
         const payloadMode: Settings['searchTargets'][number]['payloadMode'] =
           typed.payloadMode === 'legacy-v1' ? 'legacy-v1' : 'v3';
+        const legacyCompatibilityEligible =
+          typeof typed.legacyCompatibilityEligible === 'boolean'
+            ? typed.legacyCompatibilityEligible
+            : payloadMode === 'legacy-v1';
         return {
           id: typeof typed.id === 'string' ? typed.id : crypto.randomUUID(),
           name: existingName || `Target ${index + 1}`,
@@ -112,6 +123,41 @@ export const settingsStorage = storage.defineItem<Settings>('sync:settings', {
             typeof typed.webhookEnabled === 'boolean' ? typed.webhookEnabled : false,
           webhookUrl: typeof typed.webhookUrl === 'string' ? typed.webhookUrl : '',
           payloadMode,
+          legacyCompatibilityEligible,
+        };
+      });
+
+      return {
+        ...base,
+        searchTargets:
+          searchTargets.length > 0 ? searchTargets : DEFAULT_SETTINGS.searchTargets,
+      };
+    },
+    6: (old: Record<string, unknown>): Settings => {
+      const base = old as unknown as Settings;
+      const priorTargets = Array.isArray(base.searchTargets)
+        ? base.searchTargets
+        : DEFAULT_SETTINGS.searchTargets;
+
+      const searchTargets = priorTargets.map((target, index) => {
+        const typed = target as Partial<Settings['searchTargets'][number]>;
+        const existingName = typeof typed.name === 'string' ? typed.name.trim() : '';
+        const payloadMode: Settings['searchTargets'][number]['payloadMode'] =
+          typed.payloadMode === 'legacy-v1' ? 'legacy-v1' : 'v3';
+        const legacyCompatibilityEligible =
+          typeof typed.legacyCompatibilityEligible === 'boolean'
+            ? typed.legacyCompatibilityEligible
+            : payloadMode === 'legacy-v1';
+
+        return {
+          id: typeof typed.id === 'string' ? typed.id : crypto.randomUUID(),
+          name: existingName || `Target ${index + 1}`,
+          searchUrl: typeof typed.searchUrl === 'string' ? typed.searchUrl : '',
+          webhookEnabled:
+            typeof typed.webhookEnabled === 'boolean' ? typed.webhookEnabled : false,
+          webhookUrl: typeof typed.webhookUrl === 'string' ? typed.webhookUrl : '',
+          payloadMode,
+          legacyCompatibilityEligible,
         };
       });
 

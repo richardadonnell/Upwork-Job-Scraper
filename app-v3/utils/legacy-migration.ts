@@ -140,6 +140,7 @@ function mapLegacyPairToTarget(pairRaw: unknown, index: number): SearchTarget {
 		webhookEnabled: enabled && webhookUrl.length > 0,
 		webhookUrl,
 		payloadMode: "legacy-v1",
+		legacyCompatibilityEligible: true,
 	};
 }
 

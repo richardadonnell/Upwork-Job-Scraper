@@ -64,6 +64,12 @@ function toLegacyWebhookJob(job: Job, target: SearchTarget): LegacyWebhookJob {
 	};
 }
 
+function shouldUseLegacyPayload(target: SearchTarget): boolean {
+	return (
+		target.payloadMode === "legacy-v1" && target.legacyCompatibilityEligible
+	);
+}
+
 function getJitteredDelayMinutes(baseMinutes: number): number {
 	const jitterSeconds = Math.random() * (JITTER_SECONDS * 2) - JITTER_SECONDS;
 	const jitterMinutes = jitterSeconds / 60;
@@ -304,7 +310,7 @@ async function processTargetResult(
 	if (newJobs.length === 0) return 0;
 
 	if (target.webhookEnabled && target.webhookUrl) {
-		const useLegacyPayload = target.payloadMode === "legacy-v1";
+		const useLegacyPayload = shouldUseLegacyPayload(target);
 		const webhookJobs = newJobs.map(toWebhookJob);
 		const requestBody = useLegacyPayload
 			? JSON.stringify(newJobs.map((job) => toLegacyWebhookJob(job, target)))
