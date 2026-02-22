@@ -2,14 +2,14 @@ name: Release Publish
 
 on:
   push:
-    tags:
-      - "v*"
+    branches:
+      - main
 
 permissions:
   contents: write
 
 concurrency:
-  group: release-${{ github.ref }}
+  group: release-main
   cancel-in-progress: false
 
 jobs:
@@ -34,20 +34,17 @@ jobs:
         working-directory: app-v3
         run: npm ci
 
-      - name: Resolve and verify tag/version
+      - name: Resolve release metadata
         id: meta
         shell: bash
         run: |
-          TAG="${GITHUB_REF_NAME}"
           VERSION="$(node -p "require('./app-v3/package.json').version")"
-          if [[ "v${VERSION}" != "$TAG" ]]; then
-            echo "Tag ($TAG) does not match app-v3/package.json version (v$VERSION)."
-            exit 1
-          fi
+          BUILD_TAG="v${VERSION}-main.${GITHUB_RUN_NUMBER}"
+          RELEASE_NAME="upwork-job-scraper@${VERSION}-main.${GITHUB_RUN_NUMBER}"
 
-          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "tag=$BUILD_TAG" >> "$GITHUB_OUTPUT"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "release=upwork-job-scraper@$VERSION" >> "$GITHUB_OUTPUT"
+          echo "release=$RELEASE_NAME" >> "$GITHUB_OUTPUT"
 
       - name: Build and package
         working-directory: app-v3
@@ -65,7 +62,7 @@ jobs:
         shell: bash
         run: |
           TAG="${{ steps.meta.outputs.tag }}"
-          TITLE="Upwork Job Scraper v${{ steps.meta.outputs.version }}"
+          TITLE="Upwork Job Scraper main build v${{ steps.meta.outputs.version }} (#${{ github.run_number }})"
 
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release edit "$TAG" --title "$TITLE"
