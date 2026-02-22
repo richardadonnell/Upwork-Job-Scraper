@@ -9,6 +9,7 @@ export const DEFAULT_SETTINGS: Settings = {
       searchUrl: '',
       webhookEnabled: false,
       webhookUrl: '',
+      payloadMode: 'v3',
     },
   ],
   minuteInterval: 5,
@@ -21,7 +22,7 @@ export const DEFAULT_SETTINGS: Settings = {
 
 export const settingsStorage = storage.defineItem<Settings>('sync:settings', {
   fallback: DEFAULT_SETTINGS,
-  version: 4,
+  version: 5,
   migrations: {
     2: (old: Record<string, unknown>): Settings => {
       // Migrate from the v1 flat shape (searchUrl / webhookUrl / webhookEnabled)
@@ -38,6 +39,7 @@ export const settingsStorage = storage.defineItem<Settings>('sync:settings', {
             searchUrl,
             webhookEnabled,
             webhookUrl,
+            payloadMode: 'v3',
           },
         ],
       };
@@ -72,6 +74,8 @@ export const settingsStorage = storage.defineItem<Settings>('sync:settings', {
       const searchTargets = priorTargets.map((target, index) => {
         const typed = target as Partial<Settings['searchTargets'][number]>;
         const existingName = typeof typed.name === 'string' ? typed.name.trim() : '';
+        const payloadMode: Settings['searchTargets'][number]['payloadMode'] =
+          typed.payloadMode === 'legacy-v1' ? 'legacy-v1' : 'v3';
         return {
           id: typeof typed.id === 'string' ? typed.id : crypto.randomUUID(),
           name: existingName || `Target ${index + 1}`,
@@ -79,6 +83,35 @@ export const settingsStorage = storage.defineItem<Settings>('sync:settings', {
           webhookEnabled:
             typeof typed.webhookEnabled === 'boolean' ? typed.webhookEnabled : false,
           webhookUrl: typeof typed.webhookUrl === 'string' ? typed.webhookUrl : '',
+          payloadMode,
+        };
+      });
+
+      return {
+        ...base,
+        searchTargets:
+          searchTargets.length > 0 ? searchTargets : DEFAULT_SETTINGS.searchTargets,
+      };
+    },
+    5: (old: Record<string, unknown>): Settings => {
+      const base = old as unknown as Settings;
+      const priorTargets = Array.isArray(base.searchTargets)
+        ? base.searchTargets
+        : DEFAULT_SETTINGS.searchTargets;
+
+      const searchTargets = priorTargets.map((target, index) => {
+        const typed = target as Partial<Settings['searchTargets'][number]>;
+        const existingName = typeof typed.name === 'string' ? typed.name.trim() : '';
+        const payloadMode: Settings['searchTargets'][number]['payloadMode'] =
+          typed.payloadMode === 'legacy-v1' ? 'legacy-v1' : 'v3';
+        return {
+          id: typeof typed.id === 'string' ? typed.id : crypto.randomUUID(),
+          name: existingName || `Target ${index + 1}`,
+          searchUrl: typeof typed.searchUrl === 'string' ? typed.searchUrl : '',
+          webhookEnabled:
+            typeof typed.webhookEnabled === 'boolean' ? typed.webhookEnabled : false,
+          webhookUrl: typeof typed.webhookUrl === 'string' ? typed.webhookUrl : '',
+          payloadMode,
         };
       });
 
@@ -104,6 +137,13 @@ export const JOB_HISTORY_MAX = 100;
 export const activityLogsStorage = storage.defineItem<ActivityLog[]>('local:activityLogs', {
   fallback: [],
 });
+
+export const legacyV1MigrationAppliedStorage = storage.defineItem<boolean>(
+  'local:legacyV1MigrationApplied',
+  {
+    fallback: false,
+  },
+);
 
 export const ACTIVITY_LOG_MAX = 200;
 

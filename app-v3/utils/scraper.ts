@@ -5,7 +5,13 @@ import {
 	seenJobIdsStorage,
 	settingsStorage,
 } from "./storage";
-import type { Job, ScrapeResult, SearchTarget, WebhookJob } from "./types";
+import type {
+	Job,
+	LegacyWebhookJob,
+	ScrapeResult,
+	SearchTarget,
+	WebhookJob,
+} from "./types";
 
 const ALARM_NAME = "upwork-scrape";
 const JITTER_SECONDS = 30;
@@ -22,6 +28,39 @@ function toWebhookJob(job: Job): WebhookJob {
 	return {
 		...job,
 		postedAtIso: new Date(job.postedAtMs).toISOString(),
+	};
+}
+
+function toLegacyWebhookJob(job: Job, target: SearchTarget): LegacyWebhookJob {
+	const scrapedAtMs = Date.parse(job.scrapedAt);
+	const safeScrapedAt = Number.isFinite(scrapedAtMs)
+		? scrapedAtMs
+		: job.postedAtMs;
+
+	return {
+		title: job.title,
+		url: job.url,
+		jobType: job.jobType,
+		skillLevel: job.experienceLevel,
+		budget: job.budget,
+		hourlyRange: "N/A",
+		estimatedTime: "N/A",
+		description: job.description,
+		skills: job.skills,
+		paymentVerified: job.paymentVerified,
+		clientRating: job.clientRating,
+		clientSpent: job.clientTotalSpent,
+		clientCountry: "N/A",
+		questions: [],
+		scrapedAt: safeScrapedAt,
+		scrapedAtHuman: new Date(safeScrapedAt).toLocaleString(),
+		clientLocation: "N/A",
+		sourceUrl: target.searchUrl,
+		source: {
+			name: target.name,
+			searchUrl: target.searchUrl,
+			webhookUrl: target.webhookUrl,
+		},
 	};
 }
 
@@ -265,19 +304,27 @@ async function processTargetResult(
 	if (newJobs.length === 0) return 0;
 
 	if (target.webhookEnabled && target.webhookUrl) {
+		const useLegacyPayload = target.payloadMode === "legacy-v1";
 		const webhookJobs = newJobs.map(toWebhookJob);
-
-		try {
-			await fetch(target.webhookUrl, {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({
+		const requestBody = useLegacyPayload
+			? JSON.stringify(newJobs.map((job) => toLegacyWebhookJob(job, target)))
+			: JSON.stringify({
 					status: "success",
 					targetName: target.name,
 					jobs: webhookJobs,
 					timestamp: new Date().toISOString(),
-				}),
+				});
+
+		try {
+			const response = await fetch(target.webhookUrl, {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: requestBody,
 			});
+
+			if (!response.ok) {
+				throw new Error(`HTTP ${response.status}`);
+			}
 			await appendActivityLog("info", "Webhook delivered", target.searchUrl);
 		} catch (err) {
 			console.error(
@@ -335,7 +382,7 @@ async function sendIssueWebhookIfNeeded(
 	};
 
 	try {
-		await fetch(target.webhookUrl, {
+		const response = await fetch(target.webhookUrl, {
 			method: "POST",
 			headers: { "Content-Type": "application/json" },
 			body: JSON.stringify({
@@ -351,6 +398,10 @@ async function sendIssueWebhookIfNeeded(
 				timestamp: new Date().toISOString(),
 			}),
 		});
+
+		if (!response.ok) {
+			throw new Error(`HTTP ${response.status}`);
+		}
 		await appendActivityLog(
 			"info",
 			"Issue webhook delivered",

@@ -33,12 +33,41 @@ export interface WebhookSuccessPayload {
   timestamp: string;
 }
 
+export type WebhookPayloadMode = 'v3' | 'legacy-v1';
+
+export interface LegacyWebhookJob {
+  title: string;
+  url: string;
+  jobType: string;
+  skillLevel: string;
+  budget: string;
+  hourlyRange: string;
+  estimatedTime: string;
+  description: string;
+  skills: string[];
+  paymentVerified: boolean;
+  clientRating: string;
+  clientSpent: string;
+  clientCountry: string;
+  questions: string[];
+  scrapedAt: number;
+  scrapedAtHuman: string;
+  clientLocation: string;
+  sourceUrl: string;
+  source: {
+    name: string;
+    searchUrl: string;
+    webhookUrl: string;
+  };
+}
+
 export interface SearchTarget {
   id: string;
   name: string;
   searchUrl: string;
   webhookEnabled: boolean;
   webhookUrl: string;
+  payloadMode: WebhookPayloadMode;
 }
 
 export interface Settings {
@@ -111,3 +140,33 @@ export const EXAMPLE_WEBHOOK_PAYLOAD: {
   ],
   timestamp: new Date().toISOString(),
 };
+
+export const EXAMPLE_LEGACY_WEBHOOK_PAYLOAD: LegacyWebhookJob[] = [
+  {
+    title: 'Senior React Developer Needed',
+    url: 'https://www.upwork.com/jobs/~01exampleJobUid12345',
+    jobType: 'Fixed price',
+    skillLevel: 'Intermediate',
+    budget: '$500',
+    hourlyRange: 'N/A',
+    estimatedTime: 'Less than 1 month',
+    description:
+      'We are looking for an experienced React developer to help build a SaaS dashboard.',
+    skills: ['React', 'TypeScript', 'Node.js', 'REST APIs', 'Tailwind CSS'],
+    paymentVerified: true,
+    clientRating: '4.95',
+    clientSpent: '$10k+ spent',
+    clientCountry: 'United States',
+    questions: [],
+    scrapedAt: Date.now(),
+    scrapedAtHuman: new Date().toLocaleString(),
+    clientLocation: 'United States',
+    sourceUrl: 'https://www.upwork.com/nx/search/jobs/?sort=recency&page=1&per_page=50',
+    source: {
+      name: 'Example Target',
+      searchUrl:
+        'https://www.upwork.com/nx/search/jobs/?sort=recency&page=1&per_page=50',
+      webhookUrl: 'https://hooks.example.com/legacy',
+    },
+  },
+];

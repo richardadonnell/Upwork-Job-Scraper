@@ -17,7 +17,10 @@ import {
 } from "@radix-ui/themes";
 import { useState } from "react";
 import type { SearchTarget, Settings } from "../utils/types";
-import { EXAMPLE_WEBHOOK_PAYLOAD } from "../utils/types";
+import {
+	EXAMPLE_LEGACY_WEBHOOK_PAYLOAD,
+	EXAMPLE_WEBHOOK_PAYLOAD,
+} from "../utils/types";
 
 interface Props {
 	readonly settings: Settings;
@@ -60,16 +63,30 @@ function SearchTargetCard({
 	async function handleTestWebhook() {
 		if (!target.webhookUrl) return;
 		setTestStatus("sending");
-		const payload = {
-			...EXAMPLE_WEBHOOK_PAYLOAD,
-			targetName: target.name.trim() || `Target ${index + 1}`,
-			timestamp: new Date().toISOString(),
-			jobs: EXAMPLE_WEBHOOK_PAYLOAD.jobs.map((job) => ({
-				...job,
-				scrapedAt: new Date().toISOString(),
-				postedAtIso: new Date(job.postedAtMs).toISOString(),
-			})),
-		};
+		const targetName = target.name.trim() || `Target ${index + 1}`;
+		const payload =
+			target.payloadMode === "legacy-v1"
+				? EXAMPLE_LEGACY_WEBHOOK_PAYLOAD.map((job) => ({
+						...job,
+						scrapedAt: Date.now(),
+						scrapedAtHuman: new Date().toLocaleString(),
+						sourceUrl: target.searchUrl || job.sourceUrl,
+						source: {
+							name: targetName,
+							searchUrl: target.searchUrl || job.source.searchUrl,
+							webhookUrl: target.webhookUrl,
+						},
+					}))
+				: {
+						...EXAMPLE_WEBHOOK_PAYLOAD,
+						targetName,
+						timestamp: new Date().toISOString(),
+						jobs: EXAMPLE_WEBHOOK_PAYLOAD.jobs.map((job) => ({
+							...job,
+							scrapedAt: new Date().toISOString(),
+							postedAtIso: new Date(job.postedAtMs).toISOString(),
+						})),
+					};
 		try {
 			const res = await fetch(target.webhookUrl, {
 				method: "POST",
@@ -240,6 +257,27 @@ function SearchTargetCard({
 							Request failed — check the URL or CORS settings on your endpoint.
 						</Text>
 					)}
+
+					<Flex justify="between" align="start" gap="3" mt="3">
+						<Box>
+							<Text size="2" weight="medium">
+								Legacy payload compatibility
+							</Text>
+							<Text size="1" color="gray" as="p" mt="0">
+								Send v1-style webhook JSON array for existing automations.
+							</Text>
+						</Box>
+						<Switch
+							size="2"
+							checked={target.payloadMode === "legacy-v1"}
+							onCheckedChange={(enabled) =>
+								onChange({
+									...target,
+									payloadMode: enabled ? "legacy-v1" : "v3",
+								})
+							}
+						/>
+					</Flex>
 				</Box>
 			)}
 		</Card>
@@ -340,6 +378,7 @@ export function SearchTargetsPage({ settings, onChange }: Props) {
 						searchUrl: "",
 						webhookEnabled: false,
 						webhookUrl: "",
+						payloadMode: "v3",
 					};
 					onChange({
 						...settings,

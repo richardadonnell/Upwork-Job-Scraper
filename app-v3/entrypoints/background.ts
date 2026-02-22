@@ -1,45 +1,75 @@
-import { runScrape, setupAlarm } from '../utils/scraper';
-
-import type { MessageType } from '../utils/types';
+import { runLegacyV1MigrationIfNeeded } from "../utils/legacy-migration";
+import { runScrape, setupAlarm } from "../utils/scraper";
+import type { MessageType } from "../utils/types";
 
 export default defineBackground(() => {
-  // Open options page on toolbar click
-  browser.action.onClicked.addListener(() => {
-    browser.runtime.openOptionsPage();
-  });
+	async function initializeFromLifecycle(
+		source: "installed" | "startup",
+	): Promise<void> {
+		try {
+			await runLegacyV1MigrationIfNeeded();
+		} catch (err) {
+			console.error(
+				`[Upwork Scraper] Legacy migration failed during ${source} initialization`,
+				err,
+			);
+		}
 
-  // Set up alarm on install/update
-  browser.runtime.onInstalled.addListener(() => {
-    setupAlarm();
-  });
+		await setupAlarm();
+	}
 
-  // Fire scrape on alarm
-  browser.alarms.onAlarm.addListener((alarm) => {
-    if (alarm.name === 'upwork-scrape') {
-      runScrape()
-        .catch((err) => {
-          console.error('[Upwork Scraper] Scheduled scrape failed', err);
-        })
-        .finally(() => {
-          setupAlarm().catch((err) => {
-            console.error('[Upwork Scraper] Failed to re-arm alarm', err);
-          });
-        });
-    }
-  });
+	// Open options page on toolbar click
+	browser.action.onClicked.addListener(() => {
+		browser.runtime.openOptionsPage();
+	});
 
-  // Handle messages from options page
-  browser.runtime.onMessage.addListener((message: MessageType, _sender, sendResponse) => {
-    if (message.type === 'manualScrape') {
-      runScrape({ manual: true }).then(() => sendResponse({ ok: true })).catch((err) => {
-        sendResponse({ ok: false, error: String(err) });
-      });
-      return true; // keep message channel open for async response
-    }
+	// Set up alarm on install/update
+	browser.runtime.onInstalled.addListener(() => {
+		initializeFromLifecycle("installed").catch((err) => {
+			console.error(
+				"[Upwork Scraper] Initialization failed on install/update",
+				err,
+			);
+		});
+	});
 
-    if (message.type === 'settingsUpdated') {
-      setupAlarm().then(() => sendResponse({ ok: true }));
-      return true;
-    }
-  });
+	browser.runtime.onStartup.addListener(() => {
+		initializeFromLifecycle("startup").catch((err) => {
+			console.error("[Upwork Scraper] Initialization failed on startup", err);
+		});
+	});
+
+	// Fire scrape on alarm
+	browser.alarms.onAlarm.addListener((alarm) => {
+		if (alarm.name === "upwork-scrape") {
+			runScrape()
+				.catch((err) => {
+					console.error("[Upwork Scraper] Scheduled scrape failed", err);
+				})
+				.finally(() => {
+					setupAlarm().catch((err) => {
+						console.error("[Upwork Scraper] Failed to re-arm alarm", err);
+					});
+				});
+		}
+	});
+
+	// Handle messages from options page
+	browser.runtime.onMessage.addListener(
+		(message: MessageType, _sender, sendResponse) => {
+			if (message.type === "manualScrape") {
+				runScrape({ manual: true })
+					.then(() => sendResponse({ ok: true }))
+					.catch((err) => {
+						sendResponse({ ok: false, error: String(err) });
+					});
+				return true; // keep message channel open for async response
+			}
+
+			if (message.type === "settingsUpdated") {
+				setupAlarm().then(() => sendResponse({ ok: true }));
+				return true;
+			}
+		},
+	);
 });
