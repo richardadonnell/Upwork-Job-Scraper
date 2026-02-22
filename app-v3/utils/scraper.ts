@@ -11,6 +11,13 @@ const ALARM_NAME = "upwork-scrape";
 const JITTER_SECONDS = 30;
 const MIN_ALARM_DELAY_MINUTES = 0.5;
 
+function getPostedSourceRank(source: string): number {
+	if (source === "upwork_absolute") return 3;
+	if (source === "relative_estimate") return 2;
+	if (source === "fallback_scraped_at") return 1;
+	return 0;
+}
+
 function getJitteredDelayMinutes(baseMinutes: number): number {
 	const jitterSeconds = Math.random() * (JITTER_SECONDS * 2) - JITTER_SECONDS;
 	const jitterMinutes = jitterSeconds / 60;
@@ -200,12 +207,22 @@ async function processTargetResult(
 		const fresh = latestByUid.get(existing.uid);
 		if (!fresh) return existing;
 
+		const existingSourceRank = getPostedSourceRank(existing.postedAtSource);
+		const freshSourceRank = getPostedSourceRank(fresh.postedAtSource);
+		const shouldUseFreshPosted =
+			freshSourceRank > existingSourceRank ||
+			(freshSourceRank === existingSourceRank &&
+				fresh.postedAtMs < existing.postedAtMs);
+
 		return {
 			...existing,
 			title: preferFreshString(existing.title, fresh.title),
 			url: preferFreshString(existing.url, fresh.url),
-			datePosted: preferFreshString(existing.datePosted, fresh.datePosted),
-			postedAtMs: existing.postedAtMs ?? fresh.postedAtMs,
+			datePosted: preferFreshString(fresh.datePosted, existing.datePosted),
+			postedAtMs: shouldUseFreshPosted ? fresh.postedAtMs : existing.postedAtMs,
+			postedAtSource: shouldUseFreshPosted
+				? fresh.postedAtSource
+				: existing.postedAtSource,
 			description: preferFreshString(existing.description, fresh.description),
 			jobType: preferFreshString(existing.jobType, fresh.jobType),
 			budget: preferFreshString(existing.budget, fresh.budget),

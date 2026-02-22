@@ -1,4 +1,4 @@
-import type { Job, ScrapeResult } from '../utils/types';
+import type { Job, PostedAtSource, ScrapeResult } from '../utils/types';
 
 function parsePostedTextToMs(postedText: string, anchorNowMs: number): number | undefined {
   const normalized = postedText
@@ -50,20 +50,41 @@ function extractPublishedOnByUid(): Map<string, number> {
   const byUid = new Map<string, number>();
   const scripts = Array.from(document.querySelectorAll('script'));
 
+  const addIfValid = (uid: string, iso: string) => {
+    const ms = Date.parse(iso);
+    if (!Number.isFinite(ms)) return;
+    if (!byUid.has(uid)) {
+      byUid.set(uid, ms);
+    }
+  };
+
+  const collectMatches = (
+    text: string,
+    pattern: RegExp,
+    extract: (match: RegExpMatchArray) => { uid: string; iso: string },
+  ) => {
+    const matches = text.matchAll(pattern);
+    for (const match of matches) {
+      const { uid, iso } = extract(match);
+      addIfValid(uid, iso);
+    }
+  };
+
   for (const script of scripts) {
     const text = script.textContent;
     if (!text || !text.includes('publishedOn') || !text.includes('uid')) continue;
 
-    const matchAll = text.matchAll(/"uid":"([^"]+)"[\s\S]{0,1000}?"(?:publishedOn|createdOn)":"([^"]+)"/g);
-    for (const match of matchAll) {
-      const uid = match[1];
-      const iso = match[2];
-      const ms = Date.parse(iso);
-      if (!Number.isFinite(ms)) continue;
-      if (!byUid.has(uid)) {
-        byUid.set(uid, ms);
-      }
-    }
+    collectMatches(
+      text,
+      /"uid":"([^"]+)"[\s\S]{0,4000}?"(?:publishedOn|createdOn)":"([^"]+)"/g,
+      (match) => ({ uid: match[1], iso: match[2] }),
+    );
+
+    collectMatches(
+      text,
+      /"(?:publishedOn|createdOn)":"([^"]+)"[\s\S]{0,4000}?"uid":"([^"]+)"/g,
+      (match) => ({ uid: match[2], iso: match[1] }),
+    );
   }
 
   return byUid;
@@ -125,8 +146,19 @@ export default defineContentScript({
         const datePosted = dateSpans && dateSpans.length > 1
           ? dateSpans[dateSpans.length - 1]?.textContent?.trim() ?? ''
           : dateEl?.textContent?.trim() ?? '';
-        const postedAtMs =
-          publishedOnByUid.get(uid) ?? parsePostedTextToMs(datePosted, scrapedAtMs);
+        const absolutePostedAtMs = publishedOnByUid.get(uid);
+        const parsedRelativePostedAtMs = parsePostedTextToMs(datePosted, scrapedAtMs);
+
+        let postedAtMs = scrapedAtMs;
+        let postedAtSource: PostedAtSource = 'fallback_scraped_at';
+
+        if (typeof absolutePostedAtMs === 'number' && Number.isFinite(absolutePostedAtMs)) {
+          postedAtMs = absolutePostedAtMs;
+          postedAtSource = 'upwork_absolute';
+        } else if (typeof parsedRelativePostedAtMs === 'number' && Number.isFinite(parsedRelativePostedAtMs)) {
+          postedAtMs = parsedRelativePostedAtMs;
+          postedAtSource = 'relative_estimate';
+        }
 
         const descEl = article.querySelector('.air3-line-clamp-wrapper.clamp p');
         const description = descEl?.textContent?.trim() ?? '';
@@ -161,6 +193,7 @@ export default defineContentScript({
           url,
           datePosted,
           postedAtMs,
+          postedAtSource,
           description,
           jobType,
           budget,

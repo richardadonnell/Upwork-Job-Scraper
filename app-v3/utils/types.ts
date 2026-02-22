@@ -1,9 +1,15 @@
+export type PostedAtSource =
+  | 'upwork_absolute'
+  | 'relative_estimate'
+  | 'fallback_scraped_at';
+
 export interface Job {
   uid: string;
   title: string;
   url: string;
   datePosted: string;
-  postedAtMs?: number;
+  postedAtMs: number;
+  postedAtSource: PostedAtSource;
   description: string;
   jobType: string;
   budget: string;
@@ -75,6 +81,7 @@ export const EXAMPLE_WEBHOOK_PAYLOAD: {
       url: 'https://www.upwork.com/jobs/~01exampleJobUid12345',
       datePosted: 'Posted 2 hours ago',
       postedAtMs: Date.now() - 2 * 60 * 60 * 1000,
+      postedAtSource: 'upwork_absolute',
       description:
         'We are looking for an experienced React developer to help build a SaaS dashboard. ' +
         'You will work closely with our design team to implement pixel-perfect UI components, ' +
