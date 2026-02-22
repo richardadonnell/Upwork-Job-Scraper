@@ -56,6 +56,11 @@
       "sourceType": "github",
       "computedHash": "53050903051c0718a82c0f4decdb34e8adbc7cd871b8407d83c46b08d4599357"
     },
+    "semantic-versioning": {
+      "source": "aj-geddes/useful-ai-prompts",
+      "sourceType": "github",
+      "computedHash": "f4a7f7096d6e237eb6cb7cd0948fcf830e4df83ff7d5df2f73bc4cfa033cea03"
+    },
     "sentry-create-alert": {
       "source": "getsentry/sentry-agent-skills",
       "sourceType": "github",
