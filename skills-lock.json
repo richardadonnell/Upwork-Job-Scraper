@@ -1,6 +1,11 @@
 {
   "version": 1,
   "skills": {
+    "changelog-automation": {
+      "source": "wshobson/agents",
+      "sourceType": "github",
+      "computedHash": "87e8104a7842f5fff034e926ae7ae6fa20708a2735284b6e6906f681bc060f74"
+    },
     "find-skills": {
       "source": "vercel-labs/skills",
       "sourceType": "github",
@@ -55,6 +60,11 @@
       "source": "sickn33/antigravity-awesome-skills",
       "sourceType": "github",
       "computedHash": "53050903051c0718a82c0f4decdb34e8adbc7cd871b8407d83c46b08d4599357"
+    },
+    "semantic-versioning": {
+      "source": "aj-geddes/useful-ai-prompts",
+      "sourceType": "github",
+      "computedHash": "f4a7f7096d6e237eb6cb7cd0948fcf830e4df83ff7d5df2f73bc4cfa033cea03"
     },
     "sentry-create-alert": {
       "source": "getsentry/sentry-agent-skills",

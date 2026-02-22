@@ -3,6 +3,21 @@
   "nodes": [
     {
       "parameters": {
+        "content": "## Upwork Job Scraper Starter\nThis workflow receives scraper payloads and routes success/error notifications via email.\nGitHub: https://github.com/richardadonnell/Upwork-Job-Scraper",
+        "height": 220,
+        "width": 420
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -288,
+        -208
+      ],
+      "id": "5f2d9a5e-6abc-4f97-a6c8-0f52f6d8b6aa",
+      "name": "Project Note"
+    },
+    {
+      "parameters": {
         "httpMethod": "POST",
         "path": "upwork-job-scraper-webhook",
         "options": {
@@ -15,32 +30,9 @@
         0,
         0
       ],
-      "id": "ebab9c63-606d-46b3-9071-dd9abd170f22",
+      "id": "940b4a23-0226-43f8-95c0-536147f23b51",
       "name": "Webhook",
       "webhookId": "37d8b5d4-38c2-4224-a39e-dd93c9423008"
-    },
-    {
-      "parameters": {
-        "assignments": {
-          "assignments": [
-            {
-              "id": "6a75ad15-c44b-4709-a841-bb3f67220827",
-              "name": "timestamp_now",
-              "value": "={{ $now.format('yyyy-MM-dd hh:mm:ss') }}",
-              "type": "string"
-            }
-          ]
-        },
-        "options": {}
-      },
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 3.4,
-      "position": [
-        208,
-        0
-      ],
-      "id": "79bd7352-3363-4ac0-903d-0e48b1d713da",
-      "name": "Set Current Date & Time"
     },
     {
       "parameters": {
@@ -56,11 +48,11 @@
                 },
                 "conditions": [
                   {
-                    "leftValue": "={{ $('Webhook').item.json.body }}",
-                    "rightValue": "={{ $('Webhook').item.json.body.type }}",
+                    "leftValue": "={{ $('Webhook').item.json.body.status }}",
+                    "rightValue": "=success",
                     "operator": {
                       "type": "string",
-                      "operation": "notContains"
+                      "operation": "equals"
                     },
                     "id": "b1f79073-7d31-46ce-8151-c37d1639eee8"
                   }
@@ -81,11 +73,11 @@
                 "conditions": [
                   {
                     "id": "9db5c3f8-b03b-4eb5-bdd8-146bcfa53d80",
-                    "leftValue": "={{ $('Webhook').item.json.body }}",
-                    "rightValue": "={{ $('Webhook').item.json.body.type }}",
+                    "leftValue": "={{ $('Webhook').item.json.body.status }}",
+                    "rightValue": "=success",
                     "operator": {
                       "type": "string",
-                      "operation": "contains"
+                      "operation": "notEquals"
                     }
                   }
                 ],
@@ -102,11 +94,116 @@
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3.4,
       "position": [
-        416,
+        448,
         0
       ],
-      "id": "e12ee7f7-c2c7-4022-ba18-e52a34f2dcf2",
-      "name": "No errors or issues?"
+      "id": "85148cc7-9333-4647-9423-cb7b5a0cf682",
+      "name": "Scraper Succeeded?"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "6a75ad15-c44b-4709-a841-bb3f67220827",
+              "name": "timestamp_now",
+              "value": "={{ $now.format('yyyy-MM-dd hh:mm:ss') }}",
+              "type": "string"
+            },
+            {
+              "id": "3b76fac2-b438-419b-a269-8ee22d55316a",
+              "name": "body.jobs",
+              "value": "={{ $json.body.jobs }}",
+              "type": "array"
+            },
+            {
+              "id": "c3dec13b-35f7-4f0c-b3ca-627f7a2de3d1",
+              "name": "n8n_domain",
+              "value": "https://your-n8n-domain.example.com",
+              "type": "string"
+            },
+            {
+              "id": "c1edd357-264a-466e-a5da-f95db86808a1",
+              "name": "workflow_id",
+              "value": "={{ $workflow.id }}",
+              "type": "string"
+            },
+            {
+              "id": "4ee35eb9-475f-4a14-97ca-49c82ee49d01",
+              "name": "execution_id",
+              "value": "={{ $execution.id }}",
+              "type": "string"
+            },
+            {
+              "id": "dbdd9067-6d2d-42b9-9e9e-29ee088efdc5",
+              "name": "targetName",
+              "value": "={{ $json.body.targetName }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        224,
+        0
+      ],
+      "id": "e4dff3d2-f495-4eaa-8c63-147dfd6a457a",
+      "name": "Set Variables"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "body.jobs",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        672,
+        -96
+      ],
+      "id": "ecaee37c-3cd1-4db8-99f7-a509c00a6c80",
+      "name": "Split Out Scraped Jobs"
+    },
+    {
+      "parameters": {
+        "sendTo": "your-email@example.com",
+        "subject": "✅ Upwork Job Scraper - Job Found: {{ $json.title }}",
+        "message": "=<h2><strong>Title:</strong> {{ $json.title }}</h2>\n\n<p><strong><a href=\"{{ $json.url }}\">👉 Click here to see job posting details</a></strong></p>\n\n<p><strong>Description:</strong> {{ $json.description }}</p>",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        896,
+        -96
+      ],
+      "id": "fced3825-5c0a-4ac9-8190-9103609b5ba6",
+      "name": "Send Jobs To Gmail",
+      "webhookId": "d4ee1049-a0a7-4a18-8795-ee3bcc090280"
+    },
+    {
+      "parameters": {
+        "sendTo": "your-email@example.com",
+        "subject": "=⚠️ Upwork Job Scraper: Issue/Error",
+        "message": "=<h2><strong>Upwork Job Scraper:</strong> </h2>\n\n<p>Search Failed: {{ $('Set Variables').item.json.targetName }}</p>\n\n<p><strong>Failed on:</strong> {{ $('Set Variables').item.json.timestamp_now.toDateTime().format('yyyy-MM-dd hh:mm:ss') }}</p>\n\n<p>See Execution Details: <a href=\"{{ $('Set Variables').item.json.n8n_domain }}/workflow/{{ $('Set Variables').item.json.workflow_id }}/executions/{{ $('Set Variables').item.json.execution_id }}\">{{ $('Set Variables').item.json.n8n_domain }}/workflow/{{ $('Set Variables').item.json.workflow_id }}/executions/{{ $('Set Variables').item.json.execution_id }}</a>",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        672,
+        96
+      ],
+      "id": "7a1e8a81-2621-4aa8-a2c0-d334dea549da",
+      "name": "Send Errors to Gmail",
+      "webhookId": "d4ee1049-a0a7-4a18-8795-ee3bcc090280"
     }
   ],
   "pinData": {},
@@ -115,18 +212,47 @@
       "main": [
         [
           {
-            "node": "Set Current Date & Time",
+            "node": "Set Variables",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Set Current Date & Time": {
+    "Scraper Succeeded?": {
       "main": [
         [
           {
-            "node": "No errors or issues?",
+            "node": "Split Out Scraped Jobs",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Errors to Gmail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Variables": {
+      "main": [
+        [
+          {
+            "node": "Scraper Succeeded?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out Scraped Jobs": {
+      "main": [
+        [
+          {
+            "node": "Send Jobs To Gmail",
             "type": "main",
             "index": 0
           }
@@ -138,12 +264,14 @@
   "settings": {
     "executionOrder": "v1",
     "binaryMode": "separate",
-    "availableInMCP": false
+    "availableInMCP": false,
+    "timeSavedMode": "fixed",
+    "callerPolicy": "workflowsFromSameOwner"
   },
-  "versionId": "4d1385cd-54fe-4aa3-aa22-ee3c2be31df5",
+  "versionId": "e1293659-7d44-47cb-8e32-d5a3bc66b140",
   "meta": {
-    "instanceId": "ee80817403cc895b536f0dd74844c31381d9f0a69a684b7356490bcb63c3e53b"
+    "templateCredsSetupCompleted": true
   },
-  "id": "Ygoyqy07eZxaLLl2",
+  "id": "dbvA5NHcqq1KdwlU",
   "tags": []
 }
