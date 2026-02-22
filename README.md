@@ -19,6 +19,39 @@ A Chrome extension (MV3) that automatically scrapes Upwork job listings from a s
 - Browser notifications for new jobs
 - Master enable/disable toggle
 
+## Webhook payload contract
+
+For n8n filtering, branch on the top-level `status` field.
+
+- `status: "success"` → successful scrape payload with new jobs
+- `status: "captcha_required" | "logged_out" | "error"` → issue payload
+- `status: "no_results"` is not sent to webhook
+
+Minimal success payload:
+
+```json
+{
+  "status": "success",
+  "targetName": "...",
+  "jobs": [{ "uid": "...", "title": "...", "url": "..." }],
+  "timestamp": "..."
+}
+```
+
+Minimal issue payload:
+
+```json
+{
+  "status": "captcha_required",
+  "type": "issue",
+  "targetName": "...",
+  "reason": "captcha_required",
+  "message": "...",
+  "targetUrl": "...",
+  "timestamp": "..."
+}
+```
+
 ## Project structure
 
 ```text (WXT + React + TypeScript)

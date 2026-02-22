@@ -61,10 +61,12 @@ export type MessageType =
 
 /** Example payload sent by the "Test" button in SettingsTab to verify webhook destinations. */
 export const EXAMPLE_WEBHOOK_PAYLOAD: {
+  status: 'success';
   targetName: string;
   jobs: Job[];
   timestamp: string;
 } = {
+  status: 'success',
   targetName: 'Example Target',
   jobs: [
     {
