@@ -1,12 +1,7 @@
 import {
-	Badge,
-	Box,
-	Button,
 	Flex,
 	ScrollArea,
-	Separator,
 	Spinner,
-	Text,
 } from "@radix-ui/themes";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -20,25 +15,9 @@ import { ActivityPage } from "./ActivityPage";
 import { DashboardPage } from "./DashboardPage";
 import { DeliveryPage } from "./DeliveryPage";
 import { JobHistoryTab } from "./JobHistoryTab";
+import { OptionsSidebar, type Page } from "./OptionsSidebar.tsx";
 import { SchedulePage } from "./SchedulePage";
 import { SearchTargetsPage } from "./SearchTargetsPage";
-
-type Page =
-	| "dashboard"
-	| "search-targets"
-	| "schedule"
-	| "delivery"
-	| "history"
-	| "activity";
-
-const NAV_ITEMS: { id: Page; label: string }[] = [
-	{ id: "dashboard", label: "Dashboard" },
-	{ id: "search-targets", label: "Search + Webhook URLs" },
-	{ id: "schedule", label: "Scrape Schedule" },
-	{ id: "delivery", label: "Browser Notifications" },
-	{ id: "history", label: "Scraped Jobs" },
-	{ id: "activity", label: "Activity Logs" },
-];
 
 const SETTINGS_PAGES: Page[] = ["search-targets", "schedule", "delivery"];
 const SCRAPE_ALARM_NAME = "upwork-scrape";
@@ -224,6 +203,7 @@ function getApproximateNextRunDisplay(args: {
 
 export function OptionsApp() {
 	const [activePage, setActivePage] = useState<Page>("dashboard");
+	const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 	const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
 	const [jobs, setJobs] = useState<Job[]>([]);
 	const [loading, setLoading] = useState(true);
@@ -377,7 +357,6 @@ export function OptionsApp() {
 	if (saving) {
 		autoSaveLabel = "Auto-saving...";
 	}
-	// TODO: when save state success is shown change button from "soft" to "solid" variant for better emphasis
 	if (saveState === "saved") {
 		autoSaveLabel = "Auto-saved ✓";
 	} else if (saveState === "error") {
@@ -385,145 +364,34 @@ export function OptionsApp() {
 	}
 
 	return (
-		<Flex className="app-shell">
-			{/* Sidebar */}
-			<Box className="app-sidebar">
-				{/* Logo / Title */}
-				<Box px="4" pt="5" pb="4">
-					<Box mb="2">
-						<img
-							src="/logo.svg"
-							alt="Upwork Job Scraper logo"
-							width={48}
-							height={48}
-						/>
-					</Box>
-					<Text size="3" weight="bold" as="p" mt="0" mb="1">
-						Upwork Job Scraper + Webhook Extension
-					</Text>
-				</Box>
-
-				<Separator size="4" />
-
-				{/* Scraper controls */}
-				<Box px="4" py="3">
-					<Flex direction="column" gap="2">
-						<Box
-							style={{
-								padding: "8px 10px",
-								border: "1px solid var(--gray-4)",
-								borderRadius: "var(--radius-2)",
-								background:
-									"color-mix(in srgb, var(--gray-2) 70%, transparent)",
-							}}
-						>
-							<Text size="1" color="gray" as="p" m="0">
-								Next scraper run
-							</Text>
-							<Text
-								size="2"
-								weight="medium"
-								color={nextRunDisplay.primaryColor}
-								as="p"
-								m="0"
-								mt="1"
-							>
-								{nextRunDisplay.primary}
-							</Text>
-							{nextRunDisplay.secondary && (
-								<Text size="1" color="gray" as="p" m="0" mt="1">
-									{nextRunDisplay.secondary}
-								</Text>
-							)}
-						</Box>
-
-						<Button
-							size="2"
-							variant="soft"
-							color={settings.masterEnabled ? "green" : "gray"}
-							onClick={() =>
-								setSettings({
-									...settings,
-									masterEnabled: !settings.masterEnabled,
-								})
-							}
-							style={{ width: "100%" }}
-						>
-							{settings.masterEnabled ? "Scraper Enabled" : "Scraper Disabled"}
-						</Button>
-						<Button
-							size="2"
-							variant="soft"
-							color="gray"
-							disabled={scraping || !canRunScrape}
-							onClick={handleManualScrape}
-							style={{ width: "100%" }}
-						>
-							{scraping ? (
-								<Flex align="center" gap="1">
-									<Spinner size="1" />
-									<Text>Scraping...</Text>
-								</Flex>
-							) : (
-								"Run scrape now"
-							)}
-						</Button>
-					</Flex>
-				</Box>
-
-				<Separator size="4" />
-
-				{/* Nav */}
-				<Box className="app-nav">
-					{NAV_ITEMS.map((item) => (
-						<Box
-							key={item.id}
-							className={`app-nav-item ${
-								activePage === item.id ? "app-nav-item--active" : ""
-							}`}
-							onClick={() => setActivePage(item.id)}
-						>
-							<Text
-								size="1"
-								weight={activePage === item.id ? "medium" : "regular"}
-								color={activePage === item.id ? "green" : undefined}
-							>
-								{item.label}
-							</Text>
-						</Box>
-					))}
-				</Box>
-
-				{/* Bottom action area */}
-				<Box px="4" py="4">
-					<Flex justify="center" mb="3">
-						<Badge variant="soft" color="grass">
-							{extensionVersion}
-						</Badge>
-					</Flex>
-
-					{isSettingsPage && (
-						<Flex direction="column" gap="2">
-							<Button
-								size="2"
-								variant={saveState === "saved" ? "solid" : "soft"}
-								color={autoSaveColor}
-								disabled
-								style={{ width: "100%" }}
-							>
-								{saving ? (
-									<Flex align="center" gap="1">
-										<Spinner size="1" />
-										<Text>{autoSaveLabel}</Text>
-									</Flex>
-								) : (
-									autoSaveLabel
-								)}
-							</Button>
-						</Flex>
-					)}
-				</Box>
-			</Box>
+		<Flex
+			className={`app-shell ${
+				isSidebarCollapsed ? "app-shell--sidebar-collapsed" : ""
+			}`}
+		>
+			<OptionsSidebar
+				activePage={activePage}
+				onActivePageChange={setActivePage}
+				isCollapsed={isSidebarCollapsed}
+				onToggleCollapsed={() => setIsSidebarCollapsed((prev) => !prev)}
+				nextRunDisplay={nextRunDisplay}
+				masterEnabled={settings.masterEnabled}
+				onToggleMasterEnabled={() =>
+					setSettings({
+						...settings,
+						masterEnabled: !settings.masterEnabled,
+					})
+				}
+				scraping={scraping}
+				canRunScrape={canRunScrape}
+				onRunScrape={handleManualScrape}
+				extensionVersion={extensionVersion}
+				isSettingsPage={isSettingsPage}
+				saveState={saveState}
+				saving={saving}
+				autoSaveColor={autoSaveColor}
+				autoSaveLabel={autoSaveLabel}
+			/>
 
 			{/* Main content */}
 			<ScrollArea className="main-scroll">

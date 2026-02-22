@@ -5,11 +5,12 @@
 	Card,
 	Flex,
 	Heading,
-	ScrollArea,
+	Select,
 	Separator,
 	Text,
+	TextField,
 } from "@radix-ui/themes";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { activityLogsStorage } from "../utils/storage";
 import type { ActivityLog, ActivityLogLevel } from "../utils/types";
 
@@ -37,6 +38,34 @@ const LEVEL_LABEL: Record<ActivityLogLevel, string> = {
 	warn: "warn",
 	error: "error",
 };
+
+type LevelFilter = "all" | ActivityLogLevel;
+
+function normalizeForSearch(value: string): string {
+	return value.trim().toLowerCase();
+}
+
+function matchesSearch(log: ActivityLog, query: string): boolean {
+	if (!query) return true;
+
+	const searchPool = [log.event, log.detail ?? "", log.level]
+		.join(" ")
+		.toLowerCase();
+
+	return searchPool.includes(query);
+}
+
+function applyLogFilters(
+	logs: ActivityLog[],
+	query: string,
+	levelFilter: LevelFilter,
+): ActivityLog[] {
+	return logs.filter((log) => {
+		if (!matchesSearch(log, query)) return false;
+		if (levelFilter !== "all" && log.level !== levelFilter) return false;
+		return true;
+	});
+}
 
 function LogRow({ log }: Readonly<{ log: ActivityLog }>) {
 	const [relativeTime, setRelativeTime] = useState(() =>
@@ -96,6 +125,8 @@ function LogRow({ log }: Readonly<{ log: ActivityLog }>) {
 export function ActivityPage() {
 	const [logs, setLogs] = useState<ActivityLog[]>([]);
 	const [loading, setLoading] = useState(true);
+	const [searchQuery, setSearchQuery] = useState("");
+	const [levelFilter, setLevelFilter] = useState<LevelFilter>("all");
 
 	useEffect(() => {
 		activityLogsStorage.getValue().then((l) => {
@@ -109,6 +140,26 @@ export function ActivityPage() {
 	async function handleClear() {
 		await activityLogsStorage.setValue([]);
 	}
+
+	function clearAllFilters() {
+		setSearchQuery("");
+		setLevelFilter("all");
+	}
+
+	const normalizedQuery = useMemo(
+		() => normalizeForSearch(searchQuery),
+		[searchQuery],
+	);
+	const filteredLogs = useMemo(
+		() => applyLogFilters(logs, normalizedQuery, levelFilter),
+		[logs, normalizedQuery, levelFilter],
+	);
+	const hasActiveFilters =
+		searchQuery.trim().length > 0 || levelFilter !== "all";
+	const filteredLabel =
+		!loading && logs.length > 0 && hasActiveFilters
+			? `Showing ${filteredLogs.length} of ${logs.length} logs`
+			: null;
 
 	return (
 		<Box className="page-shell">
@@ -131,8 +182,50 @@ export function ActivityPage() {
 				A live record of scrape runs, webhook calls, and errors. Stores up to
 				200 entries locally.
 			</Text>
+			{filteredLabel && (
+				<Text size="1" color="gray" as="p" mt="1">
+					{filteredLabel}
+				</Text>
+			)}
 
 			<Separator className="page-divider" size="4" />
+
+			{!loading && logs.length > 0 && (
+				<Flex gap="2" align="start" wrap="wrap" mb="3">
+					<Box style={{ flex: "1 1 280px", minWidth: 0 }}>
+						<TextField.Root
+							size="2"
+							placeholder="Search event, detail, status..."
+							value={searchQuery}
+							onChange={(event) => setSearchQuery(event.target.value)}
+						/>
+					</Box>
+
+					<Select.Root
+						value={levelFilter}
+						onValueChange={(value) => setLevelFilter(value as LevelFilter)}
+					>
+						<Select.Trigger placeholder="All statuses" />
+						<Select.Content>
+							<Select.Item value="all">All statuses</Select.Item>
+							<Select.Item value="info">Info</Select.Item>
+							<Select.Item value="warn">Warn</Select.Item>
+							<Select.Item value="error">Error</Select.Item>
+						</Select.Content>
+					</Select.Root>
+
+					{hasActiveFilters && (
+						<Button
+							size="2"
+							variant="soft"
+							color="gray"
+							onClick={clearAllFilters}
+						>
+							Clear filters
+						</Button>
+					)}
+				</Flex>
+			)}
 
 			{!loading && logs.length === 0 && (
 				<Card className="surface-card">
@@ -153,16 +246,30 @@ export function ActivityPage() {
 				</Card>
 			)}
 
-			{!loading && logs.length > 0 && (
-				<Card
-					className="surface-card"
-					style={{ padding: 0, overflow: "hidden" }}
-				>
-					<ScrollArea style={{ maxHeight: 560 }}>
-						{logs.map((log) => (
-							<LogRow key={log.id} log={log} />
-						))}
-					</ScrollArea>
+			{!loading && logs.length > 0 && filteredLogs.length === 0 && (
+				<Card className="surface-card">
+					<Flex
+						direction="column"
+						align="center"
+						justify="center"
+						py="8"
+						gap="2"
+					>
+						<Text size="3" weight="medium" color="gray">
+							No matching activity logs
+						</Text>
+						<Text size="2" color="gray">
+							Try adjusting your search or status filter.
+						</Text>
+					</Flex>
+				</Card>
+			)}
+
+			{!loading && logs.length > 0 && filteredLogs.length > 0 && (
+				<Card className="surface-card" style={{ padding: 0 }}>
+					{filteredLogs.map((log) => (
+						<LogRow key={log.id} log={log} />
+					))}
 				</Card>
 			)}
 		</Box>

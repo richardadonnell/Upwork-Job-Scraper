@@ -23,6 +23,10 @@ body {
 
 .app-shell {
   min-height: 100vh;
+  --sidebar-pad-x: var(--space-3);
+  --sidebar-row-h: 36px;
+  --sidebar-radius: var(--radius-2);
+  --sidebar-motion: 160ms ease;
 }
 
 .app-sidebar {
@@ -34,8 +38,44 @@ body {
   position: sticky;
   top: 0;
   height: 100vh;
+  transition: width 180ms ease, min-width 180ms ease, background-color var(--sidebar-motion);
   backdrop-filter: blur(6px);
   background: color-mix(in srgb, var(--gray-1) 82%, transparent);
+}
+
+.app-sidebar-header {
+  position: relative;
+}
+
+.app-sidebar-header--collapsed {
+  display: flex;
+  justify-content: center;
+}
+
+.app-sidebar-brand {
+  transition: transform var(--sidebar-motion), opacity var(--sidebar-motion);
+}
+
+.app-sidebar-toggle {
+  border-radius: var(--sidebar-radius);
+}
+
+.app-sidebar-title {
+  line-height: 1.2;
+}
+
+.app-sidebar-next-run-card {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--gray-6) 16%, transparent);
+}
+
+.app-shell--sidebar-collapsed .app-sidebar {
+  width: 64px;
+  min-width: 64px;
+}
+
+.app-shell--sidebar-collapsed .app-nav-item {
+  justify-content: center;
+  padding: 0;
 }
 
 .status-dot {
@@ -56,7 +96,7 @@ body {
 }
 
 .app-nav {
-  padding: var(--space-2) 0;
+  padding: var(--space-2) var(--space-2);
   flex-grow: 1;
 }
 
@@ -64,24 +104,58 @@ body {
   position: relative;
   display: flex;
   align-items: center;
-  height: 32px;
-  padding: 0 var(--space-3);
+  height: var(--sidebar-row-h);
+  padding: 0 var(--sidebar-pad-x);
+  margin-bottom: 2px;
+  border-radius: var(--sidebar-radius);
   cursor: pointer;
   border-right: 2px solid transparent;
-  transition: background-color 140ms ease, border-color 140ms ease;
+  transition: background-color var(--sidebar-motion), border-color var(--sidebar-motion), transform var(--sidebar-motion);
 }
 
 .app-nav-item:hover {
   background: color-mix(in srgb, var(--gray-4) 55%, transparent);
+  transform: translateX(1px);
 }
 
 .app-nav-item--active {
   background: color-mix(in srgb, var(--accent-4) 72%, transparent);
   border-right-color: var(--accent-9);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-8) 22%, transparent);
 }
 
 .app-nav-item--active:hover {
   background: color-mix(in srgb, var(--accent-5) 75%, transparent);
+}
+
+.app-nav-item:focus-visible,
+.app-sidebar-toggle:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent-8) 75%, transparent);
+  outline-offset: 1px;
+}
+
+.app-nav-item--collapsed {
+  height: var(--sidebar-row-h);
+  width: 100%;
+}
+
+.app-nav-item-content {
+  width: 100%;
+}
+
+.app-nav-item-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--gray-11);
+}
+
+.app-nav-item--active .app-nav-item-icon {
+  color: var(--accent-11);
+}
+
+.app-sidebar-footer {
+  border-top: 1px solid color-mix(in srgb, var(--gray-6) 20%, transparent);
 }
 
 .main-scroll {
@@ -150,6 +224,18 @@ body {
   .app-sidebar {
     width: 200px;
     min-width: 200px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-sidebar,
+  .app-sidebar-brand,
+  .app-nav-item {
+    transition: none;
+  }
+
+  .app-nav-item:hover {
+    transform: none;
   }
 }
 
