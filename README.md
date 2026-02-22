@@ -30,14 +30,6 @@ Version `3.x` includes a one-time migration that imports key user data from the 
 
 Important: this migration only works when users update the **same Chrome Web Store extension listing** (same extension ID).
 
-## Release identity gate (required)
-
-Before publishing `3.x`, verify release identity:
-
-- Publish as an update to the same Web Store item used by `1.x`
-- Do not change extension identity between public versions (ID continuity is required for storage continuity)
-- Treat identity continuity as a hard gate before release
-
 ## Webhook payload contract
 
 For n8n filtering, branch on the top-level `status` field.
@@ -246,7 +238,43 @@ GitHub settings required for release workflow:
 - Add environment secrets: `SENTRY_AUTH_TOKEN`, `CWS_CLIENT_ID`, `CWS_CLIENT_SECRET`, `CWS_REFRESH_TOKEN`.
 - Add repository variables: `WXT_SENTRY_DSN`, `SENTRY_ORG`, `SENTRY_PROJECT`, `CWS_PUBLISHER_ID`, `CWS_EXTENSION_ID`.
 
+### Release runbook (feature branch -> main)
+
+- Work on a feature branch and open a PR targeting `main`.
+- Confirm PR checks pass (`CI Validate` must be green).
+- Merge the PR to `main`.
+- Approve the `production` environment gate when prompted in `Release Publish`.
+- Approval owner: a repository maintainer listed in Environment settings (`Settings -> Environments -> production`); approve from `Actions -> Release Publish -> Review deployments`.
+- Verify `Release Publish` completes all critical steps:
+  - Build and package
+  - Upload ZIP to GitHub release
+  - Upload sourcemaps to Sentry
+  - Upload to Chrome Web Store (upload-only)
+- Confirm the new GitHub release exists (tag pattern: `v<package-version>-main.<run-number>`).
+- Confirm the package appears in Chrome Web Store dashboard, then publish manually. <https://chrome.google.com/webstore/devconsole>
+
+### Quick rollback
+
+- If `Release Publish` fails, fix on a feature branch and merge another PR to `main`.
+- If a failed dry/main artifact is noisy, delete its GitHub release/tag and keep the latest successful one.
+
 Optional local flags for source maps:
 
 - `SENTRY_SOURCEMAPS=true` enables hidden source maps for local/release builds.
 - `SENTRY_UPLOAD_SOURCEMAPS_VITE=true` enables Vite plugin upload path (off by default).
+
+## Limitations
+
+- The extension is designed to work specifically with Upwork's job listing pages.
+- Frequent scraping may be detected by Upwork and could lead to IP blocking.
+- The extension relies on Upwork's current HTML structure; changes to their website may break the scraping functionality.
+
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=richardadonnell/Upwork-Job-Scraper&type=Date)](https://star-history.com/#richardadonnell/Upwork-Job-Scraper&Date)
+
+## Support
+
+If you found this project helpful, consider supporting the developer:
+
+[![Buy Me A Coffee](https://img.buymeacoffee.com/button-api/?text=Buy%20me%20a%20coffee&emoji=&slug=richardadonnell&button_colour=24292e&font_colour=ffffff&font_family=Cookie&outline_colour=000000&coffee_colour=ffffff)](https://buymeacoffee.com/richardadonnell)
