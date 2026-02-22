@@ -170,7 +170,7 @@
     {
       "parameters": {
         "sendTo": "your-email@example.com",
-        "subject": "=⚠️ Upwork Job Scraper - Job Found: {{ $json.title }}",
+        "subject": "✅ Upwork Job Scraper - Job Found: {{ $json.title }}",
         "message": "=<h2><strong>Title:</strong> {{ $json.title }}</h2>\n\n<p><strong><a href=\"{{ $json.url }}\">👉 Click here to see job posting details</a></strong></p>\n\n<p><strong>Description:</strong> {{ $json.description }}</p>",
         "options": {
           "appendAttribution": false
