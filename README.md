@@ -183,7 +183,7 @@ Use the **JSON Path** column as your mapping reference in n8n/Make.
     storage.ts              # WXT typed storage wrappers
     scraper.ts              # Core scrape pipeline
   wxt.config.ts             # WXT build config + manifest metadata
-app/                        # v2 codebase (deprecated, kept for reference)
+KEEP-DO-NOT-DELETE/         # legacy v1 codebase (reference only)
 build.ps1                   # Build script (see below)
 ```
 
