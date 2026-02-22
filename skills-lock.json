@@ -11,6 +11,11 @@
       "sourceType": "github",
       "computedHash": "516bd2154eb843a8240e43d5b285229129853114ad7075a5e141e1c08e408c84"
     },
+    "git-advanced-workflows": {
+      "source": "wshobson/agents",
+      "sourceType": "github",
+      "computedHash": "96274c5eff703074436e1e4ab1f388117f3d79fdc0e6df8fec9ae00c70f47d73"
+    },
     "n8n-code-javascript": {
       "source": "czlonkowski/n8n-skills",
       "sourceType": "github",
@@ -50,6 +55,46 @@
       "source": "sickn33/antigravity-awesome-skills",
       "sourceType": "github",
       "computedHash": "53050903051c0718a82c0f4decdb34e8adbc7cd871b8407d83c46b08d4599357"
+    },
+    "sentry-create-alert": {
+      "source": "getsentry/sentry-agent-skills",
+      "sourceType": "github",
+      "computedHash": "dd0385b20be33d9f872fa05f8b396e52273b0f7bdf8f17e37b81d3aa9f30a995"
+    },
+    "sentry-fix-issues": {
+      "source": "getsentry/sentry-agent-skills",
+      "sourceType": "github",
+      "computedHash": "6dcf01ec6a3abb3f6754d1c202437503006cbafae49e99a1f09af3b5ac1069e9"
+    },
+    "sentry-pr-code-review": {
+      "source": "getsentry/sentry-agent-skills",
+      "sourceType": "github",
+      "computedHash": "b5fe59c669bd4e633745786d41a9e4c5d0be930a69eeca2d69e45c6ddd9069b9"
+    },
+    "sentry-react-setup": {
+      "source": "getsentry/sentry-agent-skills",
+      "sourceType": "github",
+      "computedHash": "c13354984e5cc4d97e77875a49fb74e4460671292c87f0c3c3488c4d566dcdfb"
+    },
+    "sentry-setup-ai-monitoring": {
+      "source": "getsentry/sentry-agent-skills",
+      "sourceType": "github",
+      "computedHash": "46fe09cbca41f959d464bc446b0a3b6058968635ef658203da5e540b6764a5ac"
+    },
+    "sentry-setup-logging": {
+      "source": "getsentry/sentry-agent-skills",
+      "sourceType": "github",
+      "computedHash": "6cdc767fd3e75ab58dd748024e21cdb89cbae50245b4cb65418031229b1fb6c3"
+    },
+    "sentry-setup-metrics": {
+      "source": "getsentry/sentry-agent-skills",
+      "sourceType": "github",
+      "computedHash": "e6d1092c42af12cceb89d1cffa41edf197febd10754953948784002b4e56b849"
+    },
+    "sentry-setup-tracing": {
+      "source": "getsentry/sentry-agent-skills",
+      "sourceType": "github",
+      "computedHash": "cacfe3de677538a2c611345f4ab059b829faf7d882fba1f8da0e266f21a4fb2c"
     },
     "trigger-agents": {
       "source": "triggerdotdev/skills",
