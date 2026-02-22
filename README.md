@@ -2,6 +2,14 @@
 
 A Chrome extension (MV3) that automatically scrapes Upwork job listings from a saved search URL and delivers new results via browser notifications and/or a webhook.
 
+## Chrome Web Store listing
+
+⭐ Chrome Browser Extension ⭐
+
+ [![Available in the Chrome Web Store](https://developer.chrome.com/static/docs/webstore/branding/image/206x58-chrome-web-bcb82d15b2486.png)](https://chromewebstore.google.com/detail/mojpfejnpifdgjjknalhghclnaifnjkg?utm_source=item-share-cb)
+
+Or, click the link here: <https://chromewebstore.google.com/detail/mojpfejnpifdgjjknalhghclnaifnjkg>
+
 ## How it works
 
 1. You provide a search URL from Upwork (e.g. a filtered job search)
