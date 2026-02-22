@@ -144,8 +144,8 @@ jobs:
           echo "$RESPONSE"
           STATE="$(echo "$RESPONSE" | python -c "import json,sys; print(json.load(sys.stdin).get('uploadState',''))")"
 
-          if [[ "$STATE" != "SUCCESS" ]]; then
-            echo "Chrome Web Store upload did not return SUCCESS."
+          if [[ "$STATE" != "SUCCESS" && "$STATE" != "SUCCEEDED" ]]; then
+            echo "Chrome Web Store upload did not return SUCCESS/SUCCEEDED."
             exit 1
           fi
 
