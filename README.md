@@ -210,3 +210,27 @@ npm run dev       # Watch mode with HMR for the options page
 npm run build     # Production build
 npm run compile   # TypeScript type-check only (no output)
 ```
+
+## Sentry (v3)
+
+The v3 extension integrates Sentry in all runtime contexts:
+
+- Background service worker
+- Runtime-injected content script
+- Options React page
+
+Runtime configuration uses WXT environment variables:
+
+- `WXT_SENTRY_DSN` (required to send events)
+- `WXT_SENTRY_ENVIRONMENT` (optional, defaults to `development`)
+- `WXT_SENTRY_RELEASE` (optional, defaults to extension version)
+- `WXT_SENTRY_TRACES_SAMPLE_RATE` (optional, defaults to `0`)
+- `WXT_SENTRY_ENABLE_LOGS` (optional, `true`/`false`)
+
+Source-map upload configuration uses build-time env vars:
+
+- `SENTRY_AUTH_TOKEN`
+- `SENTRY_ORG`
+- `SENTRY_PROJECT`
+
+When these are set, the build enables hidden source maps and uploads them via `@sentry/vite-plugin`.

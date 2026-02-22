@@ -1,3 +1,4 @@
+import { captureContextException } from "./sentry";
 import {
 	appendActivityLog,
 	JOB_HISTORY_MAX,
@@ -333,6 +334,10 @@ async function processTargetResult(
 			}
 			await appendActivityLog("info", "Webhook delivered", target.searchUrl);
 		} catch (err) {
+			captureContextException("background", err, {
+				operation: "processTargetResult-webhook",
+				targetUrl: target.searchUrl,
+			});
 			console.error(
 				`[Upwork Scraper] Webhook delivery failed for ${target.searchUrl}:`,
 				err,
@@ -414,6 +419,11 @@ async function sendIssueWebhookIfNeeded(
 			target.searchUrl,
 		);
 	} catch (err) {
+		captureContextException("background", err, {
+			operation: "sendIssueWebhookIfNeeded",
+			targetUrl: target.searchUrl,
+			reason: result.reason ?? "unknown",
+		});
 		console.error(
 			`[Upwork Scraper] Issue webhook failed for ${target.searchUrl}:`,
 			err,
@@ -535,6 +545,10 @@ export async function runScrape(options?: { manual?: boolean }): Promise<void> {
 				}
 				return result;
 			} catch (err) {
+				captureContextException("background", err, {
+					operation: "runScrape-target",
+					targetUrl: target.searchUrl,
+				});
 				console.error(
 					`[Upwork Scraper] Scrape error for ${target.searchUrl}:`,
 					err,

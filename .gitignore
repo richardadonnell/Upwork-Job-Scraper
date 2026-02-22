@@ -80,7 +80,6 @@ README-task-master.md
 .cursor/mcp.json
 .cursor/*
 scripts/
-.env.example
 PLANNING.md
 node_modules/
 tasks/

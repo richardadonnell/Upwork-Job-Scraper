@@ -16,6 +16,10 @@ import {
 	TextField,
 } from "@radix-ui/themes";
 import { useState } from "react";
+import {
+	captureContextException,
+	captureContextMessage,
+} from "../utils/sentry";
 import type { SearchTarget, Settings } from "../utils/types";
 import {
 	EXAMPLE_LEGACY_WEBHOOK_PAYLOAD,
@@ -94,9 +98,22 @@ function SearchTargetCard({
 				headers: { "Content-Type": "application/json" },
 				body: JSON.stringify(payload),
 			});
+			if (!res.ok) {
+				captureContextMessage("options", "Webhook test failed", {
+					operation: "handleTestWebhook",
+					status: res.status,
+					targetName,
+					targetUrl: target.searchUrl,
+				});
+			}
 			setTestStatus(res.ok ? "ok" : "error");
 			setTimeout(() => setTestStatus("idle"), res.ok ? 3000 : 4000);
-		} catch {
+		} catch (err) {
+			captureContextException("options", err, {
+				operation: "handleTestWebhook",
+				targetName,
+				targetUrl: target.searchUrl,
+			});
 			setTestStatus("error");
 			setTimeout(() => setTestStatus("idle"), 4000);
 		}

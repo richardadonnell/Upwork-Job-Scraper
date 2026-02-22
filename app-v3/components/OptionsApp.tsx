@@ -1,9 +1,6 @@
-import {
-	Flex,
-	ScrollArea,
-	Spinner,
-} from "@radix-ui/themes";
+import { Flex, ScrollArea, Spinner } from "@radix-ui/themes";
 import { useEffect, useRef, useState } from "react";
+import { captureContextException } from "../utils/sentry";
 import {
 	DEFAULT_SETTINGS,
 	jobHistoryStorage,
@@ -255,6 +252,13 @@ export function OptionsApp() {
 					setScheduledAlarmTimestamp(alarm?.scheduledTime ?? null);
 				}
 			} catch {
+				captureContextException(
+					"options",
+					new Error("Failed to refresh scheduled alarm"),
+					{
+						operation: "refreshScheduledAlarm",
+					},
+				);
 				if (!cancelled) {
 					setScheduledAlarmTimestamp(null);
 				}
@@ -295,7 +299,10 @@ export function OptionsApp() {
 				saveSucceeded = true;
 				setSaveState("saved");
 				setShowSaveSuccess(true);
-			} catch {
+			} catch (err) {
+				captureContextException("options", err, {
+					operation: "autosave-settings",
+				});
 				setSaveState("error");
 			} finally {
 				setSaving(false);
@@ -320,6 +327,9 @@ export function OptionsApp() {
 		try {
 			await browser.runtime.sendMessage({ type: "manualScrape" });
 		} catch (err) {
+			captureContextException("options", err, {
+				operation: "manualScrape",
+			});
 			console.error("[Upwork Scraper] Manual scrape failed", err);
 		} finally {
 			setScraping(false);

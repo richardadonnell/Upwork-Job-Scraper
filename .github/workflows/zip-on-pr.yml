@@ -1,4 +1,4 @@
-name: Create Release Zip
+name: Create Release ZIP
 
 on:
   push:
@@ -9,137 +9,44 @@ on:
 jobs:
   create-zip:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
 
     steps:
       - name: Check out code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          fetch-depth: 0 # Fetch all history to get merge commit info
+          node-version: 22
+          cache: npm
+          cache-dependency-path: app-v3/package-lock.json
 
-      - name: Get branch name
-        id: vars
+      - name: Install dependencies
+        working-directory: app-v3
+        run: npm ci
+
+      - name: Create extension zip
+        working-directory: app-v3
+        run: npm run zip
+
+      - name: Resolve version and zip file
+        id: artifact
         run: |
-          if [[ ${{ github.event_name }} == 'push' ]]; then
-            # Get the merge commit message
-            COMMIT_MSG=$(git log -1 --pretty=%B)
-            
-            # Check if this is a PR merge
-            if [[ $COMMIT_MSG == "Merge pull request"* ]]; then
-              # Extract branch name from the merge commit message
-              BRANCH_NAME=$(git log -1 --pretty=%B | grep -o "from.*" | cut -d'/' -f2 | tr -d "'")
-              if [[ ! -z "$BRANCH_NAME" ]]; then
-                echo "version_tag=$BRANCH_NAME" >> $GITHUB_ENV
-                echo "Found branch name: $BRANCH_NAME"
-              else
-                # Fallback to commit SHA if branch name not found
-                echo "version_tag=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
-                echo "Using commit SHA as fallback"
-              fi
-            else
-              # Not a PR merge, use commit SHA
-              echo "version_tag=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
-              echo "Using commit SHA (not a PR merge)"
-            fi
-          else
-            # For manual triggers, use timestamp
-            echo "version_tag=$(date +'%Y%m%d_%H%M%S')" >> $GITHUB_ENV
-            echo "Using timestamp (manual trigger)"
+          VERSION=$(node -p "require('./app-v3/package.json').version")
+          ZIP_FILE=$(ls app-v3/.output/*-chrome.zip | head -n 1)
+
+          if [[ -z "$ZIP_FILE" ]]; then
+            echo "No Chrome zip artifact found in app-v3/.output"
+            exit 1
           fi
 
-      - name: List files in repository
-        run: |
-          echo "Contents of upwork-job-scraper directory:"
-          ls -al upwork-job-scraper/
-
-      - name: Create a zip file with specific files
-        run: |
-          # Start fresh - remove any existing files
-          rm -rf temp releases
-
-          # Create our directory structure
-          mkdir -p releases
-          mkdir -p temp
-
-          # Debug: Print current directory and structure
-          echo "Current directory structure:"
-          pwd
-          ls -la
-
-          files=(
-            activityLog.js
-            background.js
-            errorHandling.js
-            icon128.png
-            icon48.png
-            jobScraping.js
-            manifest.json
-            notifications.js
-            sentry-init.js
-            sentry.js
-            settings.css
-            settings.html
-            settings.js
-            storage.js
-            utils.js
-            webhook.js
-          )
-
-          # First, create our target directory structure
-          mkdir -p "temp/upwork-job-scraper"
-
-          # Copy files to the correct location
-          echo "Copying files..."
-          for file in "${files[@]}"; do
-            if [[ -f "upwork-job-scraper/$file" ]]; then
-              cp "upwork-job-scraper/$file" "temp/upwork-job-scraper/"
-              echo "✓ Copied $file"
-            else
-              echo "❌ Error: upwork-job-scraper/$file does not exist."
-              exit 1
-            fi
-          done
-
-          # Create the zip file - IMPORTANT: We're in the root and specifically targeting the folder
-          echo "Creating zip file..."
-          (cd temp && zip -r "../releases/upwork-job-scraper-${{ env.version_tag }}.zip" "upwork-job-scraper")
-
-          # Verify zip contents
-          echo "Verifying zip contents..."
-          unzip -l "releases/upwork-job-scraper-${{ env.version_tag }}.zip"
-
-          # Clean up
-          rm -rf temp
-          echo "✓ Zip file created successfully in releases folder"
-
-      - name: Commit and push releases folder
-        run: |
-          # Debug: Show git status
-          echo "Git status before commit:"
-          git status
-
-          git config --local user.email "github-actions[bot]@users.noreply.github.com"
-          git config --local user.name "github-actions[bot]"
-
-          # Force add the releases directory
-          git add -f releases/
-
-          # Debug: Show git status after add
-          echo "Git status after add:"
-          git status
-
-          # Only commit if there are changes
-          if git diff --staged --quiet; then
-            echo "No changes to commit"
-          else
-            git commit -m "Add release zip for version ${{ env.version_tag }}"
-            git push
-          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "zip_file=$ZIP_FILE" >> "$GITHUB_OUTPUT"
+          echo "artifact_name=upwork-job-scraper-v$VERSION-chrome" >> "$GITHUB_OUTPUT"
 
       - name: Upload zip file as artifact
         uses: actions/upload-artifact@v4
         with:
-          name: "upwork-job-scraper-${{ env.version_tag }}"
-          path: "releases/upwork-job-scraper-${{ env.version_tag }}.zip"
-          retention-days: 5 # Keep artifacts for 5 days
+          name: ${{ steps.artifact.outputs.artifact_name }}
+          path: ${{ steps.artifact.outputs.zip_file }}
+          retention-days: 5

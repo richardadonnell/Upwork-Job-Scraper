@@ -2,34 +2,45 @@ name: Sentry Release and Source Maps
 
 on:
   workflow_run:
-    workflows: ["Auto Release"] # IMPORTANT: This must match the 'name:' field of your existing Auto Release workflow YAML file
+    workflows: ["Auto Release"]
     types:
       - completed
+    branches:
+      - main
 
 jobs:
   sentry_release_and_sourcemaps:
-    # Only run if the "Auto Release" workflow completed successfully
     if: github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
-      - name: Checkout code at the commit of the completed "Auto Release" workflow
+      - name: Checkout code at workflow commit
         uses: actions/checkout@v4
         with:
-          # This checks out the specific commit that the "Auto Release" workflow ran on
           ref: ${{ github.event.workflow_run.head_sha }}
-          fetch-depth: 0 # Necessary for git describe to access all tags
+          fetch-depth: 0
 
-      - name: Extract version from Git tag
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: app-v3/package-lock.json
+
+      - name: Install dependencies
+        working-directory: app-v3
+        run: npm ci
+
+      - name: Build extension
+        working-directory: app-v3
+        run: npm run build
+
+      - name: Resolve app version
         id: get_version
         run: |
-          # This command assumes that your "Auto Release" workflow creates a Git tag
-          # (e.g., v1.2.3) directly on the commit: ${{ github.event.workflow_run.head_sha }}
-          # It will fail if no exact tag is found, preventing the Sentry release if the version is unclear.
-          VERSION_TAG=$(git describe --tags --exact-match ${{ github.event.workflow_run.head_sha }})
-          echo "Found tag on commit: $VERSION_TAG"
-          # Strip 'v' prefix from the tag (e.g., v1.2.3 -> 1.2.3)
-          APP_VERSION_FROM_TAG=${VERSION_TAG#v}
-          echo "APP_VERSION=$APP_VERSION_FROM_TAG" >> $GITHUB_ENV
+          APP_VERSION=$(node -p "require('./app-v3/package.json').version")
+          echo "release=upwork-job-scraper@$APP_VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Sentry Release and Source Maps Upload
         uses: getsentry/action-release@v3
@@ -37,9 +48,8 @@ jobs:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
           SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
-          # SENTRY_URL: ${{ secrets.SENTRY_URL }} # Uncomment if self-hosted
         with:
           environment: production
-          version: upwork-job-scraper@${{ env.APP_VERSION }} # e.g., upwork-job-scraper@1.59.13
-          sourcemaps: "./upwork-job-scraper" # Path to the folder containing your JS files
-          url_prefix: "app:///" # Must match the prefix used in sentry-init.js
+          release: ${{ steps.get_version.outputs.release }}
+          sourcemaps: "./app-v3/.output/chrome-mv3"
+          url_prefix: "app:///"
