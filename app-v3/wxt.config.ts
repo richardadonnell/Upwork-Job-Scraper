@@ -29,8 +29,13 @@ export default defineConfig({
 	}),
 	vite: () => {
 		const plugins = [];
+		const enableViteSourcemapUpload =
+			process.env.SENTRY_UPLOAD_SOURCEMAPS_VITE === "true";
+		const enableSourcemaps =
+			process.env.SENTRY_SOURCEMAPS === "true" || enableViteSourcemapUpload;
 
 		if (
+			enableViteSourcemapUpload &&
 			process.env.SENTRY_AUTH_TOKEN &&
 			process.env.SENTRY_ORG &&
 			process.env.SENTRY_PROJECT
@@ -55,7 +60,7 @@ export default defineConfig({
 
 		return {
 			build: {
-				sourcemap: process.env.SENTRY_AUTH_TOKEN ? "hidden" : false,
+				sourcemap: enableSourcemaps ? "hidden" : false,
 			},
 			plugins,
 		};

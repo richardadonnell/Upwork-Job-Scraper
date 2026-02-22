@@ -1,0 +1,156 @@
+name: Release Publish
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    environment: ${{ 'production' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: app-v3/package-lock.json
+
+      - name: Install dependencies
+        working-directory: app-v3
+        run: npm ci
+
+      - name: Resolve and verify tag/version
+        id: meta
+        shell: bash
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          VERSION="$(node -p "require('./app-v3/package.json').version")"
+          if [[ "v${VERSION}" != "$TAG" ]]; then
+            echo "Tag ($TAG) does not match app-v3/package.json version (v$VERSION)."
+            exit 1
+          fi
+
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "release=upwork-job-scraper@$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Build and package
+        working-directory: app-v3
+        env:
+          WXT_SENTRY_DSN: ${{ vars['WXT_SENTRY_DSN'] }}
+          WXT_SENTRY_ENVIRONMENT: production
+          WXT_SENTRY_RELEASE: ${{ steps.meta.outputs.release }}
+          SENTRY_SOURCEMAPS: "true"
+          SENTRY_UPLOAD_SOURCEMAPS_VITE: "false"
+        run: npm run zip
+
+      - name: Create or update GitHub release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          TAG="${{ steps.meta.outputs.tag }}"
+          TITLE="Upwork Job Scraper v${{ steps.meta.outputs.version }}"
+
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release edit "$TAG" --title "$TITLE"
+          else
+            gh release create "$TAG" --title "$TITLE" --generate-notes
+          fi
+
+      - name: Locate Chrome ZIP
+        id: zip
+        shell: bash
+        run: |
+          ZIP_FILE="$(ls app-v3/.output/*-chrome.zip | head -n 1)"
+          if [[ -z "$ZIP_FILE" ]]; then
+            echo "No Chrome zip artifact found under app-v3/.output"
+            exit 1
+          fi
+          echo "zip_file=$ZIP_FILE" >> "$GITHUB_OUTPUT"
+
+      - name: Upload ZIP to GitHub release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          gh release upload "${{ steps.meta.outputs.tag }}" "${{ steps.zip.outputs.zip_file }}" --clobber
+
+      - name: Upload sourcemaps to Sentry
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ vars['SENTRY_ORG'] }}
+          SENTRY_PROJECT: ${{ vars['SENTRY_PROJECT'] }}
+          SENTRY_RELEASE: ${{ steps.meta.outputs.release }}
+        shell: bash
+        run: |
+          npx --yes sentry-cli sourcemaps inject app-v3/.output/chrome-mv3
+          npx --yes sentry-cli sourcemaps upload \
+            --release "$SENTRY_RELEASE" \
+            --url-prefix "~/" \
+            app-v3/.output/chrome-mv3
+
+      - name: Exchange refresh token for access token
+        id: token
+        env:
+          CWS_CLIENT_ID: ${{ secrets['CWS_CLIENT_ID'] }}
+          CWS_CLIENT_SECRET: ${{ secrets['CWS_CLIENT_SECRET'] }}
+          CWS_REFRESH_TOKEN: ${{ secrets['CWS_REFRESH_TOKEN'] }}
+        shell: bash
+        run: |
+          TOKEN_JSON="$(curl --fail --silent --show-error https://oauth2.googleapis.com/token \
+            -d client_id="$CWS_CLIENT_ID" \
+            -d client_secret="$CWS_CLIENT_SECRET" \
+            -d refresh_token="$CWS_REFRESH_TOKEN" \
+            -d grant_type=refresh_token)"
+
+          ACCESS_TOKEN="$(echo "$TOKEN_JSON" | python -c "import json,sys; print(json.load(sys.stdin).get('access_token',''))")"
+
+          if [[ -z "$ACCESS_TOKEN" ]]; then
+            echo "Failed to obtain access token from refresh token flow."
+            exit 1
+          fi
+
+          echo "::add-mask::$ACCESS_TOKEN"
+          echo "access_token=$ACCESS_TOKEN" >> "$GITHUB_OUTPUT"
+
+      - name: Upload to Chrome Web Store (upload-only)
+        env:
+          ACCESS_TOKEN: ${{ steps.token.outputs.access_token }}
+          CWS_PUBLISHER_ID: ${{ vars['CWS_PUBLISHER_ID'] }}
+          CWS_EXTENSION_ID: ${{ vars['CWS_EXTENSION_ID'] }}
+          ZIP_FILE: ${{ steps.zip.outputs.zip_file }}
+        shell: bash
+        run: |
+          RESPONSE="$(curl --fail --silent --show-error \
+            -X POST \
+            -H "Authorization: Bearer $ACCESS_TOKEN" \
+            -H "Content-Type: application/zip" \
+            --data-binary "@$ZIP_FILE" \
+            "https://chromewebstore.googleapis.com/upload/v2/publishers/$CWS_PUBLISHER_ID/items/$CWS_EXTENSION_ID:upload")"
+
+          echo "$RESPONSE"
+          STATE="$(echo "$RESPONSE" | python -c "import json,sys; print(json.load(sys.stdin).get('uploadState',''))")"
+
+          if [[ "$STATE" != "SUCCESS" ]]; then
+            echo "Chrome Web Store upload did not return SUCCESS."
+            exit 1
+          fi
+
+      - name: Manual publish reminder
+        run: echo "Upload complete. Publish manually in the Chrome Web Store dashboard."

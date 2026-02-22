@@ -1,0 +1,61 @@
+name: CI Validate
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-validate-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app-v3
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: app-v3/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type-check
+        run: npm run compile
+
+      - name: Build
+        run: npm run build
+
+      - name: Package ZIP
+        run: npm run zip
+
+      - name: Resolve ZIP path
+        id: zip
+        shell: bash
+        run: |
+          ZIP_FILE="$(ls .output/*-chrome.zip | head -n 1)"
+          if [[ -z "$ZIP_FILE" ]]; then
+            echo "No Chrome zip artifact found under app-v3/.output"
+            exit 1
+          fi
+          echo "zip_file=$ZIP_FILE" >> "$GITHUB_OUTPUT"
+
+      - name: Upload ZIP artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: upwork-job-scraper-ci-zip
+          path: app-v3/${{ steps.zip.outputs.zip_file }}
+          retention-days: 5

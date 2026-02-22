@@ -233,4 +233,20 @@ Source-map upload configuration uses build-time env vars:
 - `SENTRY_ORG`
 - `SENTRY_PROJECT`
 
-When these are set, the build enables hidden source maps and uploads them via `@sentry/vite-plugin`.
+Release workflow notes:
+
+- CI validates on pull requests via `.github/workflows/ci-validate.yml`.
+- Production release runs on `v*` tags via `.github/workflows/release-publish.yml`.
+- Sourcemaps are uploaded in CI with `sentry-cli`.
+- Chrome Web Store integration is upload-only in CI; publish remains manual in dashboard.
+
+GitHub settings required for release workflow:
+
+- Create a GitHub Environment named `production` and require reviewers.
+- Add environment secrets: `SENTRY_AUTH_TOKEN`, `CWS_CLIENT_ID`, `CWS_CLIENT_SECRET`, `CWS_REFRESH_TOKEN`.
+- Add repository variables: `WXT_SENTRY_DSN`, `SENTRY_ORG`, `SENTRY_PROJECT`, `CWS_PUBLISHER_ID`, `CWS_EXTENSION_ID`.
+
+Optional local flags for source maps:
+
+- `SENTRY_SOURCEMAPS=true` enables hidden source maps for local/release builds.
+- `SENTRY_UPLOAD_SOURCEMAPS_VITE=true` enables Vite plugin upload path (off by default).
