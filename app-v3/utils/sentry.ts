@@ -8,6 +8,14 @@ import {
 
 type ContextName = "background" | "options" | "content";
 
+export type WebhookErrorKind = "failed_to_fetch" | "http_error" | "unknown";
+
+export interface ClassifiedWebhookError {
+	kind: WebhookErrorKind;
+	message: string;
+	httpStatus?: number;
+}
+
 const scopeByContext = new Map<ContextName, Scope>();
 
 function getManifestVersion(): string {
@@ -100,6 +108,69 @@ function toError(error: unknown): Error {
 	return new Error(String(error));
 }
 
+function toMessage(error: unknown): string {
+	if (error instanceof Error) return error.message;
+	return String(error);
+}
+
+function createEventScope(scope: Scope, meta?: Record<string, unknown>): Scope {
+	const eventScope = scope.clone();
+	if (!meta) return eventScope;
+
+	for (const [key, value] of Object.entries(meta)) {
+		eventScope.setExtra(key, value);
+	}
+
+	const stage = meta.stage;
+	if (typeof stage === "string" && stage.trim()) {
+		eventScope.setTag("stage", stage.trim());
+	}
+
+	return eventScope;
+}
+
+export function classifyWebhookError(args: {
+	response?: { ok: boolean; status: number };
+	error?: unknown;
+}): ClassifiedWebhookError {
+	if (args.response && !args.response.ok) {
+		return {
+			kind: "http_error",
+			message: `HTTP ${args.response.status}`,
+			httpStatus: args.response.status,
+		};
+	}
+
+	if (args.error !== undefined) {
+		const message = toMessage(args.error);
+		if (/Failed to fetch/i.test(message)) {
+			return {
+				kind: "failed_to_fetch",
+				message,
+			};
+		}
+
+		const httpMatch = /HTTP\s+(\d{3})/i.exec(message);
+		if (httpMatch) {
+			return {
+				kind: "http_error",
+				message,
+				httpStatus: Number(httpMatch[1]),
+			};
+		}
+
+		return {
+			kind: "unknown",
+			message,
+		};
+	}
+
+	return {
+		kind: "unknown",
+		message: "Unknown webhook error",
+	};
+}
+
 export function captureContextException(
 	context: ContextName,
 	error: unknown,
@@ -108,13 +179,8 @@ export function captureContextException(
 	const scope = getScope(context);
 	if (!scope) return;
 
-	if (meta) {
-		for (const [key, value] of Object.entries(meta)) {
-			scope.setExtra(key, value);
-		}
-	}
-
-	scope.captureException(toError(error));
+	const eventScope = createEventScope(scope, meta);
+	eventScope.captureException(toError(error));
 }
 
 export function captureContextMessage(
@@ -125,11 +191,6 @@ export function captureContextMessage(
 	const scope = getScope(context);
 	if (!scope) return;
 
-	if (meta) {
-		for (const [key, value] of Object.entries(meta)) {
-			scope.setExtra(key, value);
-		}
-	}
-
-	scope.captureMessage(message);
+	const eventScope = createEventScope(scope, meta);
+	eventScope.captureMessage(message);
 }
