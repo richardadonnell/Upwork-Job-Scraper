@@ -19,6 +19,7 @@ import { useState } from "react";
 import {
 	captureContextException,
 	captureContextMessage,
+	classifyWebhookError,
 } from "../utils/sentry";
 import type { SearchTarget, Settings } from "../utils/types";
 import {
@@ -99,20 +100,30 @@ function SearchTargetCard({
 				body: JSON.stringify(payload),
 			});
 			if (!res.ok) {
+				const webhookError = classifyWebhookError({ response: res });
 				captureContextMessage("options", "Webhook test failed", {
 					operation: "handleTestWebhook",
+					stage: "webhook_test",
 					status: res.status,
 					targetName,
 					targetUrl: target.searchUrl,
+					webhookErrorKind: webhookError.kind,
+					httpStatus: webhookError.httpStatus,
+					normalizedMessage: webhookError.message,
 				});
 			}
 			setTestStatus(res.ok ? "ok" : "error");
 			setTimeout(() => setTestStatus("idle"), res.ok ? 3000 : 4000);
 		} catch (err) {
+			const webhookError = classifyWebhookError({ error: err });
 			captureContextException("options", err, {
 				operation: "handleTestWebhook",
+				stage: "webhook_test",
 				targetName,
 				targetUrl: target.searchUrl,
+				webhookErrorKind: webhookError.kind,
+				httpStatus: webhookError.httpStatus,
+				normalizedMessage: webhookError.message,
 			});
 			setTestStatus("error");
 			setTimeout(() => setTestStatus("idle"), 4000);
@@ -318,6 +329,10 @@ function SearchTargetCard({
 }
 
 export function SearchTargetsPage({ settings, onChange }: Props) {
+	const safeSearchTargets = Array.isArray(settings.searchTargets)
+		? settings.searchTargets
+		: [];
+
 	return (
 		<Box className="page-shell">
 			<Heading className="page-title" size="5">
@@ -379,22 +394,20 @@ export function SearchTargetsPage({ settings, onChange }: Props) {
 				</Callout.Text>
 			</Callout.Root>
 
-			{settings.searchTargets.map((target, i) => (
+			{safeSearchTargets.map((target, i) => (
 				<SearchTargetCard
 					key={target.id}
 					target={target}
 					index={i}
-					total={settings.searchTargets.length}
+					total={safeSearchTargets.length}
 					onChange={(updated) => {
-						const next = settings.searchTargets.map((t) =>
+						const next = safeSearchTargets.map((t) =>
 							t.id === updated.id ? updated : t,
 						);
 						onChange({ ...settings, searchTargets: next });
 					}}
 					onRemove={() => {
-						const next = settings.searchTargets.filter(
-							(t) => t.id !== target.id,
-						);
+						const next = safeSearchTargets.filter((t) => t.id !== target.id);
 						onChange({ ...settings, searchTargets: next });
 					}}
 				/>
@@ -407,7 +420,7 @@ export function SearchTargetsPage({ settings, onChange }: Props) {
 				onClick={() => {
 					const newTarget: SearchTarget = {
 						id: crypto.randomUUID(),
-						name: `Target ${settings.searchTargets.length + 1}`,
+						name: `Target ${safeSearchTargets.length + 1}`,
 						searchUrl: "",
 						webhookEnabled: false,
 						webhookUrl: "",
@@ -416,7 +429,7 @@ export function SearchTargetsPage({ settings, onChange }: Props) {
 					};
 					onChange({
 						...settings,
-						searchTargets: [...settings.searchTargets, newTarget],
+						searchTargets: [...safeSearchTargets, newTarget],
 					});
 				}}
 			>

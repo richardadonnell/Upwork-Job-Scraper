@@ -4,6 +4,7 @@ import { captureContextException } from "../utils/sentry";
 import {
 	DEFAULT_SETTINGS,
 	jobHistoryStorage,
+	sanitizeSettings,
 	settingsStorage,
 } from "../utils/storage";
 import type { Job, Settings } from "../utils/types";
@@ -221,12 +222,15 @@ export function OptionsApp() {
 			settingsStorage.getValue(),
 			jobHistoryStorage.getValue(),
 		]).then(([s, j]) => {
-			setSettings(s);
+			const sanitizedSettings = sanitizeSettings(s);
+			setSettings(sanitizedSettings);
 			setJobs(j);
-			lastSavedSnapshotRef.current = JSON.stringify(s);
+			lastSavedSnapshotRef.current = JSON.stringify(sanitizedSettings);
 			setLoading(false);
 		});
-		const unwatchSettings = settingsStorage.watch((s) => setSettings(s));
+		const unwatchSettings = settingsStorage.watch((s) =>
+			setSettings(sanitizeSettings(s)),
+		);
 		const unwatchJobs = jobHistoryStorage.watch((j) => setJobs(j));
 		return () => {
 			unwatchSettings();
@@ -257,6 +261,7 @@ export function OptionsApp() {
 					new Error("Failed to refresh scheduled alarm"),
 					{
 						operation: "refreshScheduledAlarm",
+						stage: "alarm_refresh",
 					},
 				);
 				if (!cancelled) {
@@ -302,6 +307,7 @@ export function OptionsApp() {
 			} catch (err) {
 				captureContextException("options", err, {
 					operation: "autosave-settings",
+					stage: "autosave_settings",
 				});
 				setSaveState("error");
 			} finally {
@@ -329,6 +335,7 @@ export function OptionsApp() {
 		} catch (err) {
 			captureContextException("options", err, {
 				operation: "manualScrape",
+				stage: "manual_scrape",
 			});
 			console.error("[Upwork Scraper] Manual scrape failed", err);
 		} finally {
@@ -345,7 +352,10 @@ export function OptionsApp() {
 	}
 
 	const isSettingsPage = SETTINGS_PAGES.includes(activePage);
-	const canRunScrape = settings.searchTargets.some((t) => t.searchUrl.trim());
+	const safeSearchTargets = Array.isArray(settings.searchTargets)
+		? settings.searchTargets
+		: [];
+	const canRunScrape = safeSearchTargets.some((t) => t.searchUrl.trim());
 	const extensionVersion = browser.runtime.getManifest().version;
 	const nextRunDisplay = getApproximateNextRunDisplay({
 		canRunScrape,

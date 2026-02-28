@@ -1,8 +1,9 @@
-import { captureContextException } from "./sentry";
+import { captureContextException, classifyWebhookError } from "./sentry";
 import {
 	appendActivityLog,
 	JOB_HISTORY_MAX,
 	jobHistoryStorage,
+	sanitizeSettings,
 	seenJobIdsStorage,
 	settingsStorage,
 } from "./storage";
@@ -78,7 +79,7 @@ function getJitteredDelayMinutes(baseMinutes: number): number {
 }
 
 export async function setupAlarm(): Promise<void> {
-	const settings = await settingsStorage.getValue();
+	const settings = sanitizeSettings(await settingsStorage.getValue());
 	await browser.alarms.clear(ALARM_NAME);
 
 	if (!settings.masterEnabled) return;
@@ -104,6 +105,101 @@ function parseTimeToMinutes(value: string): number | null {
 	return hour * 60 + minute;
 }
 
+function toErrorMessage(error: unknown): string {
+	if (error instanceof Error) return error.message;
+	return String(error);
+}
+
+function isNoCurrentWindowError(error: unknown): boolean {
+	return /No current window/i.test(toErrorMessage(error));
+}
+
+function isFrameRemovedError(error: unknown): boolean {
+	return /Frame with ID \d+ was removed\.?/i.test(toErrorMessage(error));
+}
+
+async function resolveWindowIdForBackgroundTab(): Promise<number | undefined> {
+	try {
+		const lastFocused = await browser.windows.getLastFocused({
+			windowTypes: ["normal"],
+		});
+		if (typeof lastFocused.id === "number") return lastFocused.id;
+	} catch {
+		// Fall through to all windows lookup.
+	}
+
+	const windows = await browser.windows.getAll({
+		populate: false,
+		windowTypes: ["normal"],
+	});
+	return windows.find((window) => typeof window.id === "number")?.id;
+}
+
+async function waitForTabComplete(
+	tabId: number,
+	expectedBase: string,
+): Promise<void> {
+	const currentTab = await browser.tabs.get(tabId).catch(() => null);
+	if (
+		currentTab?.status === "complete" &&
+		currentTab.url?.startsWith(expectedBase)
+	) {
+		return;
+	}
+
+	await new Promise<void>((resolve, reject) => {
+		const timeout = setTimeout(() => {
+			cleanup();
+			reject(new Error("Tab load timeout"));
+		}, 60_000);
+
+		const cleanup = () => {
+			clearTimeout(timeout);
+			browser.tabs.onUpdated.removeListener(onUpdated);
+			browser.tabs.onRemoved.removeListener(onRemoved);
+		};
+
+		const onRemoved = (removedTabId: number) => {
+			if (removedTabId !== tabId) return;
+			cleanup();
+			reject(new Error("Tab was removed before loading completed"));
+		};
+
+		const onUpdated = (
+			updatedTabId: number,
+			_changeInfo: unknown,
+			updatedTab: { status?: string; url?: string },
+		) => {
+			if (
+				updatedTabId === tabId &&
+				updatedTab.status === "complete" &&
+				updatedTab.url?.startsWith(expectedBase)
+			) {
+				cleanup();
+				resolve();
+			}
+		};
+
+		browser.tabs.onUpdated.addListener(onUpdated);
+		browser.tabs.onRemoved.addListener(onRemoved);
+	});
+}
+
+async function executeScriptWithFrameRetry<T>(
+	operation: () => Promise<T>,
+): Promise<T> {
+	try {
+		return await operation();
+	} catch (error) {
+		if (!isFrameRemovedError(error)) {
+			throw error;
+		}
+
+		await new Promise((resolve) => setTimeout(resolve, 250));
+		return operation();
+	}
+}
+
 function shouldRunNow(
 	settings: Awaited<ReturnType<typeof settingsStorage.getValue>>,
 ): boolean {
@@ -124,11 +220,13 @@ async function scrapeTarget(target: SearchTarget): Promise<ScrapeResult> {
 	let tabIdToRemove: number | undefined;
 
 	try {
+		const windowId = await resolveWindowIdForBackgroundTab();
 		// browser.tabs.create types resolve differently in plain tsc vs WXT's bundler;
 		// cast through unknown to extract the id safely in both environments.
 		const tab = (await browser.tabs.create({
 			url: target.searchUrl,
 			active: false,
+			...(windowId !== undefined ? { windowId } : {}),
 		})) as unknown as { id?: number };
 
 		if (!tab.id) throw new Error("Failed to get tab ID");
@@ -140,71 +238,50 @@ async function scrapeTarget(target: SearchTarget): Promise<ScrapeResult> {
 		const { origin, pathname } = new URL(target.searchUrl);
 		const expectedBase = origin + pathname;
 
-		await new Promise<void>((resolve, reject) => {
-			const listener = (
-				id: number,
-				_changeInfo: unknown,
-				updatedTab: { status?: string; url?: string },
-			) => {
-				if (
-					id === tabId &&
-					updatedTab.status === "complete" &&
-					updatedTab.url?.startsWith(expectedBase)
-				) {
-					clearTimeout(timeout);
-					browser.tabs.onUpdated.removeListener(listener);
-					resolve();
-				}
-			};
-
-			const timeout = setTimeout(() => {
-				browser.tabs.onUpdated.removeListener(listener);
-				reject(new Error("Tab load timeout"));
-			}, 60_000);
-
-			browser.tabs.onUpdated.addListener(listener);
-		});
+		await waitForTabComplete(tabId, expectedBase);
 
 		// Upwork is a React SPA — job cards are rendered asynchronously after the
 		// browser fires status:complete. Use an inline executeScript (MV3 awaits
 		// the returned Promise) to poll for up to 10s before running the scraper.
-		const pageCheckResult = await browser.scripting.executeScript({
-			target: { tabId },
-			func: () =>
-				new Promise<{ hasJobCards: boolean; sawCloudflareMarker: boolean }>(
-					(resolve) => {
-						const deadline = Date.now() + 10_000;
-						let sawCloudflareMarker = false;
+		const pageCheckResult = await executeScriptWithFrameRetry(() =>
+			browser.scripting.executeScript({
+				target: { tabId },
+				func: () =>
+					new Promise<{ hasJobCards: boolean; sawCloudflareMarker: boolean }>(
+						(resolve) => {
+							const deadline = Date.now() + 10_000;
+							let sawCloudflareMarker = false;
 
-						const hasCloudflareMarker = (): boolean => {
-							const pageText = document.body?.innerText ?? "";
-							if (/Cloudflare Ray ID/i.test(pageText)) return true;
-							if (
-								/cloudflare/i.test(pageText) &&
-								/verify you are human|security check/i.test(pageText)
-							) {
-								return true;
-							}
-							return false;
-						};
+							const hasCloudflareMarker = (): boolean => {
+								const pageText = document.body?.innerText ?? "";
+								if (/Cloudflare Ray ID/i.test(pageText)) return true;
+								if (
+									/cloudflare/i.test(pageText) &&
+									/verify you are human|security check/i.test(pageText)
+								) {
+									return true;
+								}
+								return false;
+							};
 
-						const check = () => {
-							sawCloudflareMarker =
-								sawCloudflareMarker || hasCloudflareMarker();
-							const hasJobCards = Boolean(
-								document.querySelector("article[data-ev-job-uid]"),
-							);
+							const check = () => {
+								sawCloudflareMarker =
+									sawCloudflareMarker || hasCloudflareMarker();
+								const hasJobCards = Boolean(
+									document.querySelector("article[data-ev-job-uid]"),
+								);
 
-							if (hasJobCards || Date.now() >= deadline) {
-								resolve({ hasJobCards, sawCloudflareMarker });
-							} else {
-								setTimeout(check, 500);
-							}
-						};
-						check();
-					},
-				),
-		});
+								if (hasJobCards || Date.now() >= deadline) {
+									resolve({ hasJobCards, sawCloudflareMarker });
+								} else {
+									setTimeout(check, 500);
+								}
+							};
+							check();
+						},
+					),
+			}),
+		);
 
 		const pageCheck = pageCheckResult?.[0]?.result as
 			| { hasJobCards: boolean; sawCloudflareMarker: boolean }
@@ -218,10 +295,12 @@ async function scrapeTarget(target: SearchTarget): Promise<ScrapeResult> {
 			};
 		}
 
-		const results = await browser.scripting.executeScript({
-			target: { tabId },
-			files: ["content-scripts/upwork-scraper.js"],
-		});
+		const results = await executeScriptWithFrameRetry(() =>
+			browser.scripting.executeScript({
+				target: { tabId },
+				files: ["content-scripts/upwork-scraper.js"],
+			}),
+		);
 
 		return (
 			(results?.[0]?.result as ScrapeResult | undefined) ?? {
@@ -229,6 +308,32 @@ async function scrapeTarget(target: SearchTarget): Promise<ScrapeResult> {
 				reason: "error",
 			}
 		);
+	} catch (error) {
+		if (isNoCurrentWindowError(error)) {
+			return {
+				ok: false,
+				reason: "error",
+				error: "No browser window available for scraping",
+			};
+		}
+
+		if (/Tab load timeout/i.test(toErrorMessage(error))) {
+			return {
+				ok: false,
+				reason: "error",
+				error: "Tab load timeout",
+			};
+		}
+
+		if (isFrameRemovedError(error)) {
+			return {
+				ok: false,
+				reason: "error",
+				error: "Frame was removed before script execution completed",
+			};
+		}
+
+		throw error;
 	} finally {
 		if (tabIdToRemove !== undefined) {
 			browser.tabs.remove(tabIdToRemove).catch(() => {});
@@ -330,13 +435,31 @@ async function processTargetResult(
 			});
 
 			if (!response.ok) {
-				throw new Error(`HTTP ${response.status}`);
+				const webhookError = classifyWebhookError({ response });
+				captureContextException("background", new Error(webhookError.message), {
+					operation: "processTargetResult-webhook",
+					stage: "webhook_delivery",
+					targetUrl: target.searchUrl,
+					webhookErrorKind: webhookError.kind,
+					httpStatus: webhookError.httpStatus,
+				});
+				await appendActivityLog(
+					"error",
+					`Webhook failed (${webhookError.kind}): ${webhookError.message}`,
+					target.searchUrl,
+				);
+				return newJobs.length;
 			}
 			await appendActivityLog("info", "Webhook delivered", target.searchUrl);
 		} catch (err) {
+			const webhookError = classifyWebhookError({ error: err });
 			captureContextException("background", err, {
 				operation: "processTargetResult-webhook",
+				stage: "webhook_delivery",
 				targetUrl: target.searchUrl,
+				webhookErrorKind: webhookError.kind,
+				httpStatus: webhookError.httpStatus,
+				normalizedMessage: webhookError.message,
 			});
 			console.error(
 				`[Upwork Scraper] Webhook delivery failed for ${target.searchUrl}:`,
@@ -344,7 +467,7 @@ async function processTargetResult(
 			);
 			await appendActivityLog(
 				"error",
-				`Webhook failed: ${String(err)}`,
+				`Webhook failed (${webhookError.kind}): ${webhookError.message}`,
 				target.searchUrl,
 			);
 		}
@@ -411,7 +534,21 @@ async function sendIssueWebhookIfNeeded(
 		});
 
 		if (!response.ok) {
-			throw new Error(`HTTP ${response.status}`);
+			const webhookError = classifyWebhookError({ response });
+			captureContextException("background", new Error(webhookError.message), {
+				operation: "sendIssueWebhookIfNeeded",
+				stage: "webhook_delivery",
+				targetUrl: target.searchUrl,
+				reason: result.reason ?? "unknown",
+				webhookErrorKind: webhookError.kind,
+				httpStatus: webhookError.httpStatus,
+			});
+			await appendActivityLog(
+				"error",
+				`Issue webhook failed (${webhookError.kind}): ${webhookError.message}`,
+				target.searchUrl,
+			);
+			return;
 		}
 		await appendActivityLog(
 			"info",
@@ -419,10 +556,15 @@ async function sendIssueWebhookIfNeeded(
 			target.searchUrl,
 		);
 	} catch (err) {
+		const webhookError = classifyWebhookError({ error: err });
 		captureContextException("background", err, {
 			operation: "sendIssueWebhookIfNeeded",
+			stage: "webhook_delivery",
 			targetUrl: target.searchUrl,
 			reason: result.reason ?? "unknown",
+			webhookErrorKind: webhookError.kind,
+			httpStatus: webhookError.httpStatus,
+			normalizedMessage: webhookError.message,
 		});
 		console.error(
 			`[Upwork Scraper] Issue webhook failed for ${target.searchUrl}:`,
@@ -430,7 +572,7 @@ async function sendIssueWebhookIfNeeded(
 		);
 		await appendActivityLog(
 			"error",
-			`Issue webhook failed: ${String(err)}`,
+			`Issue webhook failed (${webhookError.kind}): ${webhookError.message}`,
 			target.searchUrl,
 		);
 	}
@@ -464,7 +606,7 @@ function isErrorResult(result: ScrapeResult): boolean {
 }
 
 export async function runScrape(options?: { manual?: boolean }): Promise<void> {
-	const settings = await settingsStorage.getValue();
+	const settings = sanitizeSettings(await settingsStorage.getValue());
 
 	const activeTargets = settings.searchTargets.filter(
 		(t) => t.searchUrl.trim() !== "",
@@ -547,6 +689,7 @@ export async function runScrape(options?: { manual?: boolean }): Promise<void> {
 			} catch (err) {
 				captureContextException("background", err, {
 					operation: "runScrape-target",
+					stage: "run_target",
 					targetUrl: target.searchUrl,
 				});
 				console.error(

@@ -1,18 +1,122 @@
 import type { ActivityLog, Job, Settings } from './types';
 
+function createDefaultSearchTarget(index: number): Settings['searchTargets'][number] {
+  return {
+    id: crypto.randomUUID(),
+    name: `Target ${index + 1}`,
+    searchUrl: '',
+    webhookEnabled: false,
+    webhookUrl: '',
+    payloadMode: 'v3',
+    legacyCompatibilityEligible: false,
+  };
+}
+
+function sanitizeSearchTarget(
+  target: unknown,
+  index: number,
+): Settings['searchTargets'][number] {
+  const typed = (target ?? {}) as Partial<Settings['searchTargets'][number]>;
+  const fallback = createDefaultSearchTarget(index);
+  const name = typeof typed.name === 'string' ? typed.name.trim() : '';
+  const payloadMode: Settings['searchTargets'][number]['payloadMode'] =
+    typed.payloadMode === 'legacy-v1' ? 'legacy-v1' : 'v3';
+  const legacyCompatibilityEligible =
+    typeof typed.legacyCompatibilityEligible === 'boolean'
+      ? typed.legacyCompatibilityEligible
+      : payloadMode === 'legacy-v1';
+
+  return {
+    id: typeof typed.id === 'string' && typed.id.trim() ? typed.id : fallback.id,
+    name: name || fallback.name,
+    searchUrl: typeof typed.searchUrl === 'string' ? typed.searchUrl : '',
+    webhookEnabled:
+      typeof typed.webhookEnabled === 'boolean' ? typed.webhookEnabled : false,
+    webhookUrl: typeof typed.webhookUrl === 'string' ? typed.webhookUrl : '',
+    payloadMode,
+    legacyCompatibilityEligible,
+  };
+}
+
+function sanitizeActiveDays(
+  value: unknown,
+): [boolean, boolean, boolean, boolean, boolean, boolean, boolean] {
+  if (!Array.isArray(value) || value.length !== 7) {
+    return DEFAULT_SETTINGS.activeDays;
+  }
+
+  return [
+    Boolean(value[0]),
+    Boolean(value[1]),
+    Boolean(value[2]),
+    Boolean(value[3]),
+    Boolean(value[4]),
+    Boolean(value[5]),
+    Boolean(value[6]),
+  ];
+}
+
+function sanitizeTimeWindow(
+  value: unknown,
+): { start: string; end: string } {
+  const typed = (value ?? {}) as Partial<Settings['timeWindow']>;
+  const start =
+    typeof typed.start === 'string' && /^\d{2}:\d{2}$/.test(typed.start)
+      ? typed.start
+      : DEFAULT_SETTINGS.timeWindow.start;
+  const end =
+    typeof typed.end === 'string' && /^\d{2}:\d{2}$/.test(typed.end)
+      ? typed.end
+      : DEFAULT_SETTINGS.timeWindow.end;
+  return { start, end };
+}
+
+export function sanitizeSettings(input: unknown): Settings {
+  const typed = (input ?? {}) as Partial<Settings>;
+  const searchTargetsInput = Array.isArray(typed.searchTargets)
+    ? typed.searchTargets
+    : DEFAULT_SETTINGS.searchTargets;
+  const searchTargets = searchTargetsInput.map((target, index) =>
+    sanitizeSearchTarget(target, index),
+  );
+
+  return {
+    masterEnabled:
+      typeof typed.masterEnabled === 'boolean'
+        ? typed.masterEnabled
+        : DEFAULT_SETTINGS.masterEnabled,
+    searchTargets:
+      searchTargets.length > 0
+        ? searchTargets
+        : [createDefaultSearchTarget(0)],
+    minuteInterval:
+      typeof typed.minuteInterval === 'number' && Number.isFinite(typed.minuteInterval)
+        ? Math.max(5, Math.floor(typed.minuteInterval))
+        : DEFAULT_SETTINGS.minuteInterval,
+    activeDays: sanitizeActiveDays(typed.activeDays),
+    timeWindow: sanitizeTimeWindow(typed.timeWindow),
+    notificationsEnabled:
+      typeof typed.notificationsEnabled === 'boolean'
+        ? typed.notificationsEnabled
+        : DEFAULT_SETTINGS.notificationsEnabled,
+    lastRunAt:
+      typeof typed.lastRunAt === 'string' || typed.lastRunAt === null
+        ? typed.lastRunAt
+        : DEFAULT_SETTINGS.lastRunAt,
+    lastRunStatus:
+      typed.lastRunStatus === 'success' ||
+      typed.lastRunStatus === 'error' ||
+      typed.lastRunStatus === 'logged_out' ||
+      typed.lastRunStatus === 'captcha_required' ||
+      typed.lastRunStatus === null
+        ? typed.lastRunStatus
+        : DEFAULT_SETTINGS.lastRunStatus,
+  };
+}
+
 export const DEFAULT_SETTINGS: Settings = {
   masterEnabled: false,
-  searchTargets: [
-    {
-      id: crypto.randomUUID(),
-      name: 'Target 1',
-      searchUrl: '',
-      webhookEnabled: false,
-      webhookUrl: '',
-      payloadMode: 'v3',
-      legacyCompatibilityEligible: false,
-    },
-  ],
+  searchTargets: [createDefaultSearchTarget(0)],
   minuteInterval: 5,
   activeDays: [false, true, true, true, true, true, false],
   timeWindow: { start: '00:00', end: '23:59' },
@@ -74,24 +178,7 @@ export const settingsStorage = storage.defineItem<Settings>('sync:settings', {
         : DEFAULT_SETTINGS.searchTargets;
 
       const searchTargets = priorTargets.map((target, index) => {
-        const typed = target as Partial<Settings['searchTargets'][number]>;
-        const existingName = typeof typed.name === 'string' ? typed.name.trim() : '';
-        const payloadMode: Settings['searchTargets'][number]['payloadMode'] =
-          typed.payloadMode === 'legacy-v1' ? 'legacy-v1' : 'v3';
-        const legacyCompatibilityEligible =
-          typeof typed.legacyCompatibilityEligible === 'boolean'
-            ? typed.legacyCompatibilityEligible
-            : payloadMode === 'legacy-v1';
-        return {
-          id: typeof typed.id === 'string' ? typed.id : crypto.randomUUID(),
-          name: existingName || `Target ${index + 1}`,
-          searchUrl: typeof typed.searchUrl === 'string' ? typed.searchUrl : '',
-          webhookEnabled:
-            typeof typed.webhookEnabled === 'boolean' ? typed.webhookEnabled : false,
-          webhookUrl: typeof typed.webhookUrl === 'string' ? typed.webhookUrl : '',
-          payloadMode,
-          legacyCompatibilityEligible,
-        };
+        return sanitizeSearchTarget(target, index);
       });
 
       return {
@@ -107,24 +194,7 @@ export const settingsStorage = storage.defineItem<Settings>('sync:settings', {
         : DEFAULT_SETTINGS.searchTargets;
 
       const searchTargets = priorTargets.map((target, index) => {
-        const typed = target as Partial<Settings['searchTargets'][number]>;
-        const existingName = typeof typed.name === 'string' ? typed.name.trim() : '';
-        const payloadMode: Settings['searchTargets'][number]['payloadMode'] =
-          typed.payloadMode === 'legacy-v1' ? 'legacy-v1' : 'v3';
-        const legacyCompatibilityEligible =
-          typeof typed.legacyCompatibilityEligible === 'boolean'
-            ? typed.legacyCompatibilityEligible
-            : payloadMode === 'legacy-v1';
-        return {
-          id: typeof typed.id === 'string' ? typed.id : crypto.randomUUID(),
-          name: existingName || `Target ${index + 1}`,
-          searchUrl: typeof typed.searchUrl === 'string' ? typed.searchUrl : '',
-          webhookEnabled:
-            typeof typed.webhookEnabled === 'boolean' ? typed.webhookEnabled : false,
-          webhookUrl: typeof typed.webhookUrl === 'string' ? typed.webhookUrl : '',
-          payloadMode,
-          legacyCompatibilityEligible,
-        };
+        return sanitizeSearchTarget(target, index);
       });
 
       return {
@@ -140,25 +210,7 @@ export const settingsStorage = storage.defineItem<Settings>('sync:settings', {
         : DEFAULT_SETTINGS.searchTargets;
 
       const searchTargets = priorTargets.map((target, index) => {
-        const typed = target as Partial<Settings['searchTargets'][number]>;
-        const existingName = typeof typed.name === 'string' ? typed.name.trim() : '';
-        const payloadMode: Settings['searchTargets'][number]['payloadMode'] =
-          typed.payloadMode === 'legacy-v1' ? 'legacy-v1' : 'v3';
-        const legacyCompatibilityEligible =
-          typeof typed.legacyCompatibilityEligible === 'boolean'
-            ? typed.legacyCompatibilityEligible
-            : payloadMode === 'legacy-v1';
-
-        return {
-          id: typeof typed.id === 'string' ? typed.id : crypto.randomUUID(),
-          name: existingName || `Target ${index + 1}`,
-          searchUrl: typeof typed.searchUrl === 'string' ? typed.searchUrl : '',
-          webhookEnabled:
-            typeof typed.webhookEnabled === 'boolean' ? typed.webhookEnabled : false,
-          webhookUrl: typeof typed.webhookUrl === 'string' ? typed.webhookUrl : '',
-          payloadMode,
-          legacyCompatibilityEligible,
-        };
+        return sanitizeSearchTarget(target, index);
       });
 
       return {
