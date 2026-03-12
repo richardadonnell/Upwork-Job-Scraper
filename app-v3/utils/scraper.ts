@@ -475,19 +475,22 @@ async function processTargetResult(
 
 	if (notificationsEnabled) {
 		for (const job of newJobs.slice(0, 3)) {
-			browser.notifications.create({
+			if (!job.url) continue;
+			browser.notifications.create(`job|${job.url}`, {
 				type: "basic",
 				iconUrl: "/icon/128.png",
 				title: "New Upwork Job",
 				message: job.title,
+				buttons: [{ title: "Open Extension" }, { title: "View Job" }],
 			});
 		}
 		if (newJobs.length > 3) {
-			browser.notifications.create({
+			browser.notifications.create("bulk-jobs", {
 				type: "basic",
 				iconUrl: "/icon/128.png",
 				title: "New Upwork Jobs",
 				message: `${newJobs.length} new jobs found — open the extension to view them.`,
+				buttons: [{ title: "Open Extension" }],
 			});
 		}
 	}

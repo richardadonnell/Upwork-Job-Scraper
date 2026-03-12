@@ -30,6 +30,38 @@ export default defineBackground(() => {
 		browser.runtime.openOptionsPage();
 	});
 
+	// Handle notification body click
+	browser.notifications.onClicked.addListener((notificationId) => {
+		if (notificationId.startsWith("job|")) {
+			const url = notificationId.slice(4);
+			if (url) {
+				browser.tabs.create({ url });
+			} else {
+				browser.runtime.openOptionsPage();
+			}
+		} else {
+			browser.runtime.openOptionsPage();
+		}
+		browser.notifications.clear(notificationId);
+	});
+
+	// Handle notification button click
+	browser.notifications.onButtonClicked.addListener(
+		(notificationId, buttonIndex) => {
+			if (buttonIndex === 0) {
+				browser.runtime.openOptionsPage();
+			} else if (buttonIndex === 1 && notificationId.startsWith("job|")) {
+				const url = notificationId.slice(4);
+				if (url) {
+					browser.tabs.create({ url });
+				} else {
+					browser.runtime.openOptionsPage();
+				}
+			}
+			browser.notifications.clear(notificationId);
+		},
+	);
+
 	// Set up alarm on install/update
 	browser.runtime.onInstalled.addListener(() => {
 		initializeFromLifecycle("installed").catch((err) => {
