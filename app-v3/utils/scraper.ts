@@ -475,6 +475,7 @@ async function processTargetResult(
 
 	if (notificationsEnabled) {
 		for (const job of newJobs.slice(0, 3)) {
+			if (!job.url) continue;
 			browser.notifications.create(`job|${job.url}`, {
 				type: "basic",
 				iconUrl: "/icon/128.png",

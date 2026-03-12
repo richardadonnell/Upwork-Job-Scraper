@@ -33,10 +33,16 @@ export default defineBackground(() => {
 	// Handle notification body click
 	browser.notifications.onClicked.addListener((notificationId) => {
 		if (notificationId.startsWith("job|")) {
-			browser.tabs.create({ url: notificationId.slice(4) });
+			const url = notificationId.slice(4);
+			if (url) {
+				browser.tabs.create({ url });
+			} else {
+				browser.runtime.openOptionsPage();
+			}
 		} else {
 			browser.runtime.openOptionsPage();
 		}
+		browser.notifications.clear(notificationId);
 	});
 
 	// Handle notification button click
@@ -45,7 +51,12 @@ export default defineBackground(() => {
 			if (buttonIndex === 0) {
 				browser.runtime.openOptionsPage();
 			} else if (buttonIndex === 1 && notificationId.startsWith("job|")) {
-				browser.tabs.create({ url: notificationId.slice(4) });
+				const url = notificationId.slice(4);
+				if (url) {
+					browser.tabs.create({ url });
+				} else {
+					browser.runtime.openOptionsPage();
+				}
 			}
 			browser.notifications.clear(notificationId);
 		},
