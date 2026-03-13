@@ -220,11 +220,28 @@ export function OptionsApp() {
 	const lastSavedSnapshotRef = useRef("");
 
 	useEffect(() => {
-		Promise.all([
+		let cancelled = false;
+		Promise.allSettled([
 			settingsStorage.getValue(),
 			jobHistoryStorage.getValue(),
 			webhookErrorsStorage.getValue(),
-		]).then(([s, j, we]) => {
+		]).then(([sResult, jResult, weResult]) => {
+			if (cancelled) return;
+			for (const [result, stage] of [
+				[sResult, "initial_load_settings"],
+				[jResult, "initial_load_jobs"],
+				[weResult, "initial_load_webhook_errors"],
+			] as const) {
+				if (result.status === "rejected") {
+					captureContextException("options", result.reason, {
+						operation: "load-options-state",
+						stage,
+					});
+				}
+			}
+			const s = sResult.status === "fulfilled" ? sResult.value : null;
+			const j = jResult.status === "fulfilled" ? jResult.value : [];
+			const we = weResult.status === "fulfilled" ? weResult.value : {};
 			const sanitizedSettings = sanitizeSettings(s);
 			setSettings(sanitizedSettings);
 			setJobs(j);
@@ -240,6 +257,7 @@ export function OptionsApp() {
 			setWebhookErrors(we),
 		);
 		return () => {
+			cancelled = true;
 			unwatchSettings();
 			unwatchJobs();
 			unwatchWebhookErrors();
