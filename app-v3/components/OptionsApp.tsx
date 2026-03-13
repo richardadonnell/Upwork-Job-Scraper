@@ -214,7 +214,7 @@ export function OptionsApp() {
 	>(null);
 	const [saveState, setSaveState] = useState<SaveState>("idle");
 	const [showSaveSuccess, setShowSaveSuccess] = useState(false);
-	const [webhookErrors, setWebhookErrors] = useState<Record<string, { message: string; timestamp: number }>>({})
+	const [webhookErrors, setWebhookErrors] = useState<Record<string, { message: string; timestamp: number }>>({});
 	const saveTimeoutRef = useRef<number | null>(null);
 	const saveStatusTimeoutRef = useRef<number | null>(null);
 	const lastSavedSnapshotRef = useRef("");

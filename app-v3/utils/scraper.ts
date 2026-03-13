@@ -1,4 +1,8 @@
-import { captureContextException, classifyWebhookError, type ClassifiedWebhookError } from "./sentry";
+import {
+	type ClassifiedWebhookError,
+	captureContextException,
+	classifyWebhookError,
+} from "./sentry";
 import {
 	appendActivityLog,
 	JOB_HISTORY_MAX,
@@ -346,7 +350,9 @@ async function scrapeTarget(target: SearchTarget): Promise<ScrapeResult> {
 const WEBHOOK_FAILURE_NOTIFICATION_THRESHOLD = 3;
 
 function is4xxStatus(httpStatus: number | undefined): boolean {
-	return typeof httpStatus === "number" && httpStatus >= 400 && httpStatus < 500;
+	return (
+		typeof httpStatus === "number" && httpStatus >= 400 && httpStatus < 500
+	);
 }
 
 async function trackWebhookFailure(
@@ -484,13 +490,17 @@ async function processTargetResult(
 			if (!response.ok) {
 				const webhookError = classifyWebhookError({ response });
 				if (!is4xxStatus(webhookError.httpStatus)) {
-					captureContextException("background", new Error(webhookError.message), {
-						operation: "processTargetResult-webhook",
-						stage: "webhook_delivery",
-						targetUrl: target.searchUrl,
-						webhookErrorKind: webhookError.kind,
-						httpStatus: webhookError.httpStatus,
-					});
+					captureContextException(
+						"background",
+						new Error(webhookError.message),
+						{
+							operation: "processTargetResult-webhook",
+							stage: "webhook_delivery",
+							targetUrl: target.searchUrl,
+							webhookErrorKind: webhookError.kind,
+							httpStatus: webhookError.httpStatus,
+						},
+					);
 				}
 				await trackWebhookFailure(target, webhookError);
 				await appendActivityLog(
