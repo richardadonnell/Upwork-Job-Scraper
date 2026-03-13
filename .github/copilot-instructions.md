@@ -83,6 +83,15 @@ npm run compile
 
 **Load in Chrome:** `app-v3/.output/chrome-mv3/` → Chrome DevTools → Extensions → Load unpacked.
 
+## Versioning
+
+The version lives in exactly one place: `app-v3/package.json` (`"version"` field). WXT propagates it to `manifest.json` at build time — never edit the manifest directly.
+
+After making any code changes to `app-v3/`, bump the version following semantic versioning:
+- **patch** (`x.x.X`) — bug fixes, copy tweaks, minor style changes
+- **minor** (`x.X.0`) — new non-breaking features or behaviour
+- **major** (`X.0.0`) — breaking changes
+
 ## Conventions
 
 - Inline styles via `React.CSSProperties` objects (no CSS modules or Tailwind)
