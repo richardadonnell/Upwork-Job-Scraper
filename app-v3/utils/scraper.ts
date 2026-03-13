@@ -1,4 +1,4 @@
-import { captureContextException, classifyWebhookError } from "./sentry";
+import { captureContextException, classifyWebhookError, type ClassifiedWebhookError } from "./sentry";
 import {
 	appendActivityLog,
 	JOB_HISTORY_MAX,
@@ -6,6 +6,8 @@ import {
 	sanitizeSettings,
 	seenJobIdsStorage,
 	settingsStorage,
+	webhookErrorsStorage,
+	webhookFailureCountsStorage,
 } from "./storage";
 import type {
 	Job,
@@ -341,6 +343,51 @@ async function scrapeTarget(target: SearchTarget): Promise<ScrapeResult> {
 	}
 }
 
+const WEBHOOK_FAILURE_NOTIFICATION_THRESHOLD = 3;
+
+function is4xxStatus(httpStatus: number | undefined): boolean {
+	return typeof httpStatus === "number" && httpStatus >= 400 && httpStatus < 500;
+}
+
+async function trackWebhookFailure(
+	target: SearchTarget,
+	webhookError: ClassifiedWebhookError,
+): Promise<void> {
+	const [counts, errors] = await Promise.all([
+		webhookFailureCountsStorage.getValue(),
+		webhookErrorsStorage.getValue(),
+	]);
+	const newCount = (counts[target.id] ?? 0) + 1;
+	await Promise.all([
+		webhookFailureCountsStorage.setValue({ ...counts, [target.id]: newCount }),
+		webhookErrorsStorage.setValue({
+			...errors,
+			[target.id]: { message: webhookError.message, timestamp: Date.now() },
+		}),
+	]);
+	if (newCount === WEBHOOK_FAILURE_NOTIFICATION_THRESHOLD) {
+		browser.notifications.create(`webhook-error|${target.id}`, {
+			type: "basic",
+			iconUrl: "/icon/128.png",
+			title: "Webhook Delivery Error",
+			message: `"${target.name}" webhook has failed 3 times in a row. Check your webhook URL in Settings.`,
+		});
+	}
+}
+
+async function clearWebhookFailureState(target: SearchTarget): Promise<void> {
+	const [counts, errors] = await Promise.all([
+		webhookFailureCountsStorage.getValue(),
+		webhookErrorsStorage.getValue(),
+	]);
+	const { [target.id]: _c, ...restCounts } = counts;
+	const { [target.id]: _e, ...restErrors } = errors;
+	await Promise.all([
+		webhookFailureCountsStorage.setValue(restCounts),
+		webhookErrorsStorage.setValue(restErrors),
+	]);
+}
+
 async function processTargetResult(
 	target: SearchTarget,
 	result: ScrapeResult,
@@ -436,13 +483,16 @@ async function processTargetResult(
 
 			if (!response.ok) {
 				const webhookError = classifyWebhookError({ response });
-				captureContextException("background", new Error(webhookError.message), {
-					operation: "processTargetResult-webhook",
-					stage: "webhook_delivery",
-					targetUrl: target.searchUrl,
-					webhookErrorKind: webhookError.kind,
-					httpStatus: webhookError.httpStatus,
-				});
+				if (!is4xxStatus(webhookError.httpStatus)) {
+					captureContextException("background", new Error(webhookError.message), {
+						operation: "processTargetResult-webhook",
+						stage: "webhook_delivery",
+						targetUrl: target.searchUrl,
+						webhookErrorKind: webhookError.kind,
+						httpStatus: webhookError.httpStatus,
+					});
+				}
+				await trackWebhookFailure(target, webhookError);
 				await appendActivityLog(
 					"error",
 					`Webhook failed (${webhookError.kind}): ${webhookError.message}`,
@@ -450,6 +500,7 @@ async function processTargetResult(
 				);
 				return newJobs.length;
 			}
+			await clearWebhookFailureState(target);
 			await appendActivityLog("info", "Webhook delivered", target.searchUrl);
 		} catch (err) {
 			const webhookError = classifyWebhookError({ error: err });
@@ -538,14 +589,17 @@ async function sendIssueWebhookIfNeeded(
 
 		if (!response.ok) {
 			const webhookError = classifyWebhookError({ response });
-			captureContextException("background", new Error(webhookError.message), {
-				operation: "sendIssueWebhookIfNeeded",
-				stage: "webhook_delivery",
-				targetUrl: target.searchUrl,
-				reason: result.reason ?? "unknown",
-				webhookErrorKind: webhookError.kind,
-				httpStatus: webhookError.httpStatus,
-			});
+			if (!is4xxStatus(webhookError.httpStatus)) {
+				captureContextException("background", new Error(webhookError.message), {
+					operation: "sendIssueWebhookIfNeeded",
+					stage: "webhook_delivery",
+					targetUrl: target.searchUrl,
+					reason: result.reason ?? "unknown",
+					webhookErrorKind: webhookError.kind,
+					httpStatus: webhookError.httpStatus,
+				});
+			}
+			await trackWebhookFailure(target, webhookError);
 			await appendActivityLog(
 				"error",
 				`Issue webhook failed (${webhookError.kind}): ${webhookError.message}`,

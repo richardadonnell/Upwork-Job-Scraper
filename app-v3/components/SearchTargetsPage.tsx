@@ -1,5 +1,6 @@
 import {
 	DownloadIcon,
+	ExclamationTriangleIcon,
 	ExternalLinkIcon,
 	InfoCircledIcon,
 } from "@radix-ui/react-icons";
@@ -30,6 +31,10 @@ import {
 interface Props {
 	readonly settings: Settings;
 	readonly onChange: (s: Settings) => void;
+	readonly webhookErrors: Record<
+		string,
+		{ message: string; timestamp: number }
+	>;
 }
 
 type TestStatus = "idle" | "sending" | "ok" | "error";
@@ -56,12 +61,14 @@ function SearchTargetCard({
 	total,
 	onChange,
 	onRemove,
+	webhookError,
 }: {
 	readonly target: SearchTarget;
 	readonly index: number;
 	readonly total: number;
 	readonly onChange: (t: SearchTarget) => void;
 	readonly onRemove: () => void;
+	readonly webhookError?: { message: string; timestamp: number };
 }) {
 	const [testStatus, setTestStatus] = useState<TestStatus>("idle");
 	const canUseLegacyPayload = target.legacyCompatibilityEligible;
@@ -101,16 +108,18 @@ function SearchTargetCard({
 			});
 			if (!res.ok) {
 				const webhookError = classifyWebhookError({ response: res });
-				captureContextMessage("options", "Webhook test failed", {
-					operation: "handleTestWebhook",
-					stage: "webhook_test",
-					status: res.status,
-					targetName,
-					targetUrl: target.searchUrl,
-					webhookErrorKind: webhookError.kind,
-					httpStatus: webhookError.httpStatus,
-					normalizedMessage: webhookError.message,
-				});
+				if (res.status < 400 || res.status >= 500) {
+					captureContextMessage("options", "Webhook test failed", {
+						operation: "handleTestWebhook",
+						stage: "webhook_test",
+						status: res.status,
+						targetName,
+						targetUrl: target.searchUrl,
+						webhookErrorKind: webhookError.kind,
+						httpStatus: webhookError.httpStatus,
+						normalizedMessage: webhookError.message,
+					});
+				}
 			}
 			setTestStatus(res.ok ? "ok" : "error");
 			setTimeout(() => setTestStatus("idle"), res.ok ? 3000 : 4000);
@@ -287,6 +296,19 @@ function SearchTargetCard({
 						</Text>
 					)}
 
+					{webhookError && (
+						<Callout.Root mt="3" size="1" color="red" variant="soft">
+							<Callout.Icon>
+								<ExclamationTriangleIcon />
+							</Callout.Icon>
+							<Callout.Text>
+								<strong>Webhook delivery failed:</strong> {webhookError.message}
+								. Last error at{" "}
+								{new Date(webhookError.timestamp).toLocaleString()}.
+							</Callout.Text>
+						</Callout.Root>
+					)}
+
 					{canUseLegacyPayload ? (
 						<>
 							<Flex justify="between" align="start" gap="3" mt="3">
@@ -328,7 +350,11 @@ function SearchTargetCard({
 	);
 }
 
-export function SearchTargetsPage({ settings, onChange }: Props) {
+export function SearchTargetsPage({
+	settings,
+	onChange,
+	webhookErrors,
+}: Props) {
 	const safeSearchTargets = Array.isArray(settings.searchTargets)
 		? settings.searchTargets
 		: [];
@@ -400,6 +426,7 @@ export function SearchTargetsPage({ settings, onChange }: Props) {
 					target={target}
 					index={i}
 					total={safeSearchTargets.length}
+					webhookError={webhookErrors[target.id]}
 					onChange={(updated) => {
 						const next = safeSearchTargets.map((t) =>
 							t.id === updated.id ? updated : t,

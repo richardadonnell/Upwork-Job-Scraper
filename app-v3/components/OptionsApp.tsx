@@ -6,6 +6,7 @@ import {
 	jobHistoryStorage,
 	sanitizeSettings,
 	settingsStorage,
+	webhookErrorsStorage,
 } from "../utils/storage";
 import type { Job, Settings } from "../utils/types";
 
@@ -213,6 +214,7 @@ export function OptionsApp() {
 	>(null);
 	const [saveState, setSaveState] = useState<SaveState>("idle");
 	const [showSaveSuccess, setShowSaveSuccess] = useState(false);
+	const [webhookErrors, setWebhookErrors] = useState<Record<string, { message: string; timestamp: number }>>({})
 	const saveTimeoutRef = useRef<number | null>(null);
 	const saveStatusTimeoutRef = useRef<number | null>(null);
 	const lastSavedSnapshotRef = useRef("");
@@ -221,10 +223,12 @@ export function OptionsApp() {
 		Promise.all([
 			settingsStorage.getValue(),
 			jobHistoryStorage.getValue(),
-		]).then(([s, j]) => {
+			webhookErrorsStorage.getValue(),
+		]).then(([s, j, we]) => {
 			const sanitizedSettings = sanitizeSettings(s);
 			setSettings(sanitizedSettings);
 			setJobs(j);
+			setWebhookErrors(we);
 			lastSavedSnapshotRef.current = JSON.stringify(sanitizedSettings);
 			setLoading(false);
 		});
@@ -232,9 +236,13 @@ export function OptionsApp() {
 			setSettings(sanitizeSettings(s)),
 		);
 		const unwatchJobs = jobHistoryStorage.watch((j) => setJobs(j));
+		const unwatchWebhookErrors = webhookErrorsStorage.watch((we) =>
+			setWebhookErrors(we),
+		);
 		return () => {
 			unwatchSettings();
 			unwatchJobs();
+			unwatchWebhookErrors();
 		};
 	}, []);
 
@@ -419,7 +427,7 @@ export function OptionsApp() {
 					<DashboardPage settings={settings} jobs={jobs} />
 				)}
 				{activePage === "search-targets" && (
-					<SearchTargetsPage settings={settings} onChange={setSettings} />
+					<SearchTargetsPage settings={settings} onChange={setSettings} webhookErrors={webhookErrors} />
 				)}
 				{activePage === "schedule" && (
 					<SchedulePage settings={settings} onChange={setSettings} />
