@@ -17,6 +17,7 @@ releases/
 
 # Environment variables
 .env
+secrets/
 
 # Editor directories and files
 .idea
