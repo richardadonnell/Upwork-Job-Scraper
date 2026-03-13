@@ -79,7 +79,6 @@ tasks/
 README-task-master.md
 .cursor/mcp.json
 .cursor/*
-scripts/
 PLANNING.md
 node_modules/
 tasks/
