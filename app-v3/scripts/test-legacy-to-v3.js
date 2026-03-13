@@ -1,7 +1,7 @@
 (async () => {
   // Optional backup
   const backup = await chrome.storage.sync.get(["settings"]);
-  console.log("backup", backup);
+  console.log("[Upwork Scraper] backup", backup);
 
   // Reset v3 state so migration can run
   await chrome.storage.sync.remove(["settings"]);
@@ -52,5 +52,5 @@
     ],
   });
 
-  console.log("Seeded. Now reload extension from chrome://extensions");
+  console.log("[Upwork Scraper] Seeded. Now reload extension from chrome://extensions");
 })();
