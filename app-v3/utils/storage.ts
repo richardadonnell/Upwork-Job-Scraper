@@ -236,6 +236,16 @@ export const activityLogsStorage = storage.defineItem<ActivityLog[]>('local:acti
   fallback: [],
 });
 
+export const webhookFailureCountsStorage = storage.defineItem<Record<string, number>>(
+  'local:webhookFailureCounts',
+  { fallback: {} },
+);
+
+export const webhookErrorsStorage = storage.defineItem<Record<string, { message: string; timestamp: number }>>(
+  'local:webhookErrors',
+  { fallback: {} },
+);
+
 export const legacyV1MigrationAppliedStorage = storage.defineItem<boolean>(
   'local:legacyV1MigrationApplied',
   {
