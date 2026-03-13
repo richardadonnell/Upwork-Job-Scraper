@@ -349,7 +349,7 @@ async function scrapeTarget(target: SearchTarget): Promise<ScrapeResult> {
 
 const WEBHOOK_FAILURE_NOTIFICATION_THRESHOLD = 3;
 
-function is4xxStatus(httpStatus: number | undefined): boolean {
+export function is4xxStatus(httpStatus: number | undefined): boolean {
 	return (
 		typeof httpStatus === "number" && httpStatus >= 400 && httpStatus < 500
 	);
@@ -617,6 +617,7 @@ async function sendIssueWebhookIfNeeded(
 			);
 			return;
 		}
+		await clearWebhookFailureState(target);
 		await appendActivityLog(
 			"info",
 			"Issue webhook delivered",

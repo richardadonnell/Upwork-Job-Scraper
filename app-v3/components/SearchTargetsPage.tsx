@@ -17,6 +17,7 @@ import {
 	TextField,
 } from "@radix-ui/themes";
 import { useState } from "react";
+import { is4xxStatus } from "../utils/scraper";
 import {
 	captureContextException,
 	captureContextMessage,
@@ -108,7 +109,7 @@ function SearchTargetCard({
 			});
 			if (!res.ok) {
 				const webhookError = classifyWebhookError({ response: res });
-				if (res.status < 400 || res.status >= 500) {
+				if (!is4xxStatus(res.status)) {
 					captureContextMessage("options", "Webhook test failed", {
 						operation: "handleTestWebhook",
 						stage: "webhook_test",
