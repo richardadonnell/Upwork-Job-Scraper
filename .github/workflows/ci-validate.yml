@@ -39,6 +39,9 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Build (Firefox)
+        run: npm run build:firefox
+
       - name: Verify manifest version matches package version
         shell: bash
         run: |
@@ -55,6 +58,9 @@ jobs:
 
       - name: Package ZIP
         run: npm run zip
+
+      - name: Package ZIP (Firefox)
+        run: npm run zip:firefox
 
       - name: Resolve ZIP path
         id: zip
