@@ -141,16 +141,22 @@ async function resolveWindowIdForBackgroundTab(): Promise<number | undefined> {
 	return windows.find((window) => typeof window.id === "number")?.id;
 }
 
+function isChromeErrorUrl(url: string | undefined): boolean {
+	return typeof url === "string" && url.startsWith("chrome-error://");
+}
+
 async function waitForTabComplete(
 	tabId: number,
-	expectedBase: string,
+	expectedOrigin: string,
 ): Promise<void> {
 	const currentTab = await browser.tabs.get(tabId).catch(() => null);
-	if (
-		currentTab?.status === "complete" &&
-		currentTab.url?.startsWith(expectedBase)
-	) {
-		return;
+	if (currentTab?.status === "complete") {
+		if (isChromeErrorUrl(currentTab.url)) {
+			throw new Error("Chrome error page");
+		}
+		if (currentTab.url?.startsWith(expectedOrigin)) {
+			return;
+		}
 	}
 
 	await new Promise<void>((resolve, reject) => {
@@ -173,14 +179,21 @@ async function waitForTabComplete(
 
 		const onUpdated = (
 			updatedTabId: number,
-			_changeInfo: unknown,
+			changeInfo: { status?: string; url?: string },
 			updatedTab: { status?: string; url?: string },
 		) => {
-			if (
-				updatedTabId === tabId &&
-				updatedTab.status === "complete" &&
-				updatedTab.url?.startsWith(expectedBase)
-			) {
+			if (updatedTabId !== tabId) return;
+
+			if (isChromeErrorUrl(changeInfo.url) || isChromeErrorUrl(updatedTab.url)) {
+				cleanup();
+				reject(new Error("Chrome error page"));
+				return;
+			}
+
+			if (updatedTab.status !== "complete") return;
+
+			const finalUrl = updatedTab.url ?? "";
+			if (finalUrl.startsWith(expectedOrigin)) {
 				cleanup();
 				resolve();
 			}
@@ -239,12 +252,14 @@ async function scrapeTarget(target: SearchTarget): Promise<ScrapeResult> {
 		const tabId = tab.id;
 		tabIdToRemove = tabId;
 
-		// Build the base URL (origin + pathname) so we wait for the actual search
-		// results page, not an intermediate Cloudflare challenge redirect.
-		const { origin, pathname } = new URL(target.searchUrl);
-		const expectedBase = origin + pathname;
+		// Match on origin only. Upwork bounces tabs through Cloudflare challenges,
+		// login redirects, and other same-origin paths before settling; pathname-strict
+		// matching meant we waited the full 60s timeout instead of letting Phase 2
+		// detect the captcha/login state. Phase 2 still polls 10s for job cards or
+		// Cloudflare markers, so loosening this check is safe.
+		const { origin } = new URL(target.searchUrl);
 
-		await waitForTabComplete(tabId, expectedBase);
+		await waitForTabComplete(tabId, origin);
 
 		// Upwork is a React SPA — job cards are rendered asynchronously after the
 		// browser fires status:complete. Use an inline executeScript (MV3 awaits
@@ -328,6 +343,14 @@ async function scrapeTarget(target: SearchTarget): Promise<ScrapeResult> {
 				ok: false,
 				reason: "error",
 				error: "Tab load timeout",
+			};
+		}
+
+		if (/Chrome error page/i.test(toErrorMessage(error))) {
+			return {
+				ok: false,
+				reason: "error",
+				error: "Chrome error page (network failure)",
 			};
 		}
 
