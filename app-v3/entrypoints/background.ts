@@ -46,7 +46,8 @@ export default defineBackground(() => {
 	});
 
 	// Handle notification button click
-	browser.notifications.onButtonClicked.addListener(
+	// onButtonClicked is Chrome-only; Firefox doesn't expose this API
+	browser.notifications.onButtonClicked?.addListener(
 		(notificationId, buttonIndex) => {
 			if (buttonIndex === 0) {
 				browser.runtime.openOptionsPage();

@@ -25,6 +25,15 @@ export default defineConfig({
 				128: "icon/128.png",
 			},
 		},
+		browser_specific_settings: {
+			gecko: {
+				id: "upwork-job-scraper@richardadonnell.com",
+				strict_min_version: "128.0",
+				data_collection_permissions: {
+					required: ["none"],
+				},
+			},
+		},
 	}),
 	vite: () => {
 		const plugins = [];

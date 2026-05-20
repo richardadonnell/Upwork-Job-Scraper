@@ -1,14 +1,20 @@
 # Upwork Job Scraper Extension
 
-A Chrome extension (MV3) that automatically scrapes Upwork job listings from a saved search URL and delivers new results via browser notifications and/or a webhook.
+A cross-browser extension (Chrome MV3 + Firefox MV3) that automatically scrapes Upwork job listings from a saved search URL and delivers new results via browser notifications and/or a webhook.
 
-## Chrome Web Store listing
+## Browser store listings
 
 ⭐ Chrome Browser Extension ⭐
 
  [![Available in the Chrome Web Store](https://developer.chrome.com/static/docs/webstore/branding/image/206x58-chrome-web-bcb82d15b2486.png)](https://chromewebstore.google.com/detail/mojpfejnpifdgjjknalhghclnaifnjkg?utm_source=item-share-cb)
 
 Or, click the link here: <https://chromewebstore.google.com/detail/mojpfejnpifdgjjknalhghclnaifnjkg>
+
+🦊 Firefox Browser Extension 🦊
+
+[![Get the Firefox Add-on](https://extensionworkshop.com/assets/img/documentation/publish/get-the-addon-178x60px.dad84b42.png)](https://addons.mozilla.org/en-US/firefox/addon/upwork-job-scraper-webhook/)
+
+Or, click the link here: <https://addons.mozilla.org/en-US/firefox/addon/upwork-job-scraper-webhook/>
 
 ## How it works
 
@@ -195,20 +201,32 @@ Run the build script from the project root:
 .\build.ps1
 ```
 
-Then load (or reload) the extension in Chrome:
+Then load (or reload) the extension:
+
+**Chrome:**
 
 1. Open `chrome://extensions`
 2. Enable **Developer mode**
 3. Click **Load unpacked** and select `app-v3/.output/chrome-mv3/`
 4. On subsequent builds, click the **refresh icon** on the extension card
 
+**Firefox:**
+
+1. Open `about:debugging#/runtime/this-firefox`
+2. Click **Load Temporary Add-on...**
+3. Navigate to `app-v3/.output/firefox-mv3/` and select `manifest.json`
+
 ## Development
 
 ```powershell
 cd app-v3
-npm run dev       # Watch mode with HMR for the options page
-npm run build     # Production build
-npm run compile   # TypeScript type-check only (no output)
+npm run dev             # Chrome — watch mode with HMR for the options page
+npm run dev:firefox     # Firefox — watch mode
+npm run build           # Chrome — production build
+npm run build:firefox   # Firefox — production build
+npm run zip             # Chrome — build + package ZIP
+npm run zip:firefox     # Firefox — build + package ZIP
+npm run compile         # TypeScript type-check only (no output)
 ```
 
 ## Sentry (v3)
@@ -235,16 +253,17 @@ Source-map upload configuration uses build-time env vars:
 
 Release workflow notes:
 
-- CI validates on pull requests via `.github/workflows/ci-validate.yml`.
+- CI validates on pull requests via `.github/workflows/ci-validate.yml` (builds both Chrome and Firefox).
 - Production release runs on pushes to `main` via `.github/workflows/release-publish.yml`.
 - Extension version source of truth is `app-v3/package.json`; WXT derives manifest version automatically.
 - Sourcemaps are uploaded in CI with `sentry-cli`.
 - Chrome Web Store integration is upload-only in CI; publish remains manual in dashboard.
+- Firefox Add-ons (AMO) integration is upload-only in CI; publish remains manual in dashboard.
 
 GitHub settings required for release workflow:
 
 - Create a GitHub Environment named `production` and require reviewers.
-- Add environment secrets: `SENTRY_AUTH_TOKEN`, `CWS_CLIENT_ID`, `CWS_CLIENT_SECRET`, `CWS_REFRESH_TOKEN`.
+- Add environment secrets: `SENTRY_AUTH_TOKEN`, `CWS_CLIENT_ID`, `CWS_CLIENT_SECRET`, `CWS_REFRESH_TOKEN`, `AMO_JWT_ISSUER`, `AMO_JWT_SECRET`.
 - Add repository variables: `WXT_SENTRY_DSN`, `SENTRY_ORG`, `SENTRY_PROJECT`, `CWS_PUBLISHER_ID`, `CWS_EXTENSION_ID`.
 
 ### Release runbook (feature branch -> main)
@@ -255,10 +274,11 @@ GitHub settings required for release workflow:
 - Approve the `production` environment gate when prompted in `Release Publish`.
 - Approval owner: a repository maintainer listed in Environment settings (`Settings -> Environments -> production`); approve from `Actions -> Release Publish -> Review deployments`.
 - Verify `Release Publish` completes all critical steps:
-  - Build and package
-  - Upload ZIP to GitHub release
+  - Build and package (Chrome + Firefox)
+  - Upload ZIPs to GitHub release
   - Upload sourcemaps to Sentry
   - Upload to Chrome Web Store (upload-only)
+  - Upload to Firefox Add-ons / AMO (upload-only)
 - Confirm the new GitHub release exists (tag pattern: `v<package-version>-main.<run-number>`).
 - Confirm the package appears in Chrome Web Store dashboard, then publish manually. <https://chrome.google.com/webstore/devconsole>
 

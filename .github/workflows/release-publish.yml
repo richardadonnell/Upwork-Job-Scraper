@@ -54,7 +54,9 @@ jobs:
           WXT_SENTRY_RELEASE: ${{ steps.meta.outputs.release }}
           SENTRY_SOURCEMAPS: "true"
           SENTRY_UPLOAD_SOURCEMAPS_VITE: "false"
-        run: npm run zip
+        run: |
+          npm run zip
+          npm run zip:firefox
 
       - name: Verify manifest version matches package version
         shell: bash
@@ -101,6 +103,39 @@ jobs:
         shell: bash
         run: |
           gh release upload "${{ steps.meta.outputs.tag }}" "${{ steps.zip.outputs.zip_file }}" --clobber
+
+      - name: Locate Firefox ZIP
+        id: zip_firefox
+        shell: bash
+        run: |
+          ZIP_FILE="$(ls app-v3/.output/*-firefox.zip | head -n 1)"
+          if [[ -z "$ZIP_FILE" ]]; then
+            echo "No Firefox zip artifact found under app-v3/.output"
+            exit 1
+          fi
+          echo "zip_file=$ZIP_FILE" >> "$GITHUB_OUTPUT"
+
+      - name: Upload Firefox ZIP to GitHub release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          gh release upload "${{ steps.meta.outputs.tag }}" "${{ steps.zip_firefox.outputs.zip_file }}" --clobber
+
+      - name: Upload to Firefox Add-ons (upload-only)
+        env:
+          AMO_JWT_ISSUER: ${{ secrets['AMO_JWT_ISSUER'] }}
+          AMO_JWT_SECRET: ${{ secrets['AMO_JWT_SECRET'] }}
+        working-directory: app-v3
+        shell: bash
+        run: |
+          npx --yes web-ext sign \
+            --channel=listed \
+            --api-key="$AMO_JWT_ISSUER" \
+            --api-secret="$AMO_JWT_SECRET" \
+            --source-dir=.output/firefox-mv3 \
+            --no-input \
+            --artifacts-dir=.output/amo-artifacts
 
       - name: Upload sourcemaps to Sentry
         env:
@@ -164,4 +199,6 @@ jobs:
           fi
 
       - name: Manual publish reminder
-        run: echo "Upload complete. Publish manually in the Chrome Web Store dashboard."
+        run: |
+          echo "Chrome: Upload complete. Publish manually in the Chrome Web Store dashboard."
+          echo "Firefox: Version submitted to AMO review queue. Approve in the AMO dashboard when ready to publish."

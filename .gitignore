@@ -53,3 +53,5 @@ misc/
 # Legacy v1 / archived
 extension-v1/
 KEEP-DO-NOT-DELETE/last-public-release/upwork-job-scraper
+docs/
+.omc/
