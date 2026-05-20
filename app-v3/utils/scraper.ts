@@ -145,6 +145,18 @@ function isChromeErrorUrl(url: string | undefined): boolean {
 	return typeof url === "string" && url.startsWith("chrome-error://");
 }
 
+function hasExpectedOrigin(
+	url: string | undefined,
+	expectedOrigin: string,
+): boolean {
+	if (typeof url !== "string" || url === "") return false;
+	try {
+		return new URL(url).origin === expectedOrigin;
+	} catch {
+		return false;
+	}
+}
+
 async function waitForTabComplete(
 	tabId: number,
 	expectedOrigin: string,
@@ -154,7 +166,7 @@ async function waitForTabComplete(
 		if (isChromeErrorUrl(currentTab.url)) {
 			throw new Error("Chrome error page");
 		}
-		if (currentTab.url?.startsWith(expectedOrigin)) {
+		if (hasExpectedOrigin(currentTab.url, expectedOrigin)) {
 			return;
 		}
 	}
@@ -192,8 +204,7 @@ async function waitForTabComplete(
 
 			if (updatedTab.status !== "complete") return;
 
-			const finalUrl = updatedTab.url ?? "";
-			if (finalUrl.startsWith(expectedOrigin)) {
+			if (hasExpectedOrigin(updatedTab.url, expectedOrigin)) {
 				cleanup();
 				resolve();
 			}
@@ -787,46 +798,16 @@ export async function runScrape(options?: { manual?: boolean }): Promise<void> {
 	let anyLoggedOut = false;
 	let anyCaptchaRequired = false;
 
+	// Scrape phase: run in parallel (capped). The phase is pure I/O against
+	// Upwork tabs; it does NOT touch shared storage (seenJobIdsStorage,
+	// jobHistoryStorage, activityLogsStorage), which would otherwise race
+	// under read-modify-write semantics with concurrency > 1.
 	const scrapeOutcomes = await runWithConcurrency(
 		activeTargets,
 		TARGET_CONCURRENCY,
 		async (target) => {
 			try {
-				const result = await scrapeTargetWithRetry(target);
-				const newCount = await processTargetResult(
-					target,
-					result,
-					settings.notificationsEnabled,
-				);
-
-				if (result.ok && result.jobs) {
-					await appendActivityLog(
-						"info",
-						`Scraped: ${newCount} new job${newCount !== 1 ? "s" : ""} found`,
-						target.searchUrl,
-					);
-				} else if (result.reason === "captcha_required") {
-					await appendActivityLog(
-						"warn",
-						"Cloudflare verification required — complete captcha manually to resume scraping",
-						target.searchUrl,
-					);
-				} else if (result.reason === "logged_out") {
-					await appendActivityLog(
-						"warn",
-						"Logged out — please sign in to Upwork",
-						target.searchUrl,
-					);
-				} else if (result.reason === "no_results") {
-					await appendActivityLog("info", "No results found", target.searchUrl);
-				} else {
-					await appendActivityLog(
-						"error",
-						`Scrape failed: ${result.error ?? "unknown error"}`,
-						target.searchUrl,
-					);
-				}
-				return result;
+				return await scrapeTargetWithRetry(target);
 			} catch (err) {
 				captureContextException("background", err, {
 					operation: "runScrape-target",
@@ -837,17 +818,56 @@ export async function runScrape(options?: { manual?: boolean }): Promise<void> {
 					`[Upwork Scraper] Scrape error for ${target.searchUrl}:`,
 					err,
 				);
-				await appendActivityLog(
-					"error",
-					`Scrape failed: ${String(err)}`,
-					target.searchUrl,
-				);
-				return { ok: false, reason: "error" } as ScrapeResult;
+				return {
+					ok: false,
+					reason: "error",
+					error: String(err),
+				} as ScrapeResult;
 			}
 		},
 	);
 
-	for (const result of scrapeOutcomes) {
+	// Post-process phase: sequential. processTargetResult and appendActivityLog
+	// each perform read-modify-write on shared extension storage, so they must
+	// not interleave across targets.
+	for (let i = 0; i < activeTargets.length; i++) {
+		const target = activeTargets[i];
+		const result = scrapeOutcomes[i];
+
+		const newCount = await processTargetResult(
+			target,
+			result,
+			settings.notificationsEnabled,
+		);
+
+		if (result.ok && result.jobs) {
+			await appendActivityLog(
+				"info",
+				`Scraped: ${newCount} new job${newCount !== 1 ? "s" : ""} found`,
+				target.searchUrl,
+			);
+		} else if (result.reason === "captcha_required") {
+			await appendActivityLog(
+				"warn",
+				"Cloudflare verification required — complete captcha manually to resume scraping",
+				target.searchUrl,
+			);
+		} else if (result.reason === "logged_out") {
+			await appendActivityLog(
+				"warn",
+				"Logged out — please sign in to Upwork",
+				target.searchUrl,
+			);
+		} else if (result.reason === "no_results") {
+			await appendActivityLog("info", "No results found", target.searchUrl);
+		} else {
+			await appendActivityLog(
+				"error",
+				`Scrape failed: ${result.error ?? "unknown error"}`,
+				target.searchUrl,
+			);
+		}
+
 		if (isCaptchaRequiredResult(result)) anyCaptchaRequired = true;
 		else if (isLoggedOutResult(result)) anyLoggedOut = true;
 		else if (isErrorResult(result)) anyError = true;
