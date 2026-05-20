@@ -141,16 +141,34 @@ async function resolveWindowIdForBackgroundTab(): Promise<number | undefined> {
 	return windows.find((window) => typeof window.id === "number")?.id;
 }
 
+function isChromeErrorUrl(url: string | undefined): boolean {
+	return typeof url === "string" && url.startsWith("chrome-error://");
+}
+
+function hasExpectedOrigin(
+	url: string | undefined,
+	expectedOrigin: string,
+): boolean {
+	if (typeof url !== "string" || url === "") return false;
+	try {
+		return new URL(url).origin === expectedOrigin;
+	} catch {
+		return false;
+	}
+}
+
 async function waitForTabComplete(
 	tabId: number,
-	expectedBase: string,
+	expectedOrigin: string,
 ): Promise<void> {
 	const currentTab = await browser.tabs.get(tabId).catch(() => null);
-	if (
-		currentTab?.status === "complete" &&
-		currentTab.url?.startsWith(expectedBase)
-	) {
-		return;
+	if (currentTab?.status === "complete") {
+		if (isChromeErrorUrl(currentTab.url)) {
+			throw new Error("Chrome error page");
+		}
+		if (hasExpectedOrigin(currentTab.url, expectedOrigin)) {
+			return;
+		}
 	}
 
 	await new Promise<void>((resolve, reject) => {
@@ -173,14 +191,20 @@ async function waitForTabComplete(
 
 		const onUpdated = (
 			updatedTabId: number,
-			_changeInfo: unknown,
+			changeInfo: { status?: string; url?: string },
 			updatedTab: { status?: string; url?: string },
 		) => {
-			if (
-				updatedTabId === tabId &&
-				updatedTab.status === "complete" &&
-				updatedTab.url?.startsWith(expectedBase)
-			) {
+			if (updatedTabId !== tabId) return;
+
+			if (isChromeErrorUrl(changeInfo.url) || isChromeErrorUrl(updatedTab.url)) {
+				cleanup();
+				reject(new Error("Chrome error page"));
+				return;
+			}
+
+			if (updatedTab.status !== "complete") return;
+
+			if (hasExpectedOrigin(updatedTab.url, expectedOrigin)) {
 				cleanup();
 				resolve();
 			}
@@ -239,12 +263,14 @@ async function scrapeTarget(target: SearchTarget): Promise<ScrapeResult> {
 		const tabId = tab.id;
 		tabIdToRemove = tabId;
 
-		// Build the base URL (origin + pathname) so we wait for the actual search
-		// results page, not an intermediate Cloudflare challenge redirect.
-		const { origin, pathname } = new URL(target.searchUrl);
-		const expectedBase = origin + pathname;
+		// Match on origin only. Upwork bounces tabs through Cloudflare challenges,
+		// login redirects, and other same-origin paths before settling; pathname-strict
+		// matching meant we waited the full 60s timeout instead of letting Phase 2
+		// detect the captcha/login state. Phase 2 still polls 10s for job cards or
+		// Cloudflare markers, so loosening this check is safe.
+		const { origin } = new URL(target.searchUrl);
 
-		await waitForTabComplete(tabId, expectedBase);
+		await waitForTabComplete(tabId, origin);
 
 		// Upwork is a React SPA — job cards are rendered asynchronously after the
 		// browser fires status:complete. Use an inline executeScript (MV3 awaits
@@ -328,6 +354,14 @@ async function scrapeTarget(target: SearchTarget): Promise<ScrapeResult> {
 				ok: false,
 				reason: "error",
 				error: "Tab load timeout",
+			};
+		}
+
+		if (/Chrome error page/i.test(toErrorMessage(error))) {
+			return {
+				ok: false,
+				reason: "error",
+				error: "Chrome error page (network failure)",
 			};
 		}
 
@@ -673,6 +707,54 @@ function isErrorResult(result: ScrapeResult): boolean {
 	);
 }
 
+const TARGET_CONCURRENCY = 2;
+const TAB_TIMEOUT_RETRY_DELAY_MS = 7_000;
+
+async function scrapeTargetWithRetry(
+	target: SearchTarget,
+): Promise<ScrapeResult> {
+	const first = await scrapeTarget(target);
+
+	const shouldRetry =
+		!first.ok &&
+		first.reason === "error" &&
+		typeof first.error === "string" &&
+		/Tab load timeout/i.test(first.error);
+
+	if (!shouldRetry) return first;
+
+	console.warn(
+		`[Upwork Scraper] Tab load timeout for ${target.searchUrl} — retrying once after ${TAB_TIMEOUT_RETRY_DELAY_MS}ms`,
+	);
+	await new Promise((r) => setTimeout(r, TAB_TIMEOUT_RETRY_DELAY_MS));
+	return scrapeTarget(target);
+}
+
+async function runWithConcurrency<T, R>(
+	items: readonly T[],
+	limit: number,
+	worker: (item: T, index: number) => Promise<R>,
+): Promise<R[]> {
+	const results = new Array<R>(items.length);
+	let cursor = 0;
+
+	const runOne = async (): Promise<void> => {
+		while (true) {
+			const index = cursor;
+			cursor += 1;
+			if (index >= items.length) return;
+			results[index] = await worker(items[index], index);
+		}
+	};
+
+	const workers = Array.from(
+		{ length: Math.min(limit, items.length) },
+		runOne,
+	);
+	await Promise.all(workers);
+	return results;
+}
+
 export async function runScrape(options?: { manual?: boolean }): Promise<void> {
 	const settings = sanitizeSettings(await settingsStorage.getValue());
 
@@ -716,44 +798,16 @@ export async function runScrape(options?: { manual?: boolean }): Promise<void> {
 	let anyLoggedOut = false;
 	let anyCaptchaRequired = false;
 
-	const scrapeOutcomes = await Promise.all(
-		activeTargets.map(async (target) => {
+	// Scrape phase: run in parallel (capped). The phase is pure I/O against
+	// Upwork tabs; it does NOT touch shared storage (seenJobIdsStorage,
+	// jobHistoryStorage, activityLogsStorage), which would otherwise race
+	// under read-modify-write semantics with concurrency > 1.
+	const scrapeOutcomes = await runWithConcurrency(
+		activeTargets,
+		TARGET_CONCURRENCY,
+		async (target) => {
 			try {
-				const result = await scrapeTarget(target);
-				const newCount = await processTargetResult(
-					target,
-					result,
-					settings.notificationsEnabled,
-				);
-
-				if (result.ok && result.jobs) {
-					await appendActivityLog(
-						"info",
-						`Scraped: ${newCount} new job${newCount !== 1 ? "s" : ""} found`,
-						target.searchUrl,
-					);
-				} else if (result.reason === "captcha_required") {
-					await appendActivityLog(
-						"warn",
-						"Cloudflare verification required — complete captcha manually to resume scraping",
-						target.searchUrl,
-					);
-				} else if (result.reason === "logged_out") {
-					await appendActivityLog(
-						"warn",
-						"Logged out — please sign in to Upwork",
-						target.searchUrl,
-					);
-				} else if (result.reason === "no_results") {
-					await appendActivityLog("info", "No results found", target.searchUrl);
-				} else {
-					await appendActivityLog(
-						"error",
-						`Scrape failed: ${result.error ?? "unknown error"}`,
-						target.searchUrl,
-					);
-				}
-				return result;
+				return await scrapeTargetWithRetry(target);
 			} catch (err) {
 				captureContextException("background", err, {
 					operation: "runScrape-target",
@@ -764,17 +818,56 @@ export async function runScrape(options?: { manual?: boolean }): Promise<void> {
 					`[Upwork Scraper] Scrape error for ${target.searchUrl}:`,
 					err,
 				);
-				await appendActivityLog(
-					"error",
-					`Scrape failed: ${String(err)}`,
-					target.searchUrl,
-				);
-				return { ok: false, reason: "error" } as ScrapeResult;
+				return {
+					ok: false,
+					reason: "error",
+					error: String(err),
+				} as ScrapeResult;
 			}
-		}),
+		},
 	);
 
-	for (const result of scrapeOutcomes) {
+	// Post-process phase: sequential. processTargetResult and appendActivityLog
+	// each perform read-modify-write on shared extension storage, so they must
+	// not interleave across targets.
+	for (let i = 0; i < activeTargets.length; i++) {
+		const target = activeTargets[i];
+		const result = scrapeOutcomes[i];
+
+		const newCount = await processTargetResult(
+			target,
+			result,
+			settings.notificationsEnabled,
+		);
+
+		if (result.ok && result.jobs) {
+			await appendActivityLog(
+				"info",
+				`Scraped: ${newCount} new job${newCount !== 1 ? "s" : ""} found`,
+				target.searchUrl,
+			);
+		} else if (result.reason === "captcha_required") {
+			await appendActivityLog(
+				"warn",
+				"Cloudflare verification required — complete captcha manually to resume scraping",
+				target.searchUrl,
+			);
+		} else if (result.reason === "logged_out") {
+			await appendActivityLog(
+				"warn",
+				"Logged out — please sign in to Upwork",
+				target.searchUrl,
+			);
+		} else if (result.reason === "no_results") {
+			await appendActivityLog("info", "No results found", target.searchUrl);
+		} else {
+			await appendActivityLog(
+				"error",
+				`Scrape failed: ${result.error ?? "unknown error"}`,
+				target.searchUrl,
+			);
+		}
+
 		if (isCaptchaRequiredResult(result)) anyCaptchaRequired = true;
 		else if (isLoggedOutResult(result)) anyLoggedOut = true;
 		else if (isErrorResult(result)) anyError = true;
