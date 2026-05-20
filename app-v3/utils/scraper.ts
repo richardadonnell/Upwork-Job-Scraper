@@ -696,6 +696,54 @@ function isErrorResult(result: ScrapeResult): boolean {
 	);
 }
 
+const TARGET_CONCURRENCY = 2;
+const TAB_TIMEOUT_RETRY_DELAY_MS = 7_000;
+
+async function scrapeTargetWithRetry(
+	target: SearchTarget,
+): Promise<ScrapeResult> {
+	const first = await scrapeTarget(target);
+
+	const shouldRetry =
+		!first.ok &&
+		first.reason === "error" &&
+		typeof first.error === "string" &&
+		/Tab load timeout/i.test(first.error);
+
+	if (!shouldRetry) return first;
+
+	console.warn(
+		`[Upwork Scraper] Tab load timeout for ${target.searchUrl} — retrying once after ${TAB_TIMEOUT_RETRY_DELAY_MS}ms`,
+	);
+	await new Promise((r) => setTimeout(r, TAB_TIMEOUT_RETRY_DELAY_MS));
+	return scrapeTarget(target);
+}
+
+async function runWithConcurrency<T, R>(
+	items: readonly T[],
+	limit: number,
+	worker: (item: T, index: number) => Promise<R>,
+): Promise<R[]> {
+	const results = new Array<R>(items.length);
+	let cursor = 0;
+
+	const runOne = async (): Promise<void> => {
+		while (true) {
+			const index = cursor;
+			cursor += 1;
+			if (index >= items.length) return;
+			results[index] = await worker(items[index], index);
+		}
+	};
+
+	const workers = Array.from(
+		{ length: Math.min(limit, items.length) },
+		runOne,
+	);
+	await Promise.all(workers);
+	return results;
+}
+
 export async function runScrape(options?: { manual?: boolean }): Promise<void> {
 	const settings = sanitizeSettings(await settingsStorage.getValue());
 
@@ -739,10 +787,12 @@ export async function runScrape(options?: { manual?: boolean }): Promise<void> {
 	let anyLoggedOut = false;
 	let anyCaptchaRequired = false;
 
-	const scrapeOutcomes = await Promise.all(
-		activeTargets.map(async (target) => {
+	const scrapeOutcomes = await runWithConcurrency(
+		activeTargets,
+		TARGET_CONCURRENCY,
+		async (target) => {
 			try {
-				const result = await scrapeTarget(target);
+				const result = await scrapeTargetWithRetry(target);
 				const newCount = await processTargetResult(
 					target,
 					result,
@@ -794,7 +844,7 @@ export async function runScrape(options?: { manual?: boolean }): Promise<void> {
 				);
 				return { ok: false, reason: "error" } as ScrapeResult;
 			}
-		}),
+		},
 	);
 
 	for (const result of scrapeOutcomes) {
